@@ -108,10 +108,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=https://radarapp.fr/api/v1
+        - NEXT_PUBLIC_API_URL=https://radarapp.fr
     container_name: radar_frontend_prod
     environment:
-      - NEXT_PUBLIC_API_URL=https://radarapp.fr/api/v1
+      - NEXT_PUBLIC_API_URL=https://radarapp.fr
     expose:
       - "3000"
     depends_on:
