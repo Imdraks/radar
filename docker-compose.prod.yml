@@ -107,9 +107,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://radarapp.fr/api/v1
     container_name: radar_frontend_prod
     environment:
-      - NEXT_PUBLIC_API_URL=https://radarapp.fr/api/v1
+      - NEXT_PUBLIC_API_URL=http://radarapp.fr/api/v1
     expose:
       - "3000"
     depends_on:
