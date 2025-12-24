@@ -79,7 +79,6 @@ export function NotificationCenter() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
         setIsConnected(true);
       };
 
@@ -114,13 +113,12 @@ export function NotificationCenter() {
               queryClient.invalidateQueries({ queryKey: ["opportunities"] });
             }
           }
-        } catch (e) {
-          console.error("Failed to parse WebSocket message:", e);
+        } catch {
+          // Silently ignore parse errors
         }
       };
 
       ws.onclose = () => {
-        console.log("WebSocket disconnected");
         setIsConnected(false);
         
         // Reconnect after 5 seconds
@@ -129,12 +127,11 @@ export function NotificationCenter() {
         }, 5000);
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+      ws.onerror = () => {
         ws.close();
       };
-    } catch (e) {
-      console.error("Failed to create WebSocket:", e);
+    } catch {
+      // Silently ignore WebSocket creation errors
     }
   }, [user, queryClient]);
 

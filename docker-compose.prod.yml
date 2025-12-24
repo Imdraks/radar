@@ -112,6 +112,8 @@ services:
     container_name: radar_frontend_prod
     environment:
       - NEXT_PUBLIC_API_URL=
+      - INTERNAL_API_URL=http://backend:8000
+      - NODE_ENV=production
     expose:
       - "3000"
     depends_on:

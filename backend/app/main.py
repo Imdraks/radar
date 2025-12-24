@@ -39,14 +39,22 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS configuration
+# CORS configuration - dynamic based on environment
+cors_origins = [
+    settings.frontend_url,
+    settings.backend_url,
+    "https://radarapp.fr",
+    "http://radarapp.fr",
+    "https://www.radarapp.fr",
+    "http://37.59.106.73",
+]
+# Add localhost in development mode
+if settings.app_env == "development":
+    cors_origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

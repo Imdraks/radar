@@ -323,8 +323,8 @@ export function GoogleCalendarIntegration() {
 // Hook for syncing opportunities to calendar
 export function useGoogleCalendar() {
   const syncToCalendar = async (opportunity: Opportunity) => {
-    // This would integrate with the actual Google Calendar API
-    console.log("Syncing to calendar:", opportunity);
+    // TODO: Implement Google Calendar API integration
+    // For now, this is a placeholder
   };
 
   return { syncToCalendar };

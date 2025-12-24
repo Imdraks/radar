@@ -142,8 +142,8 @@ function BriefsContent() {
               key={brief.id} 
               brief={brief}
               onEntityClick={(entityId) => {
-                // Could navigate to entity detail page
-                console.log("Navigate to entity:", entityId);
+                // Navigate to entity detail page
+                window.location.href = `/entities/${entityId}`;
               }}
             />
           ))}

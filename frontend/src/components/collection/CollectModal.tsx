@@ -174,17 +174,8 @@ export function CollectModal({ onCollect, isCollecting = false }: CollectModalPr
       budgetRange,
     };
     
-    console.log("🚀 [Collecte Avancée] Démarrage...");
-    console.log("📋 [Collecte] Objectif:", objective);
-    console.log("🎯 [Collecte] Entités:", entities);
-    console.log("🔑 [Collecte] Mots-clés secondaires:", secondaryKeywords);
-    console.log("📅 [Collecte] Période:", timeframeDays, "jours");
-    console.log("📞 [Collecte] Priorité contacts:", requireContact);
-    
     try {
       const result = await onCollect(params);
-      
-      console.log("✅ [Collecte] Réponse:", result);
       
       if (result.source_count === 0) {
         addToast({
@@ -215,7 +206,6 @@ export function CollectModal({ onCollect, isCollecting = false }: CollectModalPr
         resetForm();
       }
     } catch (error: any) {
-      console.error("❌ [Collecte] Erreur:", error);
       addToast({
         title: "Erreur de collecte",
         description: error.response?.data?.detail || error.message,

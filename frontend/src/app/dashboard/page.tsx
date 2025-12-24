@@ -158,9 +158,6 @@ function DashboardContent() {
     setIsTriggering(true);
     setTriggerStatus("idle");
     
-    console.log("🚀 [Collecte] Démarrage de la collecte...");
-    console.log("📋 [Collecte] Paramètres:", collectParams);
-    
     try {
       // Construire les paramètres de recherche
       const searchParams = {
@@ -171,22 +168,15 @@ function DashboardContent() {
         budget_max: BUDGET_RANGES[collectParams.budgetRange]?.max,
       };
       
-      console.log("📤 [Collecte] Envoi de la requête avec searchParams:", searchParams);
-      
       const result = await ingestionApi.trigger(undefined, searchParams);
       
-      console.log("✅ [Collecte] Réponse reçue:", result);
-      console.log(`📊 [Collecte] ${result.source_count} source(s) traitée(s)`);
-      
       if (result.source_count === 0) {
-        console.warn("⚠️ [Collecte] Aucune source active trouvée");
         addToast({
           title: "Aucune source active",
           description: "Configurez des sources dans l'onglet Sources pour lancer une collecte",
           type: "warning",
         });
       } else {
-        console.log(`🎯 [Collecte] ${result.task_ids?.length || 0} tâche(s) lancée(s)`);
         addToast({
           title: "Collecte lancée !",
           description: `${result.source_count} source(s) en cours de traitement`,
@@ -199,16 +189,12 @@ function DashboardContent() {
       
       // Rafraîchir les données après 2 secondes
       setTimeout(() => {
-        console.log("🔄 [Collecte] Rafraîchissement des données...");
         queryClient.invalidateQueries({ queryKey: ["dashboard"] });
         refetchIngestions();
       }, 2000);
       // Réinitialiser le statut après 3 secondes
       setTimeout(() => setTriggerStatus("idle"), 3000);
     } catch (error: any) {
-      console.error("❌ [Collecte] Erreur:", error);
-      console.error("❌ [Collecte] Détails:", error.response?.data || error.message);
-      
       addToast({
         title: "Erreur de collecte",
         description: error.response?.data?.detail || error.message || "Une erreur est survenue",
@@ -219,7 +205,6 @@ function DashboardContent() {
       setTimeout(() => setTriggerStatus("idle"), 3000);
     } finally {
       setIsTriggering(false);
-      console.log("🏁 [Collecte] Processus terminé");
     }
   };
 
