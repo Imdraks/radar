@@ -173,10 +173,13 @@ export function KanbanBoard() {
     })
   );
 
-  const { data: opportunities = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["opportunities", "kanban"],
     queryFn: () => opportunitiesApi.getAll({ limit: 200 }),
   });
+
+  // Extract items from paginated response
+  const opportunities = data?.items || [];
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
