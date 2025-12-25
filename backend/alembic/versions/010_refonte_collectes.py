@@ -73,7 +73,7 @@ def upgrade():
         sa.Column('description', sa.Text, nullable=True),
         sa.Column('organization_name', sa.String(300), nullable=True),
         sa.Column('url_primary', sa.String(2000), nullable=True),
-        sa.Column('source_id', sa.Integer, sa.ForeignKey('sources.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('source_id', sa.Integer, sa.ForeignKey('source_configs.id', ondelete='SET NULL'), nullable=True),
         sa.Column('source_name', sa.String(255), nullable=True),
         sa.Column('source_type', sa.String(50), nullable=True),  # HTML, RSS, EMAIL, API
         sa.Column('published_at', sa.DateTime(timezone=True), nullable=True),
