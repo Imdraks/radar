@@ -39,6 +39,7 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AppLayout, ProtectedRoute } from "@/components/layout";
 import {
   Card,
   CardContent,
@@ -342,23 +343,33 @@ export default function DossierDetailPage() {
 
   if (isLoadingDossier) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
     );
   }
 
   if (!dossier) {
     return (
-      <div className="container mx-auto py-12 text-center">
-        <h1 className="text-xl font-medium mb-4">Dossier non trouvé</h1>
-        <Button onClick={() => router.push("/dossiers")}>Retour aux dossiers</Button>
-      </div>
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="container mx-auto py-12 text-center">
+            <h1 className="text-xl font-medium mb-4">Dossier non trouvé</h1>
+            <Button onClick={() => router.push("/dossiers")}>Retour aux dossiers</Button>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    <ProtectedRoute>
+      <AppLayout>
+        <div className="container mx-auto py-6 px-4">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-start gap-4">
@@ -726,6 +737,8 @@ export default function DossierDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { dossiersApi, DossierSummary, DossierStats } from "@/lib/api";
+import { AppLayout, ProtectedRoute } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -252,26 +253,28 @@ export default function DossiersPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Dossiers
-          </h1>
-          <p className="text-muted-foreground">
-            Opportunités analysées avec sources vérifiées
-          </p>
-        </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
-        </Button>
-      </div>
+    <ProtectedRoute>
+      <AppLayout>
+        <div className="container mx-auto py-6 px-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <FileText className="h-6 w-6" />
+                Dossiers
+              </h1>
+              <p className="text-muted-foreground">
+                Opportunités analysées avec sources vérifiées
+              </p>
+            </div>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualiser
+            </Button>
+          </div>
 
-      {/* Stats */}
-      <StatsCards stats={stats} />
+          {/* Stats */}
+          <StatsCards stats={stats} />
 
       {/* Filters */}
       <Card className="mb-6">
@@ -357,6 +360,8 @@ export default function DossiersPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+        </div>
+      </AppLayout>
+    </ProtectedRoute>
   );
 }
