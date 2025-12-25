@@ -166,7 +166,7 @@ class LeadItem(Base):
     description = Column(Text, nullable=True)
     organization_name = Column(String(300), nullable=True)
     url_primary = Column(String(2000), nullable=True)
-    source_id = Column(Integer, ForeignKey('sources.id', ondelete='SET NULL'), nullable=True)
+    source_id = Column(Integer, ForeignKey('source_configs.id', ondelete='SET NULL'), nullable=True)
     source_name = Column(String(255), nullable=True)
     source_type = Column(String(50), nullable=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
@@ -253,13 +253,13 @@ class CollectionResult(Base):
 
 class SourceDocument(Base):
     """Documents bruts servant de preuves"""
-    __tablename__ = "source_documents"
+    __tablename__ = "source_documents_v2"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     lead_item_id = Column(UUID(as_uuid=True), ForeignKey('lead_items.id', ondelete='CASCADE'), nullable=True)
     collection_id = Column(UUID(as_uuid=True), ForeignKey('collections.id', ondelete='SET NULL'), nullable=True)
     dossier_id = Column(UUID(as_uuid=True), ForeignKey('dossiers_v2.id', ondelete='SET NULL'), nullable=True)
-    source_id = Column(Integer, ForeignKey('sources.id', ondelete='SET NULL'), nullable=True)
+    source_id = Column(Integer, ForeignKey('source_configs.id', ondelete='SET NULL'), nullable=True)
     url = Column(String(2000), nullable=True)
     doc_type = Column(String(30), nullable=True)
     raw_html = Column(Text, nullable=True)
@@ -325,7 +325,7 @@ class Evidence(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     lead_item_id = Column(UUID(as_uuid=True), ForeignKey('lead_items.id', ondelete='CASCADE'), nullable=True)
     dossier_id = Column(UUID(as_uuid=True), ForeignKey('dossiers_v2.id', ondelete='CASCADE'), nullable=True)
-    source_document_id = Column(UUID(as_uuid=True), ForeignKey('source_documents.id', ondelete='SET NULL'), nullable=True)
+    source_document_id = Column(UUID(as_uuid=True), ForeignKey('source_documents_v2.id', ondelete='SET NULL'), nullable=True)
     field_name = Column(String(100), nullable=False)  # Champ ciblé
     value = Column(Text, nullable=True)  # Valeur extraite
     quote = Column(Text, nullable=True)  # Citation exacte du document

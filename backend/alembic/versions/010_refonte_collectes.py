@@ -127,15 +127,15 @@ def upgrade():
     op.create_unique_constraint('uq_collection_results', 'collection_results', ['collection_id', 'lead_item_id'])
 
     # ================================================================
-    # 5. TABLE SOURCE_DOCUMENTS - Documents bruts (preuves)
+    # 5. TABLE SOURCE_DOCUMENTS_V2 - Documents bruts (preuves)
     # Note: dossier_id sera ajouté via ALTER TABLE après création de dossiers_v2
     # ================================================================
     op.create_table(
-        'source_documents',
+        'source_documents_v2',
         sa.Column('id', UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column('lead_item_id', UUID(as_uuid=True), sa.ForeignKey('lead_items.id', ondelete='CASCADE'), nullable=True),
         sa.Column('collection_id', UUID(as_uuid=True), sa.ForeignKey('collections.id', ondelete='SET NULL'), nullable=True),
-        sa.Column('source_id', sa.Integer, sa.ForeignKey('sources.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('source_id', sa.Integer, sa.ForeignKey('source_configs.id', ondelete='SET NULL'), nullable=True),
         sa.Column('url', sa.String(2000), nullable=True),
         sa.Column('doc_type', sa.String(30), nullable=True),  # HTML, PDF_TEXT, EMAIL_TEXT, WEB_SNAPSHOT_TEXT, WEB_EXTRACT
         sa.Column('raw_html', sa.Text, nullable=True),  # HTML brut
@@ -146,10 +146,10 @@ def upgrade():
         sa.Column('metadata', JSONB, nullable=True),  # content_type, size, etc.
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    op.create_index('ix_source_documents_lead_item_id', 'source_documents', ['lead_item_id'])
-    op.create_index('ix_source_documents_collection_id', 'source_documents', ['collection_id'])
-    op.create_index('ix_source_documents_doc_type', 'source_documents', ['doc_type'])
-    op.create_index('ix_source_documents_url', 'source_documents', ['url'])
+    op.create_index('ix_source_documents_v2_lead_item_id', 'source_documents_v2', ['lead_item_id'])
+    op.create_index('ix_source_documents_v2_collection_id', 'source_documents_v2', ['collection_id'])
+    op.create_index('ix_source_documents_v2_doc_type', 'source_documents_v2', ['doc_type'])
+    op.create_index('ix_source_documents_v2_url', 'source_documents_v2', ['url'])
 
     # ================================================================
     # 6. TABLE DOSSIERS - Packaging IA (1:1 avec lead_item)
@@ -179,13 +179,13 @@ def upgrade():
     op.create_index('ix_dossiers_v2_state', 'dossiers_v2', ['state'])
     op.create_index('ix_dossiers_v2_quality_score', 'dossiers_v2', ['quality_score'])
 
-    # Ajouter la FK dossier_id à source_documents maintenant que dossiers_v2 existe
-    op.add_column('source_documents', 
+    # Ajouter la FK dossier_id à source_documents_v2 maintenant que dossiers_v2 existe
+    op.add_column('source_documents_v2', 
         sa.Column('dossier_id', UUID(as_uuid=True), nullable=True)
     )
     op.create_foreign_key(
-        'fk_source_documents_dossier', 
-        'source_documents', 'dossiers_v2',
+        'fk_source_documents_v2_dossier', 
+        'source_documents_v2', 'dossiers_v2',
         ['dossier_id'], ['id'],
         ondelete='SET NULL'
     )
@@ -198,7 +198,7 @@ def upgrade():
         sa.Column('id', UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         sa.Column('lead_item_id', UUID(as_uuid=True), sa.ForeignKey('lead_items.id', ondelete='CASCADE'), nullable=True),
         sa.Column('dossier_id', UUID(as_uuid=True), sa.ForeignKey('dossiers_v2.id', ondelete='CASCADE'), nullable=True),
-        sa.Column('source_document_id', UUID(as_uuid=True), sa.ForeignKey('source_documents.id', ondelete='SET NULL'), nullable=True),
+        sa.Column('source_document_id', UUID(as_uuid=True), sa.ForeignKey('source_documents_v2.id', ondelete='SET NULL'), nullable=True),
         sa.Column('field_name', sa.String(100), nullable=False),  # budget_max, contact_email, deadline_at, etc.
         sa.Column('value', sa.Text, nullable=True),  # Valeur extraite
         sa.Column('quote', sa.Text, nullable=True),  # Citation exacte du document
@@ -216,7 +216,7 @@ def upgrade():
 def downgrade():
     op.drop_table('evidence')
     op.drop_table('dossiers_v2')
-    op.drop_table('source_documents')
+    op.drop_table('source_documents_v2')
     op.drop_table('collection_results')
     op.drop_table('lead_items')
     op.drop_table('collection_logs')
