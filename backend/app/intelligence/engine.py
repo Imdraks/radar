@@ -17,13 +17,85 @@ from .opportunity_scorer import OpportunityScorer, ScoringResult
 
 logger = logging.getLogger(__name__)
 
-# Sources par défaut pour la recherche intelligente
-DEFAULT_SEARCH_SOURCES = [
-    "https://www.fnacspectacles.com/recherche/artiste/{query}",
+# ============================================================================
+# SOURCES FIABLES POUR LA RECHERCHE INTELLIGENTE
+# ============================================================================
+
+# Billetterie France
+TICKETING_SOURCES = [
+    "https://www.fnacspectacles.com/recherche/{query}",
     "https://www.ticketmaster.fr/search?q={query}",
+    "https://www.billetreduc.com/recherche.htm?keywords={query}",
+    "https://www.digitick.com/recherche?q={query}",
+    "https://www.francebillet.com/recherche/{query}",
+    "https://www.carrefourspectacles.fr/recherche?q={query}",
+    "https://www.seetickets.com/fr/search?q={query}",
+    "https://www.eventim.fr/search/?affiliate=EVE&searchterm={query}",
+]
+
+# Concerts & Festivals
+CONCERT_SOURCES = [
     "https://www.infoconcert.com/recherche?q={query}",
-    "https://www.songkick.com/search?query={query}",
-    "https://www.bandsintown.com/a/{query}",
+    "https://www.concertandco.com/recherche?q={query}",
+    "https://www.sortiraparis.com/recherche?q={query}",
+    "https://www.lyonpremiere.com/recherche?q={query}",
+    "https://www.agenda-concerts.com/recherche.php?q={query}",
+    "https://www.festivalfinder.eu/search?q={query}",
+]
+
+# Artistes & Booking International
+ARTIST_SOURCES = [
+    "https://www.viberate.com/artist/{slug}/",
+    "https://www.songkick.com/search?query={query}&type=artists",
+    "https://www.bandsintown.com/search?search_term={query}",
+    "https://www.setlist.fm/search?query={query}",
+    "https://www.discogs.com/search/?q={query}&type=artist",
+    "https://www.allmusic.com/search/artists/{query}",
+    "https://musicbrainz.org/search?query={query}&type=artist",
+]
+
+# Booking & Management France
+BOOKING_SOURCES = [
+    "https://www.musicagent.fr/recherche?q={query}",
+    "https://www.music-booking.com/recherche/{query}",
+    "https://www.artiste-booking.com/recherche?q={query}",
+    "https://www.zikinf.com/annuaire/recherche.php?q={query}",
+]
+
+# Médias & Actualités Musique France
+MEDIA_SOURCES = [
+    "https://www.mouv.fr/recherche?q={query}",
+    "https://www.raprnb.com/?s={query}",
+    "https://www.booska-p.com/?s={query}",
+    "https://www.lesinrocks.com/recherche/?q={query}",
+    "https://www.telerama.fr/recherche?q={query}",
+    "https://www.rollingstone.fr/?s={query}",
+]
+
+# Labels & Maisons de disques
+LABEL_SOURCES = [
+    "https://music.apple.com/fr/search?term={query}",
+    "https://open.spotify.com/search/{query}",
+]
+
+# Salles & Lieux de concert France
+VENUE_SOURCES = [
+    "https://www.accorarenaparis.com/agenda?search={query}",
+    "https://www.olympiahall.com/agenda?search={query}",
+    "https://www.zenith-paris.com/agenda?search={query}",
+    "https://www.bataclan.fr/recherche?q={query}",
+    "https://www.elysee-montmartre.com/agenda?search={query}",
+    "https://www.sallepleyel.com/recherche?q={query}",
+    "https://www.philharmoniedeparis.fr/fr/recherche?q={query}",
+    "https://www.casino-de-paris.fr/recherche?q={query}",
+    "https://www.laflecnedeparis.fr/recherche?q={query}",
+]
+
+# Marchés Publics & Appels d'Offres
+PUBLIC_MARKET_SOURCES = [
+    "https://www.boamp.fr/avis/search?q={query}",
+    "https://www.marches-publics.gouv.fr/?q={query}",
+    "https://www.achatpublic.com/recherche?q={query}",
 ]
 
 
@@ -180,41 +252,62 @@ class IntelligenceEngine:
     async def _generate_search_sources(self, query: str, is_artist_search: bool) -> List[str]:
         """
         Génère automatiquement des URLs de recherche basées sur la query.
-        Utilise des sites de billetterie et d'événements français.
+        Utilise des sites fiables de billetterie, événements et booking français/internationaux.
         """
         sources = []
         
         # Extraire le nom de l'artiste/recherche propre
         query_encoded = quote_plus(query)
-        query_slug = query.lower().replace(' ', '-').replace("'", "")
+        query_slug = query.lower().replace(' ', '-').replace("'", "").replace("é", "e").replace("è", "e")
+        
+        # Fonction helper pour formatter les URLs
+        def format_sources(source_list: List[str]) -> List[str]:
+            return [
+                url.format(query=query_encoded, slug=query_slug)
+                for url in source_list
+            ]
         
         if is_artist_search:
-            # Sources pour recherche d'artiste
-            artist_sources = [
-                f"https://www.fnacspectacles.com/recherche/{query_encoded}",
-                f"https://www.ticketmaster.fr/search?q={query_encoded}",
-                f"https://www.infoconcert.com/recherche?q={query_encoded}",
-                f"https://www.songkick.com/search?query={query_encoded}&type=artists",
-                f"https://www.bandsintown.com/search?search_term={query_encoded}",
-                f"https://www.setlist.fm/search?query={query_encoded}",
-                f"https://www.viberate.com/artist/{query_slug}/",
-                f"https://www.google.com/search?q={query_encoded}+concert+date+2025",
-            ]
-            sources.extend(artist_sources)
+            # === SOURCES POUR RECHERCHE D'ARTISTE ===
+            
+            # 1. Billetterie (pour trouver les dates de concert)
+            sources.extend(format_sources(TICKETING_SOURCES[:5]))
+            
+            # 2. Sites spécialisés artistes
+            sources.extend(format_sources(ARTIST_SOURCES))
+            
+            # 3. Concerts & festivals
+            sources.extend(format_sources(CONCERT_SOURCES[:4]))
+            
+            # 4. Booking agencies
+            sources.extend(format_sources(BOOKING_SOURCES))
+            
+            # 5. Médias musique (pour les actus/contacts)
+            sources.extend(format_sources(MEDIA_SOURCES[:3]))
+            
+            # 6. Salles de concert (pour les dates)
+            sources.extend(format_sources(VENUE_SOURCES[:5]))
+            
         else:
-            # Sources génériques pour événements
-            event_sources = [
-                f"https://www.fnacspectacles.com/recherche/{query_encoded}",
-                f"https://www.ticketmaster.fr/search?q={query_encoded}",
-                f"https://www.billetreduc.com/recherche.htm?keywords={query_encoded}",
-                f"https://www.infoconcert.com/recherche?q={query_encoded}",
-                f"https://www.google.com/search?q={query_encoded}+festival+événement+2025",
-            ]
-            sources.extend(event_sources)
+            # === SOURCES POUR RECHERCHE D'ÉVÉNEMENTS/MARCHÉS ===
+            
+            # 1. Billetterie
+            sources.extend(format_sources(TICKETING_SOURCES))
+            
+            # 2. Concerts & festivals
+            sources.extend(format_sources(CONCERT_SOURCES))
+            
+            # 3. Marchés publics (pour les appels d'offres)
+            sources.extend(format_sources(PUBLIC_MARKET_SOURCES))
         
-        print(f"   📋 Sources générées:", flush=True)
-        for s in sources[:5]:
-            print(f"      - {s[:70]}...", flush=True)
+        # Limiter à 25 sources max pour éviter les timeouts
+        sources = sources[:25]
+        
+        print(f"   📋 {len(sources)} sources générées:", flush=True)
+        for s in sources[:8]:
+            print(f"      - {s[:65]}...", flush=True)
+        if len(sources) > 8:
+            print(f"      ... et {len(sources) - 8} autres sources", flush=True)
         
         return sources
     
