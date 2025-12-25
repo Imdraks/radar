@@ -10,7 +10,12 @@ celery_app = Celery(
     "opportunities_radar",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.workers.tasks", "app.workers.collection_tasks", "app.workers.ai_collection"],
+    include=[
+        "app.workers.tasks",
+        "app.workers.collection_tasks",
+        "app.workers.ai_collection",
+        "app.workers.dossier_tasks",
+    ],
 )
 
 # Celery configuration
@@ -25,6 +30,13 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    # Queue routing
+    task_routes={
+        'app.workers.dossier_tasks.build_dossier_task': {'queue': 'dossier_builder_gpt'},
+        'app.workers.dossier_tasks.merge_enrichment_task': {'queue': 'dossier_builder_gpt'},
+        'app.workers.dossier_tasks.web_enrich_task': {'queue': 'web_enrichment'},
+        'app.workers.tasks.run_ingestion_task': {'queue': 'ingestion_standard'},
+    },
 )
 
 # Beat schedule for periodic tasks
@@ -46,5 +58,11 @@ celery_app.conf.beat_schedule = {
     "check-notifications": {
         "task": "app.workers.tasks.check_and_send_notifications",
         "schedule": crontab(minute="*/15"),
+    },
+    # Auto-build dossiers for top opportunities daily at 2am
+    "auto-build-dossiers": {
+        "task": "app.workers.dossier_tasks.auto_build_top_dossiers_task",
+        "schedule": crontab(minute="0", hour="2"),
+        "kwargs": {"score_threshold": 70, "limit": 20},
     },
 }

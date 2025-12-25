@@ -28,3 +28,13 @@ from .entity import (
     CollectionRun,
     ObjectiveType,
 )
+from .dossier import (
+    SourceDocument,
+    DocType,
+    Dossier,
+    DossierState,
+    DossierEvidence,
+    EvidenceProvenance,
+    EvidenceType,
+    WebEnrichmentRun,
+)

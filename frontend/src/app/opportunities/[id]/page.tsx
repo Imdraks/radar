@@ -44,7 +44,8 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { opportunitiesApi } from "@/lib/api";
+import { opportunitiesApi, dossiersApi } from "@/lib/api";
+import { DossierPanel } from "@/components/dossier/DossierPanel";
 import { useAuthStore } from "@/store/auth";
 import {
   formatCurrency,
@@ -277,6 +278,9 @@ function OpportunityDetailContent() {
       <Tabs defaultValue="details" className="space-y-4">
         <TabsList>
           <TabsTrigger value="details">Détails</TabsTrigger>
+          <TabsTrigger value="dossier">
+            Dossier IA
+          </TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({notes?.length || 0})
           </TabsTrigger>
@@ -376,6 +380,17 @@ function OpportunityDetailContent() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Notes Tab */}
+        <TabsContent value="notes" className="space-y-4">
+
+        {/* Dossier IA Tab */}
+        <TabsContent value="dossier" className="space-y-4">
+          <DossierPanel
+            opportunityId={id.toString()}
+            opportunityTitle={opportunity.title}
+          />
         </TabsContent>
 
         {/* Notes Tab */}

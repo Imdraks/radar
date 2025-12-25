@@ -34,8 +34,8 @@ import { OnboardingProvider, OnboardingTour, OnboardingTrigger, WelcomeModal } f
 // Navigation structure
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Dossiers", href: "/briefs", icon: FileText, isNew: true },
   { name: "Opportunités", href: "/opportunities", icon: Target },
+  { name: "Dossiers", href: "/dossiers", icon: FileText },
   { name: "Kanban", href: "/opportunities/kanban", icon: Kanban },
   { name: "Calendrier", href: "/opportunities/calendar", icon: Calendar },
   { name: "Artistes", href: "/artist-history", icon: Music },

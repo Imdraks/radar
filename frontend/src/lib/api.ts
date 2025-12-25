@@ -467,6 +467,201 @@ export const collectApi = {
   },
 };
 
+// =============================================================================
+// DOSSIERS API - GPT-enriched opportunity analysis
+// =============================================================================
+
+export interface DossierSummary {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  state: 'NOT_CREATED' | 'PROCESSING' | 'ENRICHING' | 'MERGING' | 'READY' | 'FAILED';
+  summary_short: string | null;
+  confidence_plus: number;
+  score_final: number;
+  quality_flags: string[];
+  missing_fields: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DossierDetail extends DossierSummary {
+  summary_long: string | null;
+  key_points: string[];
+  action_checklist: string[];
+  extracted_fields: {
+    deadline_at?: string;
+    budget_amount?: number;
+    budget_hint?: string;
+    location?: { city: string; region: string; country: string };
+    contact_email?: string;
+    contact_phone?: string;
+    contact_url?: string;
+    exigences?: string[];
+    contraintes?: string[];
+    doc_list?: string[];
+  };
+  sources_used: string[];
+  gpt_model_used: string | null;
+  tokens_used: number;
+  processing_time_ms: number;
+  processed_at: string | null;
+  enriched_at: string | null;
+  opportunity_url: string | null;
+  opportunity_organization: string | null;
+  opportunity_score_base: number;
+}
+
+export interface DossierEvidence {
+  id: string;
+  field_key: string;
+  value: string | null;
+  provenance: 'STANDARD_DOC' | 'WEB_ENRICHED';
+  evidence_type: 'HTML' | 'EMAIL' | 'PDF' | 'WEB';
+  evidence_ref: string | null;
+  evidence_snippet: string | null;
+  confidence: number;
+  source_url: string | null;
+  retrieved_at: string | null;
+  retrieval_method: string | null;
+  created_at: string;
+}
+
+export interface SourceDocumentItem {
+  id: string;
+  doc_type: string;
+  source_url: string | null;
+  fetched_at: string | null;
+  created_at: string;
+  raw_text_preview: string | null;
+}
+
+export interface EnrichmentRun {
+  id: string;
+  status: string;
+  target_fields: string[];
+  fields_found: string[];
+  fields_not_found: string[];
+  urls_consulted: string[];
+  started_at: string;
+  completed_at: string | null;
+  duration_ms: number | null;
+  errors: string[];
+}
+
+export interface DossierStats {
+  total: number;
+  ready: number;
+  processing: number;
+  failed: number;
+  with_missing_fields: number;
+  average_confidence: number;
+}
+
+export const dossiersApi = {
+  // List dossiers with filters
+  list: async (params?: {
+    state?: string;
+    q?: string;
+    min_confidence?: number;
+    has_missing_fields?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<DossierSummary[]> => {
+    const response = await api.get("/dossiers", { params });
+    return response.data;
+  },
+
+  // Get full dossier details
+  get: async (dossierId: string): Promise<DossierDetail> => {
+    const response = await api.get(`/dossiers/${dossierId}`);
+    return response.data;
+  },
+
+  // Get dossier for opportunity
+  getByOpportunity: async (opportunityId: string): Promise<DossierDetail> => {
+    const response = await api.get(`/dossiers/opportunities/${opportunityId}/dossier`);
+    return response.data;
+  },
+
+  // Get evidence for a dossier
+  getEvidence: async (dossierId: string, fieldKey?: string): Promise<DossierEvidence[]> => {
+    const response = await api.get(`/dossiers/${dossierId}/evidence`, {
+      params: fieldKey ? { field_key: fieldKey } : undefined,
+    });
+    return response.data;
+  },
+
+  // Get source documents for a dossier
+  getSources: async (dossierId: string): Promise<SourceDocumentItem[]> => {
+    const response = await api.get(`/dossiers/${dossierId}/sources`);
+    return response.data;
+  },
+
+  // Get enrichment history
+  getEnrichments: async (dossierId: string): Promise<EnrichmentRun[]> => {
+    const response = await api.get(`/dossiers/${dossierId}/enrichments`);
+    return response.data;
+  },
+
+  // Delete a dossier
+  delete: async (dossierId: string): Promise<void> => {
+    await api.delete(`/dossiers/${dossierId}`);
+  },
+
+  // Build dossier for opportunity
+  build: async (opportunityId: string, options?: {
+    force_rebuild?: boolean;
+    auto_enrich?: boolean;
+  }): Promise<{ task_id: string; message: string }> => {
+    const response = await api.post(
+      `/dossiers/opportunities/${opportunityId}/dossier/build`,
+      options || { force_rebuild: false, auto_enrich: true }
+    );
+    return response.data;
+  },
+
+  // Trigger web enrichment
+  enrich: async (opportunityId: string, options?: {
+    target_fields?: string[];
+    auto_merge?: boolean;
+  }): Promise<{ task_id: string; message: string }> => {
+    const response = await api.post(
+      `/dossiers/opportunities/${opportunityId}/dossier/enrich`,
+      options || { auto_merge: true }
+    );
+    return response.data;
+  },
+
+  // Run full pipeline
+  fullPipeline: async (opportunityId: string, forceRebuild = false): Promise<{ task_id: string; message: string }> => {
+    const response = await api.post(
+      `/dossiers/opportunities/${opportunityId}/dossier/full-pipeline`,
+      null,
+      { params: { force_rebuild: forceRebuild } }
+    );
+    return response.data;
+  },
+
+  // Batch build dossiers
+  batchBuild: async (opportunityIds: string[], options?: {
+    force_rebuild?: boolean;
+    auto_enrich?: boolean;
+  }): Promise<{ task_id: string; message: string }> => {
+    const response = await api.post("/dossiers/batch/build", {
+      opportunity_ids: opportunityIds,
+      ...options,
+    });
+    return response.data;
+  },
+
+  // Get stats
+  getStats: async (): Promise<DossierStats> => {
+    const response = await api.get("/dossiers/stats/overview");
+    return response.data;
+  },
+};
+
 // Legacy Collection API (keep for backward compatibility)
 export const collectionApi = {
   // Start a collection
