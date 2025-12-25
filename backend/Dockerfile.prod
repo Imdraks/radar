@@ -14,14 +14,23 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (Chromium only for smaller image)
-RUN playwright install chromium --with-deps
+# Create non-root user BEFORE installing Playwright
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
+
+# Install Playwright browsers as appuser (so they're in the right location)
+USER appuser
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+RUN playwright install chromium
+
+# Switch back to root to install system deps for Playwright
+USER root
+RUN playwright install-deps chromium
 
 # Copy application code
 COPY . .
+RUN chown -R appuser:appuser /app
 
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
+# Switch to appuser for running
 USER appuser
 
 EXPOSE 8000
