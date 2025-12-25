@@ -18,11 +18,11 @@ from .opportunity_scorer import OpportunityScorer, ScoringResult
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# SOURCES FIABLES POUR LA RECHERCHE INTELLIGENTE
+# 🎵 BASE DE DONNÉES MASSIVE DE SOURCES FIABLES
 # ============================================================================
 
-# Billetterie France
-TICKETING_SOURCES = [
+# ==================== BILLETTERIE FRANCE ====================
+TICKETING_FR = [
     "https://www.fnacspectacles.com/recherche/{query}",
     "https://www.ticketmaster.fr/search?q={query}",
     "https://www.billetreduc.com/recherche.htm?keywords={query}",
@@ -30,21 +30,45 @@ TICKETING_SOURCES = [
     "https://www.francebillet.com/recherche/{query}",
     "https://www.carrefourspectacles.fr/recherche?q={query}",
     "https://www.seetickets.com/fr/search?q={query}",
-    "https://www.eventim.fr/search/?affiliate=EVE&searchterm={query}",
+    "https://www.eventim.fr/search/?searchterm={query}",
+    "https://www.ticketac.com/recherche?q={query}",
+    "https://www.billetnet.fr/recherche?q={query}",
+    "https://www.ticketswap.fr/search?query={query}",
+    "https://www.stubhub.fr/recherche?q={query}",
+    "https://www.viagogo.fr/recherche?q={query}",
 ]
 
-# Concerts & Festivals
-CONCERT_SOURCES = [
+# ==================== BILLETTERIE INTERNATIONALE ====================
+TICKETING_INTL = [
+    "https://www.ticketmaster.com/search?q={query}",
+    "https://www.axs.com/search?q={query}",
+    "https://www.eventbrite.com/d/france/search?q={query}",
+    "https://www.eventbrite.fr/d/france/search?q={query}",
+    "https://dice.fm/search?query={query}",
+    "https://www.residentadvisor.net/search?q={query}",
+]
+
+# ==================== CONCERTS & FESTIVALS ====================
+CONCERTS_FESTIVALS = [
     "https://www.infoconcert.com/recherche?q={query}",
     "https://www.concertandco.com/recherche?q={query}",
     "https://www.sortiraparis.com/recherche?q={query}",
     "https://www.lyonpremiere.com/recherche?q={query}",
     "https://www.agenda-concerts.com/recherche.php?q={query}",
     "https://www.festivalfinder.eu/search?q={query}",
+    "https://www.festivalsrock.com/recherche?q={query}",
+    "https://www.touslesfestivals.com/recherche?q={query}",
+    "https://www.timeout.fr/paris/search?q={query}",
+    "https://www.offi.fr/recherche?q={query}",
+    "https://www.parisbouge.com/recherche?q={query}",
+    "https://www.lyonbouge.com/recherche?q={query}",
+    "https://www.bordeauxbouge.com/recherche?q={query}",
+    "https://www.lillebuzz.com/recherche?q={query}",
+    "https://www.nantes.maville.com/recherche?q={query}",
 ]
 
-# Artistes & Booking International
-ARTIST_SOURCES = [
+# ==================== ARTISTES & ANALYTICS ====================
+ARTIST_ANALYTICS = [
     "https://www.viberate.com/artist/{slug}/",
     "https://www.songkick.com/search?query={query}&type=artists",
     "https://www.bandsintown.com/search?search_term={query}",
@@ -52,34 +76,158 @@ ARTIST_SOURCES = [
     "https://www.discogs.com/search/?q={query}&type=artist",
     "https://www.allmusic.com/search/artists/{query}",
     "https://musicbrainz.org/search?query={query}&type=artist",
+    "https://www.last.fm/search/artists?q={query}",
+    "https://www.genius.com/search?q={query}",
+    "https://chartmetric.com/search?q={query}",
+    "https://soundcharts.com/search?q={query}",
+    "https://www.musicstax.com/search?q={query}",
 ]
 
-# Booking & Management France
-BOOKING_SOURCES = [
+# ==================== STREAMING & MUSIQUE ====================
+STREAMING_MUSIC = [
+    "https://open.spotify.com/search/{query}",
+    "https://music.apple.com/fr/search?term={query}",
+    "https://www.deezer.com/search/{query}",
+    "https://soundcloud.com/search?q={query}",
+    "https://www.youtube.com/results?search_query={query}",
+    "https://music.youtube.com/search?q={query}",
+    "https://tidal.com/search?q={query}",
+    "https://www.qobuz.com/fr-fr/search?q={query}",
+]
+
+# ==================== BOOKING & MANAGEMENT ====================
+BOOKING_AGENCIES = [
     "https://www.musicagent.fr/recherche?q={query}",
     "https://www.music-booking.com/recherche/{query}",
     "https://www.artiste-booking.com/recherche?q={query}",
     "https://www.zikinf.com/annuaire/recherche.php?q={query}",
+    "https://www.unitedtalent.com/search?q={query}",
+    "https://www.cfrench.fr/recherche?q={query}",
+    "https://www.wagram-music.com/recherche?q={query}",
+    "https://www.because.tv/recherche?q={query}",
+    "https://www.musicast.fr/recherche?q={query}",
+    "https://www.asterios.fr/recherche?q={query}",
 ]
 
-# Médias & Actualités Musique France
-MEDIA_SOURCES = [
+# ==================== LABELS & MAISONS DE DISQUES ====================
+RECORD_LABELS = [
+    "https://www.universalmusic.fr/recherche?q={query}",
+    "https://www.sonymusic.fr/recherche?q={query}",
+    "https://www.warnermusic.fr/recherche?q={query}",
+    "https://www.believe.com/search?q={query}",
+    "https://www.musicasti.com/recherche?q={query}",
+    "https://www.thelabelfrance.com/recherche?q={query}",
+    "https://www.dfrench.fr/recherche?q={query}",
+    "https://www.rec118.com/recherche?q={query}",
+]
+
+# ==================== MÉDIAS MUSIQUE FRANCE ====================
+MEDIA_MUSIC_FR = [
     "https://www.mouv.fr/recherche?q={query}",
     "https://www.raprnb.com/?s={query}",
     "https://www.booska-p.com/?s={query}",
+    "https://www.generations.fr/recherche?q={query}",
+    "https://www.skyrock.fm/recherche?q={query}",
+    "https://www.nrj.fr/recherche?q={query}",
+    "https://www.funradio.fr/recherche?q={query}",
+    "https://www.rtl2.fr/recherche?q={query}",
+    "https://www.virginradio.fr/recherche?q={query}",
+    "https://www.oui.fm/recherche?q={query}",
+    "https://www.fip.fr/recherche?q={query}",
+    "https://www.nova.fr/recherche?q={query}",
+    "https://www.radiofrance.fr/recherche?q={query}",
+]
+
+# ==================== MÉDIAS RAP/URBAIN ====================
+MEDIA_RAP_URBAN = [
+    "https://www.booska-p.com/?s={query}",
+    "https://www.rapelite.com/?s={query}",
+    "https://www.rapfanz.com/?s={query}",
+    "https://www.lacoccinelle.net/recherche?q={query}",
+    "https://www.abcdrduson.com/recherche?q={query}",
+    "https://www.lerapenfrance.fr/?s={query}",
+    "https://www.hiphopcorner.fr/?s={query}",
+    "https://www.rapgenius.fr/?s={query}",
+    "https://www.culturedrap.com/?s={query}",
+    "https://www.lerapfrancais.fr/?s={query}",
+]
+
+# ==================== MÉDIAS CULTURE/MUSIQUE GÉNÉRALISTES ====================
+MEDIA_CULTURE = [
     "https://www.lesinrocks.com/recherche/?q={query}",
     "https://www.telerama.fr/recherche?q={query}",
     "https://www.rollingstone.fr/?s={query}",
+    "https://www.lemonde.fr/recherche/?search_keywords={query}",
+    "https://www.lefigaro.fr/recherche?q={query}",
+    "https://www.liberation.fr/recherche?q={query}",
+    "https://www.franceinter.fr/recherche?q={query}",
+    "https://www.franceculture.fr/recherche?q={query}",
+    "https://www.francetvinfo.fr/recherche?q={query}",
+    "https://www.20minutes.fr/recherche?q={query}",
+    "https://www.huffingtonpost.fr/recherche?q={query}",
+    "https://www.konbini.com/recherche?q={query}",
+    "https://www.vice.com/fr/search?q={query}",
+    "https://www.tsugi.fr/?s={query}",
+    "https://www.traxmag.com/?s={query}",
+    "https://www.clique.tv/recherche?q={query}",
 ]
 
-# Labels & Maisons de disques
-LABEL_SOURCES = [
-    "https://music.apple.com/fr/search?term={query}",
-    "https://open.spotify.com/search/{query}",
+# ==================== MODE & LIFESTYLE ====================
+FASHION_LIFESTYLE = [
+    "https://www.vogue.fr/recherche?q={query}",
+    "https://www.glamour.fr/recherche?q={query}",
+    "https://www.marieclaire.fr/recherche?q={query}",
+    "https://www.elle.fr/recherche?q={query}",
+    "https://www.gq.com/fr/recherche?q={query}",
+    "https://www.lofficiel.com/recherche?q={query}",
+    "https://www.numero.com/recherche?q={query}",
+    "https://www.hypebeast.com/fr/search?q={query}",
+    "https://www.highsnobiety.com/search?q={query}",
+    "https://www.complex.com/search?q={query}",
+    "https://www.grazia.fr/recherche?q={query}",
+    "https://www.cosmopolitan.fr/recherche?q={query}",
+    "https://www.gala.fr/recherche?q={query}",
+    "https://www.voici.fr/recherche?q={query}",
+    "https://www.puretrend.com/recherche?q={query}",
+    "https://www.fashionunited.fr/recherche?q={query}",
 ]
 
-# Salles & Lieux de concert France
-VENUE_SOURCES = [
+# ==================== ART & EXPOSITIONS ====================
+ART_EXHIBITIONS = [
+    "https://www.paris.fr/recherche?q={query}",
+    "https://www.centrepompidou.fr/recherche?q={query}",
+    "https://www.louvre.fr/recherche?q={query}",
+    "https://www.musee-orsay.fr/recherche?q={query}",
+    "https://www.grandpalais.fr/recherche?q={query}",
+    "https://www.palaisdetokyo.com/recherche?q={query}",
+    "https://www.fondationlouisvuitton.fr/recherche?q={query}",
+    "https://www.beauxartsparis.fr/recherche?q={query}",
+    "https://www.mairie-paris.fr/recherche?q={query}",
+    "https://www.artnet.fr/recherche?q={query}",
+    "https://www.artprice.com/recherche?q={query}",
+    "https://www.connaissancedesarts.com/?s={query}",
+    "https://www.beauxarts.com/?s={query}",
+    "https://www.artactu.com/?s={query}",
+    "https://www.slash-paris.com/?s={query}",
+]
+
+# ==================== THÉÂTRE & SPECTACLE VIVANT ====================
+THEATER_LIVE = [
+    "https://www.theatreonline.com/recherche?q={query}",
+    "https://www.theatredesbouffesdunord.com/recherche?q={query}",
+    "https://www.theatre-odeon.eu/recherche?q={query}",
+    "https://www.comedie-francaise.fr/recherche?q={query}",
+    "https://www.theatreduchene.fr/recherche?q={query}",
+    "https://www.theatre-champs-elysees.fr/recherche?q={query}",
+    "https://www.chatelet.com/recherche?q={query}",
+    "https://www.opera-national-paris.fr/recherche?q={query}",
+    "https://www.operadeparis.fr/recherche?q={query}",
+    "https://www.theatreinparis.com/recherche?q={query}",
+    "https://www.spectacles.carrefour.fr/recherche?q={query}",
+]
+
+# ==================== SALLES DE CONCERT FRANCE ====================
+VENUES_FR = [
     "https://www.accorarenaparis.com/agenda?search={query}",
     "https://www.olympiahall.com/agenda?search={query}",
     "https://www.zenith-paris.com/agenda?search={query}",
@@ -88,14 +236,76 @@ VENUE_SOURCES = [
     "https://www.sallepleyel.com/recherche?q={query}",
     "https://www.philharmoniedeparis.fr/fr/recherche?q={query}",
     "https://www.casino-de-paris.fr/recherche?q={query}",
-    "https://www.laflecnedeparis.fr/recherche?q={query}",
+    "https://www.laflechedor.fr/recherche?q={query}",
+    "https://www.trabendo.fr/recherche?q={query}",
+    "https://www.lagaite-lyrique.net/recherche?q={query}",
+    "https://www.104.fr/recherche?q={query}",
+    "https://www.lamachine.fr/recherche?q={query}",
+    "https://www.pointephemere.org/recherche?q={query}",
+    "https://www.lescomblesdelachine.fr/recherche?q={query}",
+    "https://www.stereolux.org/recherche?q={query}",
+    "https://www.aeronef.fr/recherche?q={query}",
+    "https://www.krakatoa.org/recherche?q={query}",
+    "https://www.rockschool-barbey.com/recherche?q={query}",
+    "https://www.transbordeur.fr/recherche?q={query}",
+    "https://www.ninkasi.fr/recherche?q={query}",
+    "https://www.summum-grenoble.com/recherche?q={query}",
+    "https://www.zenith-nantes.com/recherche?q={query}",
+    "https://www.zenith-toulouse.com/recherche?q={query}",
+    "https://www.dome-marseille.com/recherche?q={query}",
 ]
 
-# Marchés Publics & Appels d'Offres
-PUBLIC_MARKET_SOURCES = [
+# ==================== CLUBS & ÉLECTRO ====================
+CLUBS_ELECTRO = [
+    "https://www.residentadvisor.net/search?q={query}",
+    "https://www.shotgun.live/recherche?q={query}",
+    "https://www.traxmag.com/?s={query}",
+    "https://www.electro-news.eu/?s={query}",
+    "https://www.mixmag.fr/?s={query}",
+    "https://www.djanemag.com/search?q={query}",
+    "https://www.clubbingfrance.com/recherche?q={query}",
+    "https://www.rfrenchtouch.com/?s={query}",
+]
+
+# ==================== ÉVÉNEMENTIEL & PRODUCTION ====================
+EVENT_PRODUCTION = [
+    "https://www.leliveparis.com/recherche?q={query}",
+    "https://www.prodiss.org/recherche?q={query}",
+    "https://www.irma.asso.fr/recherche?q={query}",
+    "https://www.zone-events.net/recherche?q={query}",
+    "https://www.adami.fr/recherche?q={query}",
+    "https://www.sacem.fr/recherche?q={query}",
+    "https://www.cnm.fr/recherche?q={query}",
+    "https://www.francefestivals.com/recherche?q={query}",
+]
+
+# ==================== RÉSEAUX SOCIAUX & INFLUENCE ====================
+SOCIAL_INFLUENCE = [
+    "https://www.instagram.com/explore/tags/{slug}/",
+    "https://www.tiktok.com/search?q={query}",
+    "https://twitter.com/search?q={query}",
+    "https://www.facebook.com/search/top?q={query}",
+    "https://www.linkedin.com/search/results/all/?keywords={query}",
+]
+
+# ==================== MARCHÉS PUBLICS & APPELS D'OFFRES ====================
+PUBLIC_MARKETS = [
     "https://www.boamp.fr/avis/search?q={query}",
     "https://www.marches-publics.gouv.fr/?q={query}",
     "https://www.achatpublic.com/recherche?q={query}",
+    "https://www.klekoon.com/recherche?q={query}",
+    "https://www.marchesonline.com/recherche?q={query}",
+    "https://www.e-marchespublics.com/recherche?q={query}",
+    "https://www.doubletrade.fr/recherche?q={query}",
+]
+
+# ==================== ANNUAIRES PROFESSIONNELS ====================
+PRO_DIRECTORIES = [
+    "https://www.societe.com/cgi-bin/search?champs={query}",
+    "https://www.kompass.com/fr/searchCompanies?q={query}",
+    "https://www.pagesjaunes.fr/recherche?q={query}",
+    "https://annuaire-entreprises.data.gouv.fr/rechercher?terme={query}",
+    "https://www.linkedin.com/search/results/companies/?keywords={query}",
 ]
 
 
@@ -258,56 +468,114 @@ class IntelligenceEngine:
         
         # Extraire le nom de l'artiste/recherche propre
         query_encoded = quote_plus(query)
-        query_slug = query.lower().replace(' ', '-').replace("'", "").replace("é", "e").replace("è", "e")
+        query_slug = query.lower().replace(' ', '-').replace("'", "").replace("é", "e").replace("è", "e").replace("ê", "e").replace("à", "a").replace("ù", "u").replace("ô", "o").replace("î", "i")
         
         # Fonction helper pour formatter les URLs
         def format_sources(source_list: List[str]) -> List[str]:
-            return [
-                url.format(query=query_encoded, slug=query_slug)
-                for url in source_list
-            ]
+            formatted = []
+            for url in source_list:
+                try:
+                    formatted.append(url.format(query=query_encoded, slug=query_slug))
+                except:
+                    pass
+            return formatted
+        
+        # Détecter le type de recherche pour adapter les sources
+        query_lower = query.lower()
+        is_rap_urban = any(k in query_lower for k in ['rap', 'trap', 'drill', 'rnb', 'r&b', 'hip-hop', 'hip hop', 'urbain'])
+        is_electro = any(k in query_lower for k in ['dj', 'electro', 'techno', 'house', 'edm', 'club'])
+        is_fashion = any(k in query_lower for k in ['mode', 'fashion', 'style', 'vêtement', 'marque', 'designer'])
+        is_art = any(k in query_lower for k in ['art', 'expo', 'musée', 'galerie', 'peintre', 'sculpteur'])
+        is_theater = any(k in query_lower for k in ['théâtre', 'theatre', 'comédie', 'spectacle', 'pièce', 'opéra'])
         
         if is_artist_search:
             # === SOURCES POUR RECHERCHE D'ARTISTE ===
             
-            # 1. Billetterie (pour trouver les dates de concert)
-            sources.extend(format_sources(TICKETING_SOURCES[:5]))
+            # 1. Billetterie France (prioritaire)
+            sources.extend(format_sources(TICKETING_FR[:8]))
             
-            # 2. Sites spécialisés artistes
-            sources.extend(format_sources(ARTIST_SOURCES))
+            # 2. Artistes & Analytics (très important)
+            sources.extend(format_sources(ARTIST_ANALYTICS))
             
-            # 3. Concerts & festivals
-            sources.extend(format_sources(CONCERT_SOURCES[:4]))
+            # 3. Streaming (pour les stats)
+            sources.extend(format_sources(STREAMING_MUSIC[:5]))
             
-            # 4. Booking agencies
-            sources.extend(format_sources(BOOKING_SOURCES))
+            # 4. Concerts & festivals
+            sources.extend(format_sources(CONCERTS_FESTIVALS[:8]))
             
-            # 5. Médias musique (pour les actus/contacts)
-            sources.extend(format_sources(MEDIA_SOURCES[:3]))
+            # 5. Booking agencies
+            sources.extend(format_sources(BOOKING_AGENCIES))
             
-            # 6. Salles de concert (pour les dates)
-            sources.extend(format_sources(VENUE_SOURCES[:5]))
+            # 6. Labels
+            sources.extend(format_sources(RECORD_LABELS[:4]))
+            
+            # 7. Salles de concert
+            sources.extend(format_sources(VENUES_FR[:10]))
+            
+            # 8. Médias selon le genre
+            if is_rap_urban:
+                sources.extend(format_sources(MEDIA_RAP_URBAN))
+                sources.extend(format_sources(MEDIA_MUSIC_FR[:5]))
+            elif is_electro:
+                sources.extend(format_sources(CLUBS_ELECTRO))
+                sources.extend(format_sources(MEDIA_MUSIC_FR[:5]))
+            else:
+                sources.extend(format_sources(MEDIA_MUSIC_FR))
+                sources.extend(format_sources(MEDIA_CULTURE[:5]))
+            
+            # 9. Mode/Lifestyle (pour les collabs)
+            sources.extend(format_sources(FASHION_LIFESTYLE[:5]))
+            
+        elif is_fashion:
+            # === SOURCES MODE ===
+            sources.extend(format_sources(FASHION_LIFESTYLE))
+            sources.extend(format_sources(MEDIA_CULTURE[:5]))
+            sources.extend(format_sources(PRO_DIRECTORIES[:3]))
+            
+        elif is_art:
+            # === SOURCES ART ===
+            sources.extend(format_sources(ART_EXHIBITIONS))
+            sources.extend(format_sources(MEDIA_CULTURE[:5]))
+            sources.extend(format_sources(PUBLIC_MARKETS[:3]))
+            
+        elif is_theater:
+            # === SOURCES THÉÂTRE ===
+            sources.extend(format_sources(THEATER_LIVE))
+            sources.extend(format_sources(TICKETING_FR[:5]))
+            sources.extend(format_sources(MEDIA_CULTURE[:5]))
             
         else:
-            # === SOURCES POUR RECHERCHE D'ÉVÉNEMENTS/MARCHÉS ===
+            # === SOURCES GÉNÉRALISTES (événements/marchés) ===
             
             # 1. Billetterie
-            sources.extend(format_sources(TICKETING_SOURCES))
+            sources.extend(format_sources(TICKETING_FR))
             
             # 2. Concerts & festivals
-            sources.extend(format_sources(CONCERT_SOURCES))
+            sources.extend(format_sources(CONCERTS_FESTIVALS))
             
-            # 3. Marchés publics (pour les appels d'offres)
-            sources.extend(format_sources(PUBLIC_MARKET_SOURCES))
+            # 3. Marchés publics
+            sources.extend(format_sources(PUBLIC_MARKETS))
+            
+            # 4. Événementiel
+            sources.extend(format_sources(EVENT_PRODUCTION))
+            
+            # 5. Annuaires
+            sources.extend(format_sources(PRO_DIRECTORIES[:3]))
         
-        # Limiter à 25 sources max pour éviter les timeouts
-        sources = sources[:25]
+        # Dédupliquer et limiter à 40 sources max
+        seen = set()
+        unique_sources = []
+        for s in sources:
+            if s not in seen:
+                seen.add(s)
+                unique_sources.append(s)
+        sources = unique_sources[:40]
         
         print(f"   📋 {len(sources)} sources générées:", flush=True)
-        for s in sources[:8]:
+        for s in sources[:10]:
             print(f"      - {s[:65]}...", flush=True)
-        if len(sources) > 8:
-            print(f"      ... et {len(sources) - 8} autres sources", flush=True)
+        if len(sources) > 10:
+            print(f"      ... et {len(sources) - 10} autres sources", flush=True)
         
         return sources
     
@@ -315,7 +583,9 @@ class IntelligenceEngine:
         """Détecte si la recherche concerne un artiste"""
         artist_indicators = [
             'cachet', 'prix artiste', 'booking', 'fee',
-            'concert', 'dj', 'rappeur', 'chanteur', 'groupe'
+            'concert', 'dj', 'rappeur', 'chanteur', 'groupe',
+            'artiste', 'musicien', 'band', 'singer', 'rapper',
+            'contact', 'management', 'label', 'tournée', 'tour'
         ]
         query_lower = query.lower()
         
