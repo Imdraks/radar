@@ -445,31 +445,31 @@ class ArtistIntelligenceEngine:
         opportunities = []
         threats = []
         
-        # Strengths
+        # Strengths (Forces)
         if tier in [ArtistTier.SUPERSTAR, ArtistTier.MAJOR]:
-            strengths.append("Large established fanbase")
+            strengths.append("Large base de fans établie")
         if total_social > monthly_listeners * 2:
-            strengths.append("Strong social media presence")
+            strengths.append("Forte présence sur les réseaux sociaux")
         if monthly_listeners > benchmark:
-            strengths.append(f"Above average in {genre} genre")
+            strengths.append(f"Au-dessus de la moyenne dans le genre {genre}")
         
-        # Weaknesses
+        # Weaknesses (Faiblesses)
         if total_social < monthly_listeners * 0.5:
-            weaknesses.append("Weak social media engagement")
+            weaknesses.append("Faible engagement sur les réseaux sociaux")
         if tier in [ArtistTier.UNDERGROUND, ArtistTier.EMERGING]:
-            weaknesses.append("Limited market visibility")
+            weaknesses.append("Visibilité limitée sur le marché")
         
-        # Opportunities
+        # Opportunities (Opportunités)
         if tier in [ArtistTier.RISING, ArtistTier.EMERGING]:
-            opportunities.append("High growth potential")
+            opportunities.append("Fort potentiel de croissance")
         if total_social < monthly_listeners:
-            opportunities.append("Untapped social media potential")
-        opportunities.append("Cross-platform content expansion")
+            opportunities.append("Potentiel réseaux sociaux inexploité")
+        opportunities.append("Expansion de contenu multi-plateformes")
         
-        # Threats
+        # Threats (Menaces)
         if tier == ArtistTier.UNDERGROUND:
-            threats.append("Market saturation in genre")
-        threats.append("Algorithm dependency on streaming platforms")
+            threats.append("Saturation du marché dans le genre")
+        threats.append("Dépendance aux algorithmes de streaming")
         
         return MarketAnalysis(
             tier=tier,
@@ -562,11 +562,11 @@ class ArtistIntelligenceEngine:
         
         # Booking window recommendation
         if trend in [GrowthTrend.EXPLOSIVE, GrowthTrend.RAPID]:
-            booking_window = "6-12 months (high demand expected)"
+            booking_window = "6-12 mois (forte demande attendue)"
         elif tier in [ArtistTier.SUPERSTAR, ArtistTier.MAJOR]:
-            booking_window = "6-18 months"
+            booking_window = "6-18 mois"
         else:
-            booking_window = "2-6 months"
+            booking_window = "2-6 mois"
         
         return BookingIntelligence(
             estimated_fee_min=fee_min,
@@ -711,7 +711,7 @@ class ArtistIntelligenceEngine:
         # Growth opportunity
         if trend in [GrowthTrend.EXPLOSIVE, GrowthTrend.RAPID, GrowthTrend.STRONG]:
             opportunity_score += 0.3
-            opportunities.append("Forte croissance - moment idéal pour booking")
+            opportunities.append("Forte croissance - moment idéal pour réservation")
         
         # Tier opportunity
         if tier in [ArtistTier.RISING, ArtistTier.EMERGING]:
