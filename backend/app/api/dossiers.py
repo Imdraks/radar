@@ -590,19 +590,22 @@ async def get_dossier_stats(
     current_user: User = Depends(get_current_user),
 ):
     """Get dossier statistics"""
+    from sqlalchemy import func, cast, Text
+    
     total = db.query(Dossier).count()
     ready = db.query(Dossier).filter(Dossier.state == DossierState.READY).count()
     processing = db.query(Dossier).filter(Dossier.state == DossierState.PROCESSING).count()
     failed = db.query(Dossier).filter(Dossier.state == DossierState.FAILED).count()
     
-    # Count with missing fields
+    # Count with missing fields (cast JSON to text for comparison)
     with_missing = db.query(Dossier).filter(
         Dossier.state == DossierState.READY,
-        Dossier.missing_fields != []
+        cast(Dossier.missing_fields, Text) != '[]',
+        cast(Dossier.missing_fields, Text) != 'null',
+        Dossier.missing_fields.isnot(None)
     ).count()
     
     # Average confidence
-    from sqlalchemy import func
     avg_confidence = db.query(func.avg(Dossier.confidence_plus)).filter(
         Dossier.state == DossierState.READY
     ).scalar() or 0
