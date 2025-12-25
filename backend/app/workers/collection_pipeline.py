@@ -27,7 +27,7 @@ from app.db.models.collections import (
     CollectionType, CollectionStatus, LeadItemKind, LeadItemStatus,
     DossierState, EvidenceProvenance
 )
-from app.db.models.source import Source
+from app.db.models.source import SourceConfig
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -72,9 +72,9 @@ def run_standard_collection(self, collection_id: str):
         source_ids = collection.source_ids or []
         if not source_ids:
             # Toutes les sources actives
-            sources = db.query(Source).filter(Source.is_active == True).all()
+            sources = db.query(SourceConfig).filter(SourceConfig.is_active == True).all()
         else:
-            sources = db.query(Source).filter(Source.id.in_(source_ids)).all()
+            sources = db.query(SourceConfig).filter(SourceConfig.id.in_(source_ids)).all()
         
         _log(db, collection_id, "info", f"Sources à traiter: {len(sources)}")
         
@@ -153,7 +153,7 @@ def run_standard_collection(self, collection_id: str):
         db.close()
 
 
-def _process_source(db: Session, collection_id: str, source: Source) -> List[Dict]:
+def _process_source(db: Session, collection_id: str, source: SourceConfig) -> List[Dict]:
     """
     Fetch + Parse + Extract items from a source.
     Retourne liste de dicts avec les données extraites.
@@ -205,7 +205,7 @@ def _process_source(db: Session, collection_id: str, source: Source) -> List[Dic
 def _dedup_and_insert(
     db: Session, 
     collection_id: str, 
-    source: Source, 
+    source: SourceConfig, 
     item_data: Dict
 ) -> tuple[bool, LeadItem]:
     """
