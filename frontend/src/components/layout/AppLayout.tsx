@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Target,
@@ -32,10 +33,16 @@ import { BackgroundTasksIndicator } from "@/components/tasks/BackgroundTasksIndi
 import { OnboardingProvider, OnboardingTour, OnboardingTrigger, WelcomeModal } from "@/components/onboarding";
 
 // Navigation structure
-const navigation = [
+const navigation: {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+  isNew?: boolean;
+}[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Opportunités", href: "/opportunities", icon: Target },
-  { name: "Dossiers", href: "/dossiers", icon: FileText },
+  { name: "Dossiers", href: "/dossiers", icon: FileText, isNew: true },
   { name: "Kanban", href: "/opportunities/kanban", icon: Kanban },
   { name: "Calendrier", href: "/opportunities/calendar", icon: Calendar },
   { name: "Artistes", href: "/artist-history", icon: Music },
