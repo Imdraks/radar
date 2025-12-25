@@ -780,15 +780,20 @@ class WebArtistScanner:
         URL: https://www.viberate.com/artist/{artist_name}/
         """
         import json
+        import unicodedata
         
         try:
-            # Normaliser le nom pour l'URL (minuscules, tirets)
-            url_name = artist_name.lower().replace(' ', '-').replace("'", "").replace(".", "")
-            # Gérer les caractères spéciaux français
-            url_name = url_name.replace('é', 'e').replace('è', 'e').replace('ê', 'e')
-            url_name = url_name.replace('à', 'a').replace('â', 'a')
-            url_name = url_name.replace('ô', 'o').replace('î', 'i').replace('û', 'u')
-            url_name = url_name.replace('ç', 'c').replace('ï', 'i').replace('ë', 'e')
+            # Normaliser le nom pour l'URL
+            # 1. Convertir en minuscules
+            url_name = artist_name.lower().strip()
+            
+            # 2. Supprimer les accents (é→e, à→a, etc.)
+            url_name = unicodedata.normalize('NFD', url_name)
+            url_name = ''.join(c for c in url_name if unicodedata.category(c) != 'Mn')
+            
+            # 3. Remplacer espaces et caractères spéciaux par des tirets
+            url_name = url_name.replace(' ', '-').replace("'", "").replace(".", "").replace(",", "")
+            url_name = url_name.replace("--", "-").strip("-")
             
             viberate_url = f"https://www.viberate.com/artist/{url_name}/"
             
@@ -798,6 +803,7 @@ class WebArtistScanner:
             logger.info(f"🎵 VIBERATE SCAN - {artist_name.upper()}")
             logger.info(f"{'='*60}")
             logger.info(f"📍 URL: {viberate_url}")
+            logger.debug(f"   url_name transformé: '{artist_name}' → '{url_name}'")
             
             html = await self._fetch_url(viberate_url)
             
