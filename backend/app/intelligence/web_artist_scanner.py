@@ -273,6 +273,11 @@ class WebArtistScanner:
             artist_name: Nom de l'artiste à scanner
             force_refresh: Si True, scanne toujours le web même si l'artiste est dans la base
         """
+        print(f"\n{'='*70}", flush=True)
+        print(f"🔍 WEB ARTIST SCANNER - {artist_name.upper()}", flush=True)
+        print(f"{'='*70}", flush=True)
+        print(f"   Force Refresh: {force_refresh}", flush=True)
+        
         logger.info(f"🔍 Démarrage du scan web pour: {artist_name} (force_refresh={force_refresh})")
         
         profile = WebArtistProfile(name=artist_name)
@@ -280,6 +285,8 @@ class WebArtistScanner:
         
         # Si l'artiste est dans la base de données, utiliser comme base
         if known_artist:
+            print(f"   ✅ ARTISTE TROUVÉ DANS LA BASE: {known_artist.name}", flush=True)
+            print(f"      Tier: {known_artist.tier}, Fee: {known_artist.fee_min:,}€ - {known_artist.fee_max:,}€", flush=True)
             logger.info(f"✅ Artiste trouvé dans la base de données: {known_artist.name}")
             profile = self._create_profile_from_known_artist(known_artist)
             profile.sources_scanned.append("Base de données artistes FR")
@@ -298,6 +305,7 @@ class WebArtistScanner:
         
         try:
             # Lancer les scans en parallèle - Viberate en premier (source la plus fiable)
+            print(f"\n   🌐 Lancement des scans parallèles...", flush=True)
             tasks = [
                 self._scan_viberate(artist_name, profile),  # Priority: Real Spotify + social data
                 self._scan_wikipedia(artist_name, profile),
@@ -324,7 +332,16 @@ class WebArtistScanner:
                     'market_tier': profile.market_tier,
                 }
             
-            await asyncio.gather(*tasks, return_exceptions=True)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Afficher les erreurs de scan
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    task_names = ['Viberate', 'Wikipedia', 'Spotify', 'YouTube', 'Discogs', 
+                                  'Songkick', 'Bandsintown', 'Ticketmaster', 'Fnac', 'Google']
+                    print(f"   ⚠️ {task_names[i]} error: {result}", flush=True)
+            
+            print(f"\n   📊 Sources scannées: {profile.sources_scanned}", flush=True)
             
             # Si on avait des données de la base, les fusionner intelligemment
             if base_data and known_artist:
@@ -337,9 +354,21 @@ class WebArtistScanner:
             self._analyze_market_trend(profile)
             self._calculate_confidence(profile)
             
+            print(f"\n   ✅ SCAN TERMINÉ", flush=True)
+            print(f"      Spotify: {profile.spotify_monthly_listeners:,}", flush=True)
+            print(f"      YouTube: {profile.youtube_subscribers:,}", flush=True)
+            print(f"      Instagram: {profile.instagram_followers:,}", flush=True)
+            print(f"      TikTok: {profile.tiktok_followers:,}", flush=True)
+            print(f"      Tier: {profile.market_tier}", flush=True)
+            print(f"      Fee: {profile.estimated_fee_min:,.0f}€ - {profile.estimated_fee_max:,.0f}€", flush=True)
+            print(f"{'='*70}\n", flush=True)
+            
             logger.info(f"✅ Scan terminé pour {artist_name}: score={profile.popularity_score:.1f}, tier={profile.market_tier}, fee={profile.estimated_fee_min:,.0f}€-{profile.estimated_fee_max:,.0f}€")
             
         except Exception as e:
+            print(f"\n   ❌ ERREUR SCAN: {e}", flush=True)
+            import traceback
+            print(f"   {traceback.format_exc()}", flush=True)
             logger.error(f"Erreur lors du scan de {artist_name}: {e}")
             
         return profile

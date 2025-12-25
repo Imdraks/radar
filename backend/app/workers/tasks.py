@@ -602,29 +602,66 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
         force_refresh: If True, rescan web even for known artists (to update data)
         user_id: Optional user ID who requested the analysis
     """
+    import sys
+    import traceback
+    
+    print(f"\n{'='*80}", flush=True)
+    print(f"🎯 ANALYZE_ARTIST_TASK STARTED", flush=True)
+    print(f"{'='*80}", flush=True)
+    print(f"   Artist: {artist_name}", flush=True)
+    print(f"   Force Refresh: {force_refresh}", flush=True)
+    print(f"   User ID: {user_id}", flush=True)
+    print(f"   Task ID: {self.request.id}", flush=True)
+    print(f"{'='*80}\n", flush=True)
+    
     try:
         from app.intelligence.web_artist_scanner import WebArtistScanner
         from app.intelligence.artist_intelligence_engine import ArtistIntelligenceEngine
         from app.db.models.artist_analysis import ArtistAnalysis
         
+        print(f"✅ Imports réussis", flush=True)
         logger.info(f"🔍 Starting AI-powered analysis for artist: {artist_name} (force_refresh={force_refresh})")
         
         # Stage 1: Web Scan
+        print(f"\n📡 STAGE 1: WEB SCAN", flush=True)
+        print(f"   Création de l'event loop asyncio...", flush=True)
+        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             async def scan():
+                print(f"   🔍 Ouverture du WebArtistScanner...", flush=True)
                 async with WebArtistScanner() as scanner:
-                    return await scanner.scan_artist(artist_name, force_refresh=force_refresh)
+                    print(f"   🔍 Lancement du scan pour '{artist_name}'...", flush=True)
+                    result = await scanner.scan_artist(artist_name, force_refresh=force_refresh)
+                    print(f"   ✅ Scan terminé!", flush=True)
+                    return result
             
             profile = loop.run_until_complete(scan())
             result = profile.to_dict()
+            
+            print(f"\n   📊 RÉSULTATS DU SCAN:", flush=True)
+            print(f"      Nom: {profile.name}", flush=True)
+            print(f"      Tier: {profile.market_tier}", flush=True)
+            print(f"      Score: {profile.popularity_score}", flush=True)
+            print(f"      Spotify Monthly: {profile.spotify_monthly_listeners:,}", flush=True)
+            print(f"      YouTube Subs: {profile.youtube_subscribers:,}", flush=True)
+            print(f"      Instagram: {profile.instagram_followers:,}", flush=True)
+            print(f"      TikTok: {profile.tiktok_followers:,}", flush=True)
+            print(f"      Fee: {profile.estimated_fee_min:,.0f}€ - {profile.estimated_fee_max:,.0f}€", flush=True)
+            print(f"      Sources: {profile.sources_scanned}", flush=True)
+            
+        except Exception as scan_error:
+            print(f"\n   ❌ ERREUR SCAN: {scan_error}", flush=True)
+            print(f"   Traceback: {traceback.format_exc()}", flush=True)
+            raise
         finally:
             loop.close()
         
         logger.info(f"✅ Web scan completed for {artist_name}: tier={profile.market_tier}, score={profile.popularity_score}, fee={profile.estimated_fee_min:,.0f}€-{profile.estimated_fee_max:,.0f}€")
         
         # Stage 2: AI Intelligence Analysis
+        print(f"\n🧠 STAGE 2: AI INTELLIGENCE ENGINE", flush=True)
         logger.info(f"🧠 Running AI Intelligence Engine for {artist_name}...")
         ai_engine = ArtistIntelligenceEngine()
         
@@ -813,5 +850,7 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
         }
         
     except Exception as e:
+        print(f"\n❌ ERREUR GLOBALE: {e}", flush=True)
+        print(f"   Traceback: {traceback.format_exc()}", flush=True)
         logger.exception(f"AI Artist analysis failed for: {artist_name}")
         raise self.retry(exc=e, countdown=30)
