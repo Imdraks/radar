@@ -25,6 +25,10 @@ from app.api.collection import router as collection_router
 from app.api.websocket import router as websocket_router
 from app.api.collect import router as collect_router
 from app.api.dossiers import router as dossiers_router
+# Nouveaux routers refonte
+from app.api.collections_api import router as collections_v2_router
+from app.api.opportunities_api import router as opportunities_v2_router
+from app.api.dossiers_api import router as dossiers_v2_router
 
 # Configure logging
 logging.basicConfig(
@@ -97,6 +101,11 @@ app.include_router(ai_intelligence_router, prefix="/api/v1", tags=["AI Intellige
 app.include_router(collection_router, prefix="/api/v1", tags=["Collection"])
 app.include_router(collect_router, prefix="/api/v1", tags=["Unified Collection"])
 app.include_router(dossiers_router, prefix="/api/v1/dossiers", tags=["Dossiers"])
+
+# Nouveaux routers refonte (v2)
+app.include_router(collections_v2_router, prefix="/api/v2", tags=["Collections V2"])
+app.include_router(opportunities_v2_router, prefix="/api/v2", tags=["Opportunities V2"])
+app.include_router(dossiers_v2_router, prefix="/api/v2", tags=["Dossiers V2"])
 
 # WebSocket routes (no prefix - handled directly at /ws/)
 app.include_router(websocket_router)
