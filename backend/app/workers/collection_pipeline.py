@@ -68,8 +68,9 @@ def run_standard_collection(self, collection_id: str):
         
         _log(db, collection_id, "info", "Démarrage collecte Standard")
         
-        # 1. Charger les sources
-        source_ids = collection.source_ids or []
+        # 1. Charger les sources depuis les params
+        params = collection.params or {}
+        source_ids = params.get("source_ids") or []
         if not source_ids:
             # Toutes les sources actives
             sources = db.query(SourceConfig).filter(SourceConfig.is_active == True).all()
@@ -111,22 +112,22 @@ def run_standard_collection(self, collection_id: str):
         # 4. Mise à jour finale
         elapsed = int((time.time() - start_time) * 1000)
         
+        # Count results
+        result_count = db.query(func.count(CollectionResult.id)).filter(
+            CollectionResult.collection_id == collection_id
+        ).scalar()
+        
         collection.status = CollectionStatus.DONE.value
-        collection.completed_at = datetime.utcnow()
+        collection.finished_at = datetime.utcnow()
         collection.stats = {
             "sources_processed": len(sources),
             "items_extracted": total_extracted,
             "items_new": total_new,
             "items_duplicate": total_duplicates,
+            "result_count": result_count,
             "errors": errors,
             "processing_time_ms": elapsed,
         }
-        
-        # Count results
-        result_count = db.query(func.count(CollectionResult.id)).filter(
-            CollectionResult.collection_id == collection_id
-        ).scalar()
-        collection.result_count = result_count
         
         db.commit()
         
@@ -417,13 +418,13 @@ def run_ai_collection(self, collection_id: str):
         # Finalize collection
         elapsed = int((time.time() - start_time) * 1000)
         collection.status = CollectionStatus.DONE.value
-        collection.completed_at = datetime.utcnow()
-        collection.result_count = 1
+        collection.finished_at = datetime.utcnow()
         collection.stats = {
             "urls_fetched": len(fetched_docs),
             "evidence_count": len(dossier_result.get("evidence", [])),
             "quality_score": dossier_result.get("quality_score"),
             "tokens_used": dossier_result.get("tokens_used"),
+            "result_count": 1,
             "processing_time_ms": elapsed,
         }
         

@@ -2,12 +2,12 @@
 Refonte complète du système de collectes
 - Nouvelle table collections (source de vérité)
 - Table lead_items unifiée (opportunités + candidats dossiers)
-- Table source_documents (preuves)
-- Table dossiers (packaging IA)
+- Table source_documents_v2 (preuves)
+- Table dossiers_v2 (packaging IA)
 - Table evidence (traçabilité)
 
-Revision ID: 010
-Revises: 009
+Revision ID: 011_refonte_collectes
+Revises: 010_dossier_system
 Create Date: 2025-12-25
 """
 from alembic import op
@@ -16,7 +16,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 import uuid
 
 # revision identifiers
-revision = '010_refonte_collectes'
+revision = '011_refonte_collectes'
 down_revision = '010_dossier_system'
 branch_labels = None
 depends_on = None

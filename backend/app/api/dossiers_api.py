@@ -92,10 +92,10 @@ def list_dossiers(
 
     # Entity name (JSONB search)
     if entity_name:
-        # Recherche dans target_entities JSONB
+        # Recherche dans target_entities JSONB - cast en texte pour recherche
+        from sqlalchemy.dialects.postgresql import TEXT
         query = query.filter(
-            func.cast(DossierV2.target_entities, db.bind.dialect.type_descriptor(db.String))
-            .like(f'%{entity_name}%')
+            func.cast(DossierV2.target_entities, TEXT).ilike(f'%{entity_name}%')
         )
 
     # ===== COMPTE TOTAL =====

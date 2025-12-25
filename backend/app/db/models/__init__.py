@@ -38,3 +38,21 @@ from .dossier import (
     EvidenceType,
     WebEnrichmentRun,
 )
+# Nouveaux modèles refonte v2
+from .collections import (
+    CollectionType,
+    CollectionStatus,
+    LogLevel,
+    LeadItemKind,
+    LeadItemStatus,
+    DossierObjective,
+    DossierState as DossierStateV2,
+    EvidenceProvenance as EvidenceProvenanceV2,
+    CollectionV2,
+    CollectionLog,
+    LeadItem,
+    CollectionResult,
+    SourceDocument as SourceDocumentV2,
+    DossierV2,
+    Evidence,
+)
