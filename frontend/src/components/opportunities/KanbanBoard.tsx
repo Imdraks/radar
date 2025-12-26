@@ -183,7 +183,7 @@ export function KanbanBoard() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      return opportunitiesApi.update(Number(id), { status });
+      return opportunitiesApi.update(id, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });

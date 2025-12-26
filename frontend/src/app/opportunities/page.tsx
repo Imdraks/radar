@@ -152,6 +152,21 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
     }
   };
 
+  // Nettoyer le HTML de la description
+  const cleanDescription = (html: string | undefined): string => {
+    if (!html) return "";
+    // Supprimer les balises HTML
+    const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return text;
+  };
+
+  // Vérifier si une date est valide (après 1900)
+  const isValidDate = (dateStr: string | null | undefined): boolean => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    return date.getFullYear() > 1900;
+  };
+
   return (
     <Link href={`/opportunities/${opportunity.id}`}>
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
@@ -177,7 +192,7 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
                     {opportunity.title}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                    {truncate(opportunity.description || "", 200)}
+                    {truncate(cleanDescription(opportunity.description), 200)}
                   </p>
                 </div>
 
@@ -225,13 +240,13 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
                     {opportunity.region}
                   </span>
                 )}
-                {opportunity.budget_amount && (
+                {(opportunity.budget_hint || opportunity.budget_amount) && (
                   <span className="flex items-center gap-1 text-green-600 font-medium">
                     <Euro className="h-4 w-4" />
-                    {formatCurrency(opportunity.budget_amount)}
+                    {opportunity.budget_hint || formatCurrency(opportunity.budget_amount)}
                   </span>
                 )}
-                {opportunity.deadline_at && (
+                {isValidDate(opportunity.deadline_at) && (
                   <span className="flex items-center gap-1 text-orange-600">
                     <Clock className="h-4 w-4" />
                     {formatRelativeDate(opportunity.deadline_at)}

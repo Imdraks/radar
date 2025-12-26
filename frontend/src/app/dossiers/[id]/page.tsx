@@ -503,11 +503,17 @@ export default function DossierDetailPage() {
                 <CardTitle>Résumé</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-medium mb-4">{dossier.summary_short}</p>
+                {dossier.summary_short && (
+                  <div 
+                    className="text-lg font-medium mb-4 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
+                  />
+                )}
                 {dossier.summary_long && (
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{dossier.summary_long}</ReactMarkdown>
-                  </div>
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: dossier.summary_long }}
+                  />
                 )}
               </CardContent>
             </Card>

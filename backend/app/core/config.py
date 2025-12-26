@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     
     # OpenAI API (for extraction and brief generation)
     openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4o-mini"
+    
+    # Groq API (FREE alternative to OpenAI - https://console.groq.com)
+    groq_api_key: Optional[str] = None
+    
+    # Tavily API (for real-time web search)
+    tavily_api_key: Optional[str] = None
     
     # SSO - Google OAuth
     google_client_id: str = ""

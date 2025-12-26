@@ -197,9 +197,10 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
 
         {/* Summary */}
         {dossier.summary_short && (
-          <div>
-            <p className="text-sm">{dossier.summary_short}</p>
-          </div>
+          <div
+            className="text-sm prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
+          />
         )}
 
         {/* Quality flags */}

@@ -33,7 +33,7 @@ class IngestionRunResponse(BaseModel):
     items_updated: int
     items_error: int
     errors: List[str]
-    metadata: Dict[str, Any]
+    run_metadata: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

@@ -264,11 +264,11 @@ def get_standard_collection_status(
             type="standard",
             status=run.status.value,
             started_at=run.started_at,
-            finished_at=run.finished_at,
+            finished_at=run.completed_at,  # IngestionRun uses completed_at
             items_found=run.items_fetched or 0,
             items_new=run.items_new or 0,
             contacts_found=0,
-            error_message=run.error_message,
+            error_message=run.errors[0] if run.errors else None,  # First error from list
             brief_id=None,
         )
         for run in runs

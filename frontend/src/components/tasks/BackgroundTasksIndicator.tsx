@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -22,22 +22,83 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useTasksStore, BackgroundTask } from "@/store/tasks";
 import { collectionApi } from "@/lib/api";
+import { useProgressStream, ProgressData } from "@/lib/useProgressStream";
 
 export function BackgroundTasksIndicator() {
   const router = useRouter();
   const { tasks, updateTask, clearCompletedTasks, getActiveTasks } = useTasksStore();
   const [open, setOpen] = useState(false);
+  const [taskMessages, setTaskMessages] = useState<Record<string, string>>({});
   
   const activeTasks = getActiveTasks();
   const hasActiveTasks = activeTasks.length > 0;
   const recentTasks = tasks.slice(0, 10);
   
-  // Poll active tasks for status updates
+  // Get task IDs for active tasks
+  const activeTaskIds = activeTasks
+    .filter(t => t.status === "running")
+    .map(t => t.id);
+  
+  // Handle progress updates from SSE
+  const handleProgress = useCallback((data: ProgressData) => {
+    const taskId = data.task_id;
+    const progress = data.data?.progress ?? 0;
+    const message = data.data?.message;
+    
+    updateTask(taskId, { progress });
+    
+    if (message) {
+      setTaskMessages(prev => ({ ...prev, [taskId]: message }));
+    }
+  }, [updateTask]);
+  
+  const handleCompleted = useCallback((data: ProgressData) => {
+    const taskId = data.task_id;
+    const result = data.data?.result as Record<string, unknown> | undefined;
+    
+    updateTask(taskId, {
+      status: "completed",
+      progress: 100,
+      completedAt: new Date().toISOString(),
+      result: {
+        documentCount: result?.new as number,
+        contactCount: result?.contacts_found as number,
+      },
+    });
+    
+    setTaskMessages(prev => ({ ...prev, [taskId]: data.data?.message || "Terminé" }));
+  }, [updateTask]);
+  
+  const handleFailed = useCallback((data: ProgressData) => {
+    const taskId = data.task_id;
+    
+    updateTask(taskId, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      result: {
+        error: data.data?.error || "Erreur inconnue",
+      },
+    });
+    
+    setTaskMessages(prev => ({ ...prev, [taskId]: data.data?.error || "Échec" }));
+  }, [updateTask]);
+  
+  // Use SSE for real-time progress updates
+  useProgressStream({
+    taskIds: activeTaskIds,
+    onProgress: handleProgress,
+    onCompleted: handleCompleted,
+    onFailed: handleFailed,
+    enabled: activeTaskIds.length > 0,
+  });
+  
+  // Fallback polling for collection tasks (API-based status)
   useEffect(() => {
     if (!hasActiveTasks) return;
     
     const pollInterval = setInterval(async () => {
       for (const task of activeTasks) {
+        // Only poll for collection type tasks as fallback
         if (task.type === "collection" && task.status === "running") {
           try {
             const run = await collectionApi.getRun(task.id);
@@ -67,12 +128,13 @@ export function BackgroundTasksIndicator() {
                 : 10;
               updateTask(task.id, { progress });
             }
-          } catch (error) {
-            console.error("Error polling task:", error);
+          } catch {
+            // API polling failed, SSE should handle this
+            console.debug("Polling fallback: API not available for task", task.id);
           }
         }
       }
-    }, 3000);
+    }, 5000); // Longer interval since SSE is primary
     
     return () => clearInterval(pollInterval);
   }, [activeTasks, hasActiveTasks, updateTask]);
@@ -230,11 +292,22 @@ export function BackgroundTasksIndicator() {
                       </div>
                       
                       {task.status === "running" && task.progress !== undefined && (
-                        <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-500 transition-all duration-300"
-                            style={{ width: `${task.progress}%` }}
-                          />
+                        <div className="mt-2">
+                          {/* Progress message from SSE */}
+                          {taskMessages[task.id] && (
+                            <div className="text-xs text-blue-600 mb-1 truncate">
+                              {taskMessages[task.id]}
+                            </div>
+                          )}
+                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 transition-all duration-300"
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5 text-right">
+                            {task.progress}%
+                          </div>
                         </div>
                       )}
                     </div>

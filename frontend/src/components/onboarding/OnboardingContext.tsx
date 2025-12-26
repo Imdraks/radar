@@ -33,7 +33,7 @@ interface OnboardingContextType {
 const OnboardingContext = createContext<OnboardingContextType | null>(null);
 
 const ONBOARDING_STORAGE_KEY = "opportunities-radar-onboarding-completed";
-const ONBOARDING_VERSION = "1.0"; // Increment to re-show onboarding after updates
+const ONBOARDING_VERSION = "2.0"; // Increment to re-show onboarding after updates
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isActive, setIsActive] = useState(false);
@@ -57,15 +57,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-start onboarding for new users after a delay
-  useEffect(() => {
-    if (!hasCompletedOnboarding && steps.length > 0 && !isActive) {
-      const timer = setTimeout(() => {
-        setIsActive(true);
-      }, 1500); // Wait for page to fully load
-      return () => clearTimeout(timer);
-    }
-  }, [hasCompletedOnboarding, steps.length, isActive]);
+  // Onboarding is now triggered manually via WelcomeModal button
+  // No auto-start to avoid modal overlap
 
   const startOnboarding = useCallback(() => {
     setCurrentStep(0);

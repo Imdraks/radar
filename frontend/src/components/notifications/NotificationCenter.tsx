@@ -28,12 +28,17 @@ interface Notification {
 
 const STORAGE_KEY = "notifications_cache";
 
-// Build WebSocket URL dynamically based on current host
+// Build WebSocket URL dynamically based on API URL
 const getWsUrl = () => {
   if (typeof window === 'undefined') return '';
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  return `${protocol}//${host}/ws`;
+  
+  // Use the API URL from environment or fallback to backend port
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  
+  // Convert http(s) to ws(s)
+  const wsUrl = apiUrl.replace(/^http/, 'ws');
+  
+  return `${wsUrl}/ws`;
 };
 
 export function NotificationCenter() {
@@ -72,6 +77,11 @@ export function NotificationCenter() {
   const connectWebSocket = useCallback(() => {
     const token = getToken();
     if (!token || !user) return;
+
+    // Avoid creating multiple connections (React StrictMode double-mount)
+    if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
+      return;
+    }
 
     try {
       const wsUrl = getWsUrl();

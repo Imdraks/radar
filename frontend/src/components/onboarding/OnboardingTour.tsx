@@ -66,11 +66,30 @@ export function OnboardingTour() {
       // Calculate tooltip position based on preferred position
       const position = currentStepData.position || "bottom";
       const tooltipWidth = 380;
-      const tooltipHeight = 200; // Approximate
+      const tooltipHeight = 220; // Approximate height including padding
       const gap = 16;
 
       let tooltip: TooltipPosition;
-      switch (position) {
+      let finalPosition = position;
+      
+      // Check available space and adjust position if needed
+      const spaceTop = rect.top;
+      const spaceBottom = window.innerHeight - rect.bottom;
+      const spaceLeft = rect.left;
+      const spaceRight = window.innerWidth - rect.right;
+      
+      // Auto-adjust position if not enough space
+      if (position === "top" && spaceTop < tooltipHeight + gap) {
+        finalPosition = "bottom";
+      } else if (position === "bottom" && spaceBottom < tooltipHeight + gap) {
+        finalPosition = "top";
+      } else if (position === "left" && spaceLeft < tooltipWidth + gap) {
+        finalPosition = "right";
+      } else if (position === "right" && spaceRight < tooltipWidth + gap) {
+        finalPosition = "left";
+      }
+
+      switch (finalPosition) {
         case "top":
           tooltip = {
             top: rect.top + window.scrollY - tooltipHeight - gap,
@@ -100,9 +119,9 @@ export function OnboardingTour() {
           };
       }
 
-      // Keep tooltip within viewport
+      // Keep tooltip within viewport - ensure minimum 20px from edges
       tooltip.left = Math.max(20, Math.min(tooltip.left, window.innerWidth - tooltipWidth - 20));
-      tooltip.top = Math.max(20, tooltip.top);
+      tooltip.top = Math.max(80, Math.min(tooltip.top, window.innerHeight + window.scrollY - tooltipHeight - 20));
 
       setTooltipPos(tooltip);
 
@@ -191,12 +210,9 @@ export function OnboardingTour() {
         />
       </svg>
 
-      {/* Animated spotlight border */}
+      {/* Subtle spotlight glow - no border */}
       <div
-        className={cn(
-          "absolute rounded-xl border-2 border-primary transition-all duration-300 ease-out pointer-events-none",
-          "shadow-[0_0_0_4px_rgba(59,130,246,0.3)] animate-pulse"
-        )}
+        className="absolute rounded-xl transition-all duration-300 ease-out pointer-events-none shadow-[0_0_30px_rgba(255,255,255,0.15)]"
         style={{
           top: spotlightPos.top,
           left: spotlightPos.left,

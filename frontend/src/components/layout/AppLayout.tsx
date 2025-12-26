@@ -147,7 +147,11 @@ function AppLayoutInner({ children }: AppLayoutProps) {
 
           {/* User info & Logout */}
           <div className="border-t border-gray-200 dark:border-gray-800 p-4" data-onboarding="user-menu">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 mb-3">
+            <div className="relative flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 mb-3">
+              {/* Help button - top right */}
+              <div className="absolute -top-2 -right-2">
+                <OnboardingTrigger variant="icon" />
+              </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0000FF] to-blue-400 dark:from-blue-600 dark:to-blue-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
                 {user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
               </div>
@@ -160,18 +164,15 @@ function AppLayoutInner({ children }: AppLayoutProps) {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700"
-                onClick={logout}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Déconnexion
-              </Button>
-              <OnboardingTrigger variant="icon" />
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-9 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Déconnexion
+            </Button>
           </div>
         </div>
       </aside>

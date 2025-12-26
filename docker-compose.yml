@@ -81,7 +81,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A app.workers.celery_app worker --loglevel=info
+    command: celery -A app.workers.celery_app worker --loglevel=info -Q celery,ingestion_standard,web_enrichment,dossier_builder_gpt
     networks:
       - radar_network
 

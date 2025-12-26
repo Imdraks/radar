@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.workers.celery_app import celery_app
 from app.workers.task_logger import get_task_logger, Colors
+from app.workers.progress_notifier import get_progress_notifier
 from app.db.session import SessionLocal
 from app.db.models.source import SourceConfig
 from app.db.models.opportunity import Opportunity, OpportunityStatus, SourceType
@@ -115,6 +116,18 @@ def filter_items_by_search_params(items: List[Dict[str, Any]], search_params: Di
     return filtered
 
 
+def _get_result_message(run) -> str:
+    """Generate a human-readable result message"""
+    if run.items_new > 0:
+        return f"{run.items_new} nouvelles opportunités trouvées"
+    elif run.items_fetched == 0:
+        return "Aucune donnée récupérée - la source est peut-être inaccessible"
+    elif run.items_duplicate > 0:
+        return f"Aucun nouveau résultat ({run.items_duplicate} doublons ignorés)"
+    else:
+        return "Aucun résultat correspondant aux critères de recherche"
+
+
 @celery_app.task(bind=True, max_retries=2)
 def run_ingestion_task(self, source_id: str, search_params: dict = None):
     """
@@ -126,15 +139,18 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
         search_params: Optional search parameters (keywords, region, city, budget_min, budget_max)
     """
     log = get_task_logger("crawler")
+    progress = get_progress_notifier(self.request.id)
     db = get_db()
     
     try:
         source = db.query(SourceConfig).filter(SourceConfig.id == source_id).first()
         if not source:
             log.error(f"Source non trouvée: {source_id}")
+            progress.fail("Source not found")
             return {"error": "Source not found"}
         
-        log.step(f"Ingestion: {source.name} ({source.connector_type})")
+        log.step(f"Ingestion: {source.name} ({source.source_type.value if source.source_type else 'unknown'})")
+        progress.start(total_steps=4, message=f"Ingestion: {source.name}")
         
         # Create ingestion run record with search params in metadata
         run = IngestionRun(
@@ -148,6 +164,7 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
         
         try:
             # Get connector and fetch data
+            progress.step(1, f"Connexion à {source.name}")
             connector = get_connector(source)
             log.debug(f"Connecteur: {type(connector).__name__}")
             
@@ -155,6 +172,7 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
+                progress.step(2, f"Récupération des données de {source.name}")
                 with log.timer(f"Fetch {source.name}"):
                     raw_items = loop.run_until_complete(connector.fetch())
             finally:
@@ -162,20 +180,36 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             
             run.items_fetched = len(raw_items)
             log.info(f"Récupéré {len(raw_items)} items bruts")
+            progress.progress(30, message=f"{len(raw_items)} items récupérés")
+            
+            # Log warning if no items fetched
+            if len(raw_items) == 0:
+                log.warning(f"⚠️ Aucun item trouvé sur {source.name} - vérifiez l'URL ou le format de la source")
             
             # Apply search filters if provided
             if search_params:
+                original_count = len(raw_items)
                 raw_items = filter_items_by_search_params(raw_items, search_params)
-                log.info(f"Après filtrage: {len(raw_items)} items")
+                log.info(f"Après filtrage: {len(raw_items)} items (sur {original_count})")
+                if len(raw_items) == 0 and original_count > 0:
+                    keywords = search_params.get('keywords', '')
+                    log.warning(f"⚠️ Aucun résultat pour '{keywords}' dans {original_count} items de {source.name}")
             
             # Process items
+            progress.step(3, "Extraction et déduplication")
             extractor = DataExtractor()
             deduplicator = Deduplicator(db)
             scoring_engine = ScoringEngine(db)
             
             new_opportunities = []
+            total_items = len(raw_items)
             
-            for raw_item in raw_items:
+            for idx, raw_item in enumerate(raw_items):
+                # Update progress periodically
+                if idx % 10 == 0 and total_items > 0:
+                    pct = 40 + int((idx / total_items) * 40)  # 40% to 80%
+                    progress.progress(pct, items_processed=idx, items_total=total_items)
+                
                 try:
                     # Extract structured data
                     extracted = extractor.extract_all(
@@ -243,6 +277,8 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             # Commit new opportunities
             db.commit()
             
+            progress.step(4, "Finalisation")
+            
             # Update source stats
             source.last_run_at = datetime.utcnow()
             source.next_run_at = datetime.utcnow() + timedelta(minutes=source.poll_interval_minutes)
@@ -262,24 +298,42 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             
             db.commit()
             
-            log.success(f"{source.name}: {run.items_new} nouveaux, {run.items_duplicate} doublons")
+            # Log result with clear message
+            if run.items_new > 0:
+                log.success(f"✅ {source.name}: {run.items_new} nouveaux, {run.items_duplicate} doublons")
+            elif run.items_fetched == 0:
+                log.warning(f"⚠️ {source.name}: Aucune donnée récupérée (source vide ou inaccessible)")
+            elif run.items_duplicate > 0:
+                log.info(f"ℹ️ {source.name}: {run.items_duplicate} doublons ignorés, aucun nouveau résultat")
+            else:
+                log.warning(f"⚠️ {source.name}: Aucun résultat correspondant aux critères de recherche")
             
             # Trigger notifications for high-score opportunities
             high_score_opps = [o for o in new_opportunities if o.score >= 10]
             if high_score_opps:
                 check_and_send_notifications.delay()
             
-            return {
+            result = {
                 "source": source.name,
                 "status": run.status.value,
                 "fetched": run.items_fetched,
                 "new": run.items_new,
                 "duplicate": run.items_duplicate,
                 "errors": run.items_error,
+                "message": _get_result_message(run)
             }
+            
+            # Send completion notification
+            progress.complete(
+                message=_get_result_message(run),
+                result=result
+            )
+            
+            return result
             
         except Exception as e:
             log.exception(f"Ingestion échouée pour {source.name}: {e}")
+            progress.fail(str(e))
             run.complete(IngestionStatus.FAILED)
             run.errors = [str(e)[:500]]
             source.total_errors += 1

@@ -3,63 +3,55 @@
 import { useEffect } from "react";
 import { useOnboarding, OnboardingStep } from "./OnboardingContext";
 
-// Define the onboarding steps for the dashboard
+// Tutoriel d'onboarding du dashboard - étapes simplifiées et claires
 const DASHBOARD_STEPS: OnboardingStep[] = [
   {
-    id: "welcome-stats",
+    id: "welcome",
     target: "[data-onboarding='stats-cards']",
-    title: "Tableau de bord",
+    title: "Bienvenue sur Radar ! 🎯",
     description:
-      "Bienvenue ! Ici vous voyez un aperçu de vos opportunités : le nombre total, les nouvelles détectées, les urgentes à traiter et le score moyen de pertinence.",
+      "Radar vous aide à détecter les meilleures opportunités pour votre activité musicale. Ces cartes affichent vos statistiques clés : opportunités totales, nouvelles, urgentes et score moyen.",
     position: "bottom",
   },
   {
-    id: "opportunities-list",
-    target: "[data-onboarding='opportunities-list']",
-    title: "Liste des opportunités",
+    id: "collect-button",
+    target: "[data-onboarding='collect-button']",
+    title: "Lancer une collecte",
     description:
-      "Vos opportunités détectées apparaissent ici avec leur score, deadline et statut. Cliquez sur une opportunité pour voir les détails et prendre action.",
-    position: "left",
-  },
-  {
-    id: "search-artist",
-    target: "[data-onboarding='search-artist']",
-    title: "Recherche intelligente",
-    description:
-      "Recherchez un artiste pour obtenir son analyse complète : données Spotify, réseaux sociaux, estimation de cachet et score global. Tapez un nom et laissez l'IA faire le reste !",
+      "Cliquez ici pour lancer une recherche d'opportunités. Vous pouvez faire une collecte standard via vos sources configurées, ou utiliser l'IA pour une recherche avancée avec ChatGPT.",
     position: "bottom",
   },
   {
-    id: "emerging-artists",
-    target: "[data-onboarding='emerging-artists']",
-    title: "Artistes émergents",
+    id: "top-opportunities",
+    target: "[data-onboarding='top-opportunities']",
+    title: "Meilleures opportunités",
     description:
-      "Découvrez les artistes en forte croissance détectés automatiquement. Parfait pour identifier les talents avant qu'ils n'explosent !",
-    position: "left",
+      "Vos opportunités les mieux notées apparaissent ici. Le score est calculé automatiquement selon la pertinence, le budget, la deadline et d'autres critères.",
+    position: "bottom",
   },
   {
-    id: "ingestion-status",
-    target: "[data-onboarding='ingestion-status']",
-    title: "Sources d'ingestion",
+    id: "deadlines",
+    target: "[data-onboarding='deadlines']",
+    title: "Deadlines à venir",
     description:
-      "Suivez l'état de vos sources de données : emails, flux RSS, sites web. Les opportunités sont détectées automatiquement à partir de ces sources.",
-    position: "left",
+      "Ne manquez jamais une deadline ! Cette section affiche les opportunités dont la date limite approche. Restez organisé et réactif.",
+    position: "bottom",
   },
   {
-    id: "sidebar-nav",
+    id: "sidebar",
     target: "[data-onboarding='sidebar']",
     title: "Navigation",
     description:
-      "Utilisez le menu latéral pour accéder aux différentes sections : opportunités détaillées, sources, historique des artistes analysés et paramètres.",
+      "Le menu de navigation vous donne accès à toutes les fonctionnalités : liste complète des opportunités, gestion des sources de données, et paramètres.",
     position: "right",
   },
   {
     id: "user-menu",
     target: "[data-onboarding='user-menu']",
-    title: "Votre compte",
+    title: "Votre profil",
     description:
-      "Accédez à vos paramètres, gérez votre profil et retrouvez ce tutoriel à tout moment depuis le menu utilisateur. Bonne exploration ! 🚀",
-    position: "bottom",
+      "Gérez votre compte, vos préférences et relancez ce tutoriel à tout moment depuis votre menu utilisateur. Vous êtes prêt à commencer ! 🚀",
+    position: "top",
   },
 ];
 
@@ -67,9 +59,8 @@ export function DashboardOnboarding() {
   const { setSteps } = useOnboarding();
 
   useEffect(() => {
-    // Set the steps when this component mounts
     setSteps(DASHBOARD_STEPS);
   }, [setSteps]);
 
-  return null; // This component just sets up the steps
+  return null;
 }

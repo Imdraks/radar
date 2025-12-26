@@ -162,9 +162,10 @@ function DossierCard({ dossier, onClick }: { dossier: DossierSummary; onClick: (
         </div>
 
         {dossier.summary_short && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {dossier.summary_short}
-          </p>
+          <div
+            className="text-sm text-muted-foreground line-clamp-2 mb-3 [&>p]:m-0"
+            dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
+          />
         )}
 
         <div className="flex items-center justify-between">

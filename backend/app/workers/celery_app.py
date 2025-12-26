@@ -15,6 +15,7 @@ celery_app = Celery(
         "app.workers.collection_tasks",
         "app.workers.ai_collection",
         "app.workers.dossier_tasks",
+        "app.workers.auto_radar_task",
     ],
 )
 
@@ -41,6 +42,11 @@ celery_app.conf.update(
 
 # Beat schedule for periodic tasks
 celery_app.conf.beat_schedule = {
+    # 🎯 AUTO RADAR - Récolte automatique toutes les 15 minutes
+    "auto-radar-harvest": {
+        "task": "app.workers.auto_radar_task.auto_radar_harvest",
+        "schedule": crontab(minute="*/15"),
+    },
     # Email ingestion every 5 minutes
     "ingest-emails": {
         "task": "app.workers.tasks.run_email_ingestion",

@@ -30,7 +30,7 @@ import {
 } from "@/lib/utils";
 import type { Opportunity, IngestionRun, DashboardStats } from "@/lib/types";
 import { UnifiedCollectModal } from "@/components/collection";
-import { IntelligentSearchDialog, ArtistAnalysisDialog } from "@/components/intelligence";
+import { ArtistAnalysisDialog } from "@/components/intelligence";
 import { EmergingArtistsWidget } from "@/components/intelligence/EmergingArtistsWidget";
 import { DashboardOnboarding } from "@/components/onboarding";
 
@@ -70,13 +70,12 @@ function DashboardContent() {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {/* Nouveau bouton de collecte unifiée */}
-          <UnifiedCollectModal />
-          
-          {/* Boutons d'intelligence IA */}
-          <div data-onboarding="search-artist">
-            <IntelligentSearchDialog />
+          {/* Bouton de collecte unifiée */}
+          <div data-onboarding="collect-button">
+            <UnifiedCollectModal />
           </div>
+          
+          {/* Analyse d'artiste */}
           <ArtistAnalysisDialog />
         </div>
       </div>
@@ -172,7 +171,7 @@ function DashboardContent() {
       {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Opportunities */}
-        <Card data-onboarding="opportunities-list">
+        <Card data-onboarding="top-opportunities">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Top Opportunités</CardTitle>
             <Link href="/opportunities?sort_by=score&sort_order=desc">
@@ -230,7 +229,7 @@ function DashboardContent() {
         </Card>
 
         {/* Upcoming Deadlines */}
-        <Card>
+        <Card data-onboarding="deadlines">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Deadlines à venir</CardTitle>
             <Link href="/opportunities?sort_by=deadline_at&sort_order=asc">

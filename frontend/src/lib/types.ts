@@ -18,6 +18,7 @@ export interface Opportunity {
   budget_amount?: number;
   budget_currency: string;
   budget_text?: string;
+  budget_hint?: string;
   deadline_at?: string;
   event_date_start?: string;
   event_date_end?: string;

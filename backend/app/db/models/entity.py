@@ -42,6 +42,7 @@ class ContactType(str, PyEnum):
     MANAGEMENT = "MANAGEMENT"
     SOCIAL = "SOCIAL"
     PHONE = "PHONE"
+    AI_FOUND = "AI_FOUND"  # Found by AI Collection
 
 
 class Entity(Base):

@@ -286,7 +286,7 @@ class WebArtistScanner:
         # Si l'artiste est dans la base de données, utiliser comme base
         if known_artist:
             print(f"   ✅ ARTISTE TROUVÉ DANS LA BASE: {known_artist.name}", flush=True)
-            print(f"      Tier: {known_artist.tier}, Fee: {known_artist.fee_min:,}€ - {known_artist.fee_max:,}€", flush=True)
+            print(f"      Tier: {known_artist.market_tier}, Fee: {known_artist.fee_min:,}€ - {known_artist.fee_max:,}€", flush=True)
             logger.info(f"✅ Artiste trouvé dans la base de données: {known_artist.name}")
             profile = self._create_profile_from_known_artist(known_artist)
             profile.sources_scanned.append("Base de données artistes FR")

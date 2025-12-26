@@ -13,7 +13,7 @@ import {
 import { useOnboarding } from "./OnboardingContext";
 import { cn } from "@/lib/utils";
 
-const WELCOME_STORAGE_KEY = "opportunities-radar-welcome-shown";
+const WELCOME_STORAGE_KEY = "opportunities-radar-welcome-shown-v2";
 
 const features = [
   {

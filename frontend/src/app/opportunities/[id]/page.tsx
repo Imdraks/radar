@@ -79,7 +79,20 @@ function OpportunityDetailContent() {
   const [noteContent, setNoteContent] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
-  const id = parseInt(params.id as string);
+  const id = params.id as string;
+
+  // Helper: vérifier si une date est valide (après 1900)
+  const isValidDate = (dateStr: string | null | undefined): boolean => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    return date.getFullYear() > 1900;
+  };
+
+  // Helper: nettoyer le HTML pour l'affichage
+  const stripHtml = (html: string): string => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  };
 
   const { data: opportunity, isLoading } = useQuery<Opportunity>({
     queryKey: ["opportunity", id],
@@ -241,7 +254,7 @@ function OpportunityDetailContent() {
 
         {/* Quick info cards */}
         <div className="flex flex-wrap gap-4 lg:w-auto">
-          {opportunity.budget_amount && (
+          {(opportunity.budget_amount || opportunity.budget_hint) && (
             <Card className="flex-1 min-w-[150px]">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -249,13 +262,13 @@ function OpportunityDetailContent() {
                   Budget
                 </div>
                 <p className="text-xl font-bold text-green-600 mt-1">
-                  {formatCurrency(opportunity.budget_amount)}
+                  {opportunity.budget_hint || formatCurrency(opportunity.budget_amount)}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {opportunity.deadline_at && (
+          {isValidDate(opportunity.deadline_at) && (
             <Card className="flex-1 min-w-[150px]">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -299,9 +312,18 @@ function OpportunityDetailContent() {
                 <CardTitle>Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap">
-                  {opportunity.description || "Aucune description"}
-                </p>
+                {opportunity.description ? (
+                  opportunity.description.includes('<') ? (
+                    <div 
+                      className="text-sm leading-relaxed [&>p]:mb-4 [&>h2]:text-lg [&>h2]:font-bold [&>h2]:mt-6 [&>h2]:mb-3 [&>a]:text-primary [&>a]:underline [&_strong]:font-semibold [&_img]:max-w-full [&_img]:rounded-lg [&_figure]:my-4 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:mt-2"
+                      dangerouslySetInnerHTML={{ __html: opportunity.description }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{opportunity.description}</p>
+                  )
+                ) : (
+                  <p className="text-muted-foreground">Aucune description</p>
+                )}
               </CardContent>
             </Card>
 

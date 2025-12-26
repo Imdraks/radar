@@ -188,7 +188,7 @@ class ContactRanked(BaseModel):
     type: str
     value: str
     label: Optional[str]
-    reliability_score: int
+    reliability_score: float  # Changed to float to support 0-1 and 0-100 scores
     source: Optional[str]
     is_verified: bool = False
 

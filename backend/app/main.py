@@ -25,6 +25,8 @@ from app.api.collection import router as collection_router
 from app.api.websocket import router as websocket_router
 from app.api.collect import router as collect_router
 from app.api.dossiers import router as dossiers_router
+from app.api.progress import router as progress_router
+from app.api.radar import router as radar_router
 # Nouveaux routers refonte
 from app.api.collections_api import router as collections_v2_router
 from app.api.opportunities_api import router as opportunities_v2_router
@@ -102,10 +104,16 @@ app.include_router(collection_router, prefix="/api/v1", tags=["Collection"])
 app.include_router(collect_router, prefix="/api/v1", tags=["Unified Collection"])
 app.include_router(dossiers_router, prefix="/api/v1/dossiers", tags=["Dossiers"])
 
+# Auto Radar - Récolte automatique
+app.include_router(radar_router, prefix="/api/v1/radar", tags=["Auto Radar"])
+
 # Nouveaux routers refonte (v2)
 app.include_router(collections_v2_router, prefix="/api/v2", tags=["Collections V2"])
 app.include_router(opportunities_v2_router, prefix="/api/v2", tags=["Opportunities V2"])
 app.include_router(dossiers_v2_router, prefix="/api/v2", tags=["Dossiers V2"])
+
+# Progress streaming (SSE)
+app.include_router(progress_router, prefix="/api/v1", tags=["Progress"])
 
 # WebSocket routes (no prefix - handled directly at /ws/)
 app.include_router(websocket_router)
