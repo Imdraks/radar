@@ -108,7 +108,7 @@ export const opportunitiesApi = {
     return response.data;
   },
   
-  getOne: async (id: number) => {
+  getOne: async (id: string | number) => {
     const response = await api.get(`/opportunities/${id}`);
     return response.data;
   },
@@ -118,12 +118,12 @@ export const opportunitiesApi = {
     return response.data;
   },
   
-  update: async (id: number, data: Record<string, unknown>) => {
+  update: async (id: string | number, data: Record<string, unknown>) => {
     const response = await api.patch(`/opportunities/${id}`, data);
     return response.data;
   },
   
-  delete: async (id: number) => {
+  delete: async (id: string | number) => {
     const response = await api.delete(`/opportunities/${id}`);
     return response.data;
   },
