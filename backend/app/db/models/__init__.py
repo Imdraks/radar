@@ -38,6 +38,9 @@ from .dossier import (
     EvidenceType,
     WebEnrichmentRun,
 )
+# Activity Log
+from .activity_log import ActivityLog
+
 # Nouveaux modèles refonte v2
 from .collections import (
     CollectionType,

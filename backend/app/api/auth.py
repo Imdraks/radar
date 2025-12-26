@@ -3,7 +3,7 @@ Authentication endpoints
 """
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
@@ -17,6 +17,7 @@ from app.core.security import (
     get_password_hash,
 )
 from app.core.two_factor import two_factor_auth
+from app.core.activity_logger import ActivityLogger, Actions
 from app.schemas.user import UserLogin, Token, UserResponse
 from app.api.deps import get_current_user
 
@@ -87,6 +88,7 @@ def initial_setup(
 @router.post("/login", response_model=Token)
 def login(
     credentials: UserLogin,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Authenticate user and return tokens"""
@@ -111,6 +113,15 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Accès refusé. Votre compte n'est pas autorisé. Contactez l'administrateur.",
         )
+    
+    # Log successful login
+    ActivityLogger.log(
+        db=db,
+        user=user,
+        action=Actions.LOGIN,
+        details={"email": user.email},
+        request=request,
+    )
     
     # Update last login
     user.last_login_at = datetime.utcnow()

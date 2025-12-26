@@ -21,6 +21,7 @@ import {
   FileText,
   ChevronRight,
   Bell,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const navigation: {
   href: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  superadminOnly?: boolean;
   isNew?: boolean;
 }[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -51,6 +53,7 @@ const navigation: {
   { name: "Sources", href: "/sources", icon: Rss },
   { name: "Scoring", href: "/scoring", icon: BarChart3 },
   { name: "Utilisateurs", href: "/users", icon: Users, adminOnly: true },
+  { name: "Logs Activité", href: "/admin/activity", icon: Activity, superadminOnly: true },
   { name: "Paramètres", href: "/settings", icon: Settings },
 ];
 
@@ -64,9 +67,14 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
+  const isSuperuser = user?.is_superuser === true;
 
   const filteredNavigation = navigation.filter(
-    (item) => !item.adminOnly || isAdmin
+    (item) => {
+      if (item.superadminOnly) return isSuperuser;
+      if (item.adminOnly) return isAdmin || isSuperuser;
+      return true;
+    }
   );
 
   const currentPage = filteredNavigation.find(item => pathname.startsWith(item.href));

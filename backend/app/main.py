@@ -27,6 +27,7 @@ from app.api.collect import router as collect_router
 from app.api.dossiers import router as dossiers_router
 from app.api.progress import router as progress_router
 from app.api.radar import router as radar_router
+from app.api.activity import router as activity_router
 # Nouveaux routers refonte
 from app.api.collections_api import router as collections_v2_router
 from app.api.opportunities_api import router as opportunities_v2_router
@@ -106,6 +107,9 @@ app.include_router(dossiers_router, prefix="/api/v1/dossiers", tags=["Dossiers"]
 
 # Auto Radar - Récolte automatique
 app.include_router(radar_router, prefix="/api/v1/radar", tags=["Auto Radar"])
+
+# Activity Logs - Superadmin only
+app.include_router(activity_router, prefix="/api/v1/admin", tags=["Activity Logs"])
 
 # Nouveaux routers refonte (v2)
 app.include_router(collections_v2_router, prefix="/api/v2", tags=["Collections V2"])

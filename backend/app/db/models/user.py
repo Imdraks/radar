@@ -2,6 +2,8 @@
 User and Role models
 """
 import uuid
+import secrets
+import string
 from datetime import datetime
 from enum import Enum as PyEnum
 from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON
@@ -9,6 +11,13 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+
+
+def generate_tracking_id():
+    """Generate a unique tracking ID like USR-A1B2C3"""
+    chars = string.ascii_uppercase + string.digits
+    code = ''.join(secrets.choice(chars) for _ in range(6))
+    return f"USR-{code}"
 
 
 class Role(str, PyEnum):
@@ -24,6 +33,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tracking_id = Column(String(15), unique=True, default=generate_tracking_id, index=True)  # Hidden ID for superadmin
     email = Column(String(255), unique=True, index=True, nullable=True)  # Nullable for SSO without email
     hashed_password = Column(String(255), nullable=True)  # Nullable for SSO users
     full_name = Column(String(255), nullable=True)

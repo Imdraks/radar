@@ -713,4 +713,31 @@ export const collectionApi = {
   },
 };
 
+// Admin API - Superadmin only
+export const adminApi = {
+  // Get activity logs
+  getLogs: async (params?: Record<string, string>) => {
+    const response = await api.get("/admin/logs", { params });
+    return response.data;
+  },
+  
+  // Get logs stream (for polling)
+  getLogsStream: async (since?: string) => {
+    const response = await api.get("/admin/logs/stream", { params: since ? { since } : {} });
+    return response.data;
+  },
+  
+  // Get users with tracking IDs
+  getUsersTracking: async () => {
+    const response = await api.get("/admin/users/tracking");
+    return response.data;
+  },
+  
+  // Get activity stats
+  getStats: async (hours = 24) => {
+    const response = await api.get("/admin/logs/stats", { params: { hours } });
+    return response.data;
+  },
+};
+
 export default api;
