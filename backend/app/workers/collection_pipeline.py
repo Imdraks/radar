@@ -8,7 +8,6 @@ Tous les résultats sont sourcés avec Evidence (zéro hallucination).
 """
 import hashlib
 import time
-import logging
 import json
 import re
 from datetime import datetime
@@ -29,8 +28,7 @@ from app.db.models.collections import (
 )
 from app.db.models.source import SourceConfig
 from app.core.config import settings
-
-logger = logging.getLogger(__name__)
+from app.workers.task_logger import TaskLogger, get_task_logger, Colors
 
 
 # ================================================================
@@ -49,6 +47,9 @@ def run_standard_collection(self, collection_id: str):
     4. Scoring
     5. Insertion dans lead_items + collection_results
     """
+    log = get_task_logger("pipeline", collection_id=collection_id)
+    log.step(f"Collecte STANDARD démarrée")
+    
     db = SessionLocal()
     start_time = time.time()
     
@@ -58,7 +59,7 @@ def run_standard_collection(self, collection_id: str):
         ).first()
         
         if not collection:
-            logger.error(f"Collection {collection_id} not found")
+            log.error(f"Collection {collection_id} not found")
             return {"error": "Collection not found"}
         
         # Update status
@@ -77,7 +78,7 @@ def run_standard_collection(self, collection_id: str):
         else:
             sources = db.query(SourceConfig).filter(SourceConfig.id.in_(source_ids)).all()
         
-        _log(db, collection_id, "info", f"Sources à traiter: {len(sources)}")
+        log.info(f"Sources chargées: {len(sources)}", save=True)
         
         total_extracted = 0
         total_new = 0
@@ -85,9 +86,13 @@ def run_standard_collection(self, collection_id: str):
         errors = []
         
         # 2. Pour chaque source
-        for source in sources:
+        for idx, source in enumerate(sources, 1):
+            source_log = get_task_logger("http", collection_id=collection_id)
+            print(f"{Colors.CYAN}   [{idx}/{len(sources)}] Source: {source.name} ({source.connector_type}){Colors.RESET}", flush=True)
+            
             try:
-                items_from_source = _process_source(db, collection_id, source)
+                with log.timer(f"Source {source.name}"):
+                    items_from_source = _process_source(db, collection_id, source, log)
                 
                 # 3. Dedup + Insert
                 for item_data in items_from_source:
@@ -100,12 +105,14 @@ def run_standard_collection(self, collection_id: str):
                     else:
                         total_duplicates += 1
                 
+                print(f"{Colors.GREEN}      ✓ {source.name}: {len(items_from_source)} items ({total_new} nouveaux){Colors.RESET}", flush=True)
                 _log(db, collection_id, "info", 
                      f"Source {source.name}: {len(items_from_source)} items")
                 
             except Exception as e:
-                logger.exception(f"Error processing source {source.name}")
+                source_log.exception(f"Error processing source {source.name}")
                 errors.append(f"{source.name}: {str(e)}")
+                print(f"{Colors.RED}      ✗ {source.name}: {e}{Colors.RESET}", flush=True)
                 _log(db, collection_id, "error", 
                      f"Erreur source {source.name}: {str(e)}")
         
@@ -131,8 +138,8 @@ def run_standard_collection(self, collection_id: str):
         
         db.commit()
         
-        _log(db, collection_id, "info", 
-             f"Collecte terminée: {total_new} nouveaux, {total_duplicates} doublons")
+        log.success(f"Collecte terminée en {log.elapsed_str()}", 
+                   new=total_new, duplicates=total_duplicates, save=True)
         
         return {
             "status": "success",
@@ -142,7 +149,7 @@ def run_standard_collection(self, collection_id: str):
         }
         
     except Exception as e:
-        logger.exception(f"Collection {collection_id} failed")
+        log.error(f"Collection {collection_id} failed: {e}", save=True)
         if collection:
             collection.status = CollectionStatus.ERROR.value
             collection.error_message = str(e)
@@ -154,7 +161,7 @@ def run_standard_collection(self, collection_id: str):
         db.close()
 
 
-def _process_source(db: Session, collection_id: str, source: SourceConfig) -> List[Dict]:
+def _process_source(db: Session, collection_id: str, source: SourceConfig, log: TaskLogger = None) -> List[Dict]:
     """
     Fetch + Parse + Extract items from a source.
     Retourne liste de dicts avec les données extraites.
@@ -162,14 +169,19 @@ def _process_source(db: Session, collection_id: str, source: SourceConfig) -> Li
     from app.ingestion.factory import create_connector
     from app.extraction.extraction_service import ExtractionService
     
+    if log is None:
+        log = get_task_logger("crawler")
+    
     items = []
     
     try:
         # Create connector based on source type
         connector = create_connector(source)
+        log.debug(f"Connecteur créé: {type(connector).__name__}")
         
         # Fetch raw content
         raw_content = connector.fetch()
+        log.debug(f"Contenu récupéré: {len(raw_content) if raw_content else 0} chars")
         
         # Store as SourceDocumentV2
         doc = SourceDocumentV2(
@@ -189,6 +201,8 @@ def _process_source(db: Session, collection_id: str, source: SourceConfig) -> Li
             source_type=source.source_type,
         )
         
+        log.info(f"Extraction: {len(extracted_items)} items de {source.name}")
+        
         for item in extracted_items:
             item["source_document_id"] = str(doc.id)
             item["source_id"] = source.id
@@ -197,7 +211,7 @@ def _process_source(db: Session, collection_id: str, source: SourceConfig) -> Li
             items.append(item)
         
     except Exception as e:
-        logger.warning(f"Failed to process source {source.name}: {e}")
+        log.warning(f"Échec source {source.name}: {e}")
         raise
     
     return items
@@ -325,6 +339,9 @@ def run_ai_collection(self, collection_id: str):
     Phase B: Fetch les URLs du plan
     Phase C: GPT construit le dossier avec evidence
     """
+    log = get_task_logger("gpt", collection_id=collection_id)
+    log.step("Collecte IA démarrée")
+    
     db = SessionLocal()
     start_time = time.time()
     
@@ -351,9 +368,16 @@ def run_ai_collection(self, collection_id: str):
         if not query:
             raise ValueError("Query is required for AI collection")
         
+        log.info(f"Query: {query[:80]}...", objective=objective)
+        
         # Phase A: GPT Plan
+        log.step("Phase A: Génération du plan GPT")
         _log(db, collection_id, "info", "Phase A: Génération du plan GPT")
-        plan = _gpt_generate_plan(query, objective, target_entities)
+        
+        with log.timer("GPT Plan Generation"):
+            plan = _gpt_generate_plan(query, objective, target_entities)
+        
+        log.info(f"Plan généré: {len(plan.get('urls', []))} URLs à fetcher")
         
         # Create lead_item for this search
         lead_item = LeadItem(
@@ -380,14 +404,22 @@ def run_ai_collection(self, collection_id: str):
         _link_to_collection(db, collection_id, lead_item.id)
         
         # Phase B: Fetch URLs from plan
+        log.step(f"Phase B: Fetch {len(plan.get('urls', []))} URLs")
         _log(db, collection_id, "info", f"Phase B: Fetch {len(plan.get('urls', []))} URLs")
-        fetched_docs = _fetch_plan_urls(db, dossier.id, lead_item.id, plan.get("urls", []))
+        
+        with log.timer("URL Fetching"):
+            fetched_docs = _fetch_plan_urls(db, dossier.id, lead_item.id, plan.get("urls", []), log)
+        
+        log.info(f"Documents récupérés: {len(fetched_docs)}")
         
         # Phase C: GPT Dossier Builder
+        log.step("Phase C: Construction du dossier GPT")
         _log(db, collection_id, "info", "Phase C: Construction du dossier GPT")
-        dossier_result = _gpt_build_dossier(
-            query, objective, target_entities, fetched_docs, plan
-        )
+        
+        with log.timer("GPT Dossier Building"):
+            dossier_result = _gpt_build_dossier(
+                query, objective, target_entities, fetched_docs, plan, log
+            )
         
         # Update dossier
         dossier.sections = dossier_result.get("sections")
@@ -400,7 +432,10 @@ def run_ai_collection(self, collection_id: str):
         dossier.model_used = dossier_result.get("model_used", "gpt-4")
         dossier.state = DossierState.READY.value
         
+        log.info(f"Dossier construit: {len(dossier_result.get('sections', []))} sections")
+        
         # Store evidence
+        evidence_count = 0
         for ev in dossier_result.get("evidence", []):
             evidence = Evidence(
                 dossier_id=dossier.id,
@@ -414,6 +449,9 @@ def run_ai_collection(self, collection_id: str):
                 confidence=ev.get("confidence", 0.8),
             )
             db.add(evidence)
+            evidence_count += 1
+        
+        log.info(f"Evidence stocké: {evidence_count} éléments")
         
         # Finalize collection
         elapsed = int((time.time() - start_time) * 1000)
@@ -430,6 +468,11 @@ def run_ai_collection(self, collection_id: str):
         
         db.commit()
         
+        log.success(f"Collecte IA terminée en {log.elapsed_str()}", 
+                   quality=dossier.quality_score,
+                   tokens=dossier_result.get("tokens_used"),
+                   save=True)
+        
         _log(db, collection_id, "info", 
              f"Collecte IA terminée: score qualité {dossier.quality_score}")
         
@@ -440,7 +483,7 @@ def run_ai_collection(self, collection_id: str):
         }
         
     except Exception as e:
-        logger.exception(f"AI Collection {collection_id} failed")
+        log.error(f"AI Collection failed: {e}", save=True)
         if collection:
             collection.status = CollectionStatus.ERROR.value
             collection.error_message = str(e)
@@ -458,6 +501,9 @@ def run_dossier_builder_task(self, dossier_id: str):
     Construit/régénère un dossier existant.
     Appelé depuis opportunities_api.create_dossier_from_opportunity
     """
+    log = get_task_logger("dossier")
+    log.step(f"Construction dossier {dossier_id[:8]}")
+    
     db = SessionLocal()
     start_time = time.time()
     
@@ -467,6 +513,7 @@ def run_dossier_builder_task(self, dossier_id: str):
         ).first()
         
         if not dossier:
+            log.error("Dossier not found", dossier_id=dossier_id)
             return {"error": "Dossier not found"}
         
         dossier.state = DossierState.PROCESSING.value
@@ -480,36 +527,48 @@ def run_dossier_builder_task(self, dossier_id: str):
         if not lead_item:
             raise ValueError("Lead item not found")
         
+        log.info(f"Dossier pour: {lead_item.title[:50]}...")
+        
         # Build context from lead_item
         objective = dossier.objective
         target_entities = [e.get("name") for e in (dossier.target_entities or [])]
         
         # Phase A: Generate plan based on lead_item
-        plan = _gpt_generate_plan(
-            lead_item.title,
-            objective,
-            target_entities or [lead_item.organization_name],
-        )
+        log.step("Phase A: Génération plan GPT")
+        with log.timer("GPT Plan"):
+            plan = _gpt_generate_plan(
+                lead_item.title,
+                objective,
+                target_entities or [lead_item.organization_name],
+            )
         
         # Phase B: Fetch URLs
-        fetched_docs = _fetch_plan_urls(
-            db, dossier.id, lead_item.id, plan.get("urls", [])
-        )
+        log.step(f"Phase B: Fetch {len(plan.get('urls', []))} URLs")
+        with log.timer("URL Fetching"):
+            fetched_docs = _fetch_plan_urls(
+                db, dossier.id, lead_item.id, plan.get("urls", []), log
+            )
         
         # Add lead_item URL to docs
         if lead_item.url_primary:
+            log.debug(f"Fetch URL primaire: {lead_item.url_primary}")
             primary_doc = _fetch_single_url(db, dossier.id, lead_item.id, lead_item.url_primary)
             if primary_doc:
                 fetched_docs.insert(0, primary_doc)
         
+        log.info(f"Documents récupérés: {len(fetched_docs)}")
+        
         # Phase C: Build dossier
-        result = _gpt_build_dossier(
-            lead_item.title,
-            objective,
-            target_entities,
-            fetched_docs,
-            plan,
-        )
+        log.step("Phase C: Construction dossier GPT")
+        with log.timer("GPT Dossier Building"):
+            result = _gpt_build_dossier(
+                lead_item.title,
+                objective,
+                target_entities,
+                fetched_docs,
+                plan,
+                log,
+            )
         
         # Update dossier
         dossier.sections = result.get("sections")
@@ -524,6 +583,7 @@ def run_dossier_builder_task(self, dossier_id: str):
         dossier.state = DossierState.READY.value
         
         # Store evidence
+        evidence_count = 0
         for ev in result.get("evidence", []):
             evidence = Evidence(
                 dossier_id=dossier.id,
@@ -537,8 +597,13 @@ def run_dossier_builder_task(self, dossier_id: str):
                 confidence=ev.get("confidence", 0.8),
             )
             db.add(evidence)
+            evidence_count += 1
         
         db.commit()
+        
+        log.success(f"Dossier prêt en {log.elapsed_str()}", 
+                   quality=dossier.quality_score,
+                   evidence=evidence_count)
         
         return {
             "status": "success",
@@ -546,7 +611,7 @@ def run_dossier_builder_task(self, dossier_id: str):
         }
         
     except Exception as e:
-        logger.exception(f"Dossier builder {dossier_id} failed")
+        log.error(f"Dossier builder failed: {e}")
         if dossier:
             dossier.state = DossierState.ERROR.value
             dossier.error_message = str(e)
@@ -574,10 +639,12 @@ def _gpt_generate_plan(query: str, objective: str, target_entities: List[str]) -
     Phase A: GPT génère un plan de recherche.
     Retourne: { urls: [...], search_queries: [...], strategy: str, rationale: str }
     """
+    log = get_task_logger("gpt")
     try:
         client = _get_openai_client()
         
         entities_str = ", ".join(target_entities) if target_entities else "non spécifié"
+        log.debug(f"Génération plan pour: {query[:50]}...", entities=len(target_entities))
         
         system_prompt = """Tu es un expert en recherche business et veille stratégique.
 Ton rôle est de créer un plan de recherche pour trouver des informations sur une cible.
@@ -609,6 +676,7 @@ Génère des URLs et requêtes pertinentes pour la France."""
         )
         
         content = response.choices[0].message.content.strip()
+        log.info(f"GPT Plan reçu: {response.usage.total_tokens} tokens")
         
         # Parse JSON
         try:
@@ -619,9 +687,10 @@ Génère des URLs et requêtes pertinentes pour la France."""
             
             plan = json.loads(content)
             plan["tokens_used"] = response.usage.total_tokens
+            log.debug(f"Plan parsed: {len(plan.get('urls', []))} URLs")
             return plan
         except json.JSONDecodeError:
-            logger.warning(f"Failed to parse GPT plan response: {content[:200]}")
+            log.warning(f"Échec parsing plan GPT")
             return {
                 "urls": [],
                 "search_queries": [query],
@@ -630,7 +699,7 @@ Génère des URLs et requêtes pertinentes pour la France."""
             }
             
     except Exception as e:
-        logger.exception(f"GPT plan generation failed: {e}")
+        log.error(f"GPT plan generation failed: {e}")
         return {
             "urls": [],
             "search_queries": [query],
@@ -645,6 +714,7 @@ def _gpt_build_dossier(
     target_entities: List[str],
     documents: List[Dict],
     plan: Dict,
+    log: TaskLogger = None,
 ) -> Dict:
     """
     Phase C: GPT construit le dossier avec evidence sourcée.
@@ -654,6 +724,9 @@ def _gpt_build_dossier(
     - url: URL du document
     - source_document_id: ID du document en DB
     """
+    if log is None:
+        log = get_task_logger("gpt")
+    
     try:
         client = _get_openai_client()
         
@@ -668,6 +741,8 @@ ID: {doc.get('id', 'N/A')}
 CONTENU:
 {content}
 """)
+        
+        log.debug(f"Building dossier avec {len(docs_context)} documents")
         
         docs_text = "\n".join(docs_context) if docs_context else "Aucun document disponible."
         entities_str = ", ".join(target_entities) if target_entities else "non spécifié"
@@ -732,6 +807,7 @@ Chaque information doit avoir une evidence avec la citation exacte du document s
         
         content = response.choices[0].message.content.strip()
         tokens_used = response.usage.total_tokens
+        log.info(f"GPT Dossier reçu: {tokens_used} tokens")
         
         # Parse JSON
         try:
@@ -743,6 +819,8 @@ Chaque information doit avoir une evidence avec la citation exacte du document s
             result["tokens_used"] = tokens_used
             result["model_used"] = "gpt-4o"
             
+            log.debug(f"Dossier parsed: {len(result.get('sections', []))} sections, {len(result.get('evidence', []))} evidence")
+            
             # Validate evidence provenance
             for ev in result.get("evidence", []):
                 ev["provenance"] = EvidenceProvenance.GPT_GROUNDED.value
@@ -752,11 +830,11 @@ Chaque information doit avoir une evidence avec la citation exacte du document s
             return result
             
         except json.JSONDecodeError:
-            logger.warning(f"Failed to parse GPT dossier response: {content[:500]}")
+            log.warning(f"Échec parsing dossier GPT")
             return _fallback_dossier(query, tokens_used)
             
     except Exception as e:
-        logger.exception(f"GPT dossier building failed: {e}")
+        log.error(f"GPT dossier building failed: {e}")
         return _fallback_dossier(query, 0, str(e))
 
 
@@ -793,14 +871,22 @@ def _fetch_plan_urls(
     db: Session, 
     dossier_id: UUID, 
     lead_item_id: UUID, 
-    urls: List[str]
+    urls: List[str],
+    log: TaskLogger = None,
 ) -> List[Dict]:
     """Fetch all URLs from the plan and store as SourceDocuments"""
+    if log is None:
+        log = get_task_logger("http")
+    
     docs = []
-    for url in urls[:10]:  # Limit to 10 URLs
-        doc = _fetch_single_url(db, dossier_id, lead_item_id, url)
+    for idx, url in enumerate(urls[:10], 1):  # Limit to 10 URLs
+        print(f"{Colors.GRAY}      [{idx}/{min(len(urls), 10)}] Fetching: {url[:60]}...{Colors.RESET}", flush=True)
+        doc = _fetch_single_url(db, dossier_id, lead_item_id, url, log)
         if doc:
             docs.append(doc)
+            print(f"{Colors.GREEN}         ✓ OK ({len(doc.get('content', ''))} chars){Colors.RESET}", flush=True)
+        else:
+            print(f"{Colors.RED}         ✗ FAIL{Colors.RESET}", flush=True)
     return docs
 
 
@@ -809,9 +895,13 @@ def _fetch_single_url(
     dossier_id: UUID,
     lead_item_id: UUID,
     url: str,
+    log: TaskLogger = None,
 ) -> Optional[Dict]:
     """Fetch a single URL and store as SourceDocument"""
     import requests
+    
+    if log is None:
+        log = get_task_logger("http")
     
     try:
         response = requests.get(url, timeout=10, headers={
@@ -838,7 +928,7 @@ def _fetch_single_url(
         }
         
     except Exception as e:
-        logger.warning(f"Failed to fetch {url}: {e}")
+        log.warning(f"Échec fetch {url[:50]}: {e}")
         return None
 
 
@@ -847,7 +937,19 @@ def _fetch_single_url(
 # ================================================================
 
 def _log(db: Session, collection_id: str, level: str, message: str):
-    """Log a message for a collection"""
+    """Log a message for a collection - both console and DB"""
+    # Console log via TaskLogger
+    log = get_task_logger("db", collection_id=collection_id)
+    if level == "info":
+        log.info(message)
+    elif level == "error":
+        log.error(message)
+    elif level == "warning":
+        log.warning(message)
+    else:
+        log.debug(message)
+    
+    # DB log
     log_entry = CollectionLog(
         collection_id=collection_id,
         level=level,

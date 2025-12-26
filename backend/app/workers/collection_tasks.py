@@ -3,7 +3,6 @@ Celery tasks for entity-based collection system.
 Handles collection runs, document fetching, extraction, and brief generation.
 """
 import asyncio
-import logging
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
@@ -12,6 +11,7 @@ from uuid import UUID
 from celery import shared_task
 
 from app.workers.celery_app import celery_app
+from app.workers.task_logger import TaskLogger, get_task_logger, Colors
 from app.db.session import SessionLocal
 from app.db.models.source import SourceConfig
 from app.db.models.entity import (
@@ -20,8 +20,6 @@ from app.db.models.entity import (
 )
 from app.ingestion.factory import get_connector
 from app.extraction.extraction_service import extraction_service, contact_scorer
-
-logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -52,6 +50,9 @@ def run_collection_task(
     3. Extract information from documents
     4. Generate/update briefs for entities
     """
+    log = get_task_logger("collection", collection_id=run_id)
+    log.step(f"Démarrage de la collecte", run_id=run_id)
+    
     db = get_db()
     filters = filters or {}
     
@@ -62,7 +63,7 @@ def run_collection_task(
         ).first()
         
         if not collection_run:
-            logger.error(f"Collection run not found: {run_id}")
+            log.error(f"Collection run introuvable", run_id=run_id)
             return {"error": "Collection run not found"}
         
         # Get entities
@@ -71,7 +72,7 @@ def run_collection_task(
         ).all()
         
         if not entities:
-            logger.error(f"No entities found for IDs: {entity_ids}")
+            log.error(f"Aucune entité trouvée", entity_ids=entity_ids)
             collection_run.status = "FAILED"
             collection_run.error_summary = "Entities not found"
             db.commit()
@@ -84,11 +85,12 @@ def run_collection_task(
             search_terms.extend(entity.aliases or [])
         search_terms.extend(secondary_keywords or [])
         
-        logger.info(f"Starting collection for {len(entities)} entities with terms: {search_terms}")
+        log.info(f"Recherche pour {len(entities)} entités", terms=search_terms[:5])
         
         # Get active sources
         sources = db.query(SourceConfig).filter(SourceConfig.is_active == True).all()
         collection_run.source_count = len(sources)
+        log.step(f"Récupération de {len(sources)} sources actives")
         
         source_runs = []
         total_new = 0
@@ -98,8 +100,12 @@ def run_collection_task(
         sources_failed = 0
         
         # Process each source
-        for source in sources:
+        for idx, source in enumerate(sources, 1):
+            source_log = get_task_logger("http", collection_id=run_id)
             start_time = time.time()
+            
+            print(f"{Colors.CYAN}   [{idx}/{len(sources)}] Source: {source.name} ({source.connector_type}){Colors.RESET}", flush=True)
+            
             source_run = {
                 "source_id": str(source.id),
                 "source_name": source.name,
@@ -113,15 +119,18 @@ def run_collection_task(
             try:
                 # Fetch from source
                 connector = get_connector(source)
+                source_log.debug(f"Connecteur créé: {type(connector).__name__}")
                 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    raw_items = loop.run_until_complete(connector.fetch())
+                    with log.timer(f"Fetch {source.name}"):
+                        raw_items = loop.run_until_complete(connector.fetch())
                 finally:
                     loop.close()
                 
                 source_run["items_found"] = len(raw_items)
+                source_log.info(f"Récupéré {len(raw_items)} items de {source.name}")
                 
                 # Process each item
                 for entity in entities:
@@ -133,6 +142,7 @@ def run_collection_task(
                         search_terms=search_terms,
                         objective=objective,
                         timeframe_days=timeframe_days,
+                        log=log,
                     )
                     
                     source_run["items_new"] += new_docs
@@ -142,12 +152,14 @@ def run_collection_task(
                 
                 source_run["status"] = "SUCCESS"
                 sources_success += 1
+                print(f"{Colors.GREEN}      ✓ {source.name}: {source_run['items_found']} items, {source_run['items_new']} nouveaux{Colors.RESET}", flush=True)
                 
             except Exception as e:
-                logger.error(f"Error processing source {source.name}: {e}")
+                source_log.error(f"Erreur source {source.name}: {e}")
                 source_run["status"] = "FAILED"
                 source_run["error"] = str(e)[:500]
                 sources_failed += 1
+                print(f"{Colors.RED}      ✗ {source.name}: {e}{Colors.RESET}", flush=True)
             
             source_run["latency_ms"] = int((time.time() - start_time) * 1000)
             source_runs.append(source_run)
@@ -171,6 +183,7 @@ def run_collection_task(
         db.commit()
         
         # Generate briefs for each entity (async)
+        log.step("Lancement de la génération des briefs")
         for entity in entities:
             generate_brief_task.delay(
                 entity_id=str(entity.id),
@@ -178,7 +191,13 @@ def run_collection_task(
                 timeframe_days=timeframe_days
             )
         
-        logger.info(f"Collection run {run_id} completed: {total_new} new, {total_updated} updated, {total_contacts} contacts")
+        log.success(
+            f"Collecte terminée en {log.elapsed_str()}",
+            new_docs=total_new,
+            updated=total_updated,
+            contacts=total_contacts,
+            save=True
+        )
         
         return {
             "run_id": run_id,
@@ -191,7 +210,7 @@ def run_collection_task(
         }
         
     except Exception as e:
-        logger.error(f"Collection task failed: {e}")
+        log.error(f"Collection task failed: {e}", save=True)
         if collection_run:
             collection_run.status = "FAILED"
             collection_run.error_summary = str(e)[:1000]
@@ -210,11 +229,15 @@ def process_items_for_entity(
     search_terms: List[str],
     objective: str,
     timeframe_days: int,
+    log: TaskLogger = None,
 ) -> tuple:
     """
     Process raw items, filter by relevance, deduplicate, and extract.
     Returns: (new_docs, updated_docs, new_contacts)
     """
+    if log is None:
+        log = get_task_logger("extractor")
+    
     new_docs = 0
     updated_docs = 0
     new_contacts = 0
@@ -226,7 +249,7 @@ def process_items_for_entity(
         if any(term.lower() in text for term in search_terms):
             relevant_items.append(item)
     
-    logger.info(f"Found {len(relevant_items)}/{len(raw_items)} relevant items for entity {entity.name}")
+    log.debug(f"Filtrage: {len(relevant_items)}/{len(raw_items)} pertinents pour {entity.name}")
     
     for item in relevant_items:
         try:
@@ -345,8 +368,11 @@ def process_items_for_entity(
             document.processed_at = datetime.utcnow()
             
         except Exception as e:
-            logger.error(f"Error processing item: {e}")
+            log.error(f"Erreur traitement item: {e}")
             continue
+    
+    if new_docs > 0:
+        log.info(f"Entité {entity.name}: {new_docs} nouveaux docs, {new_contacts} contacts")
     
     db.commit()
     return new_docs, updated_docs, new_contacts
@@ -367,14 +393,18 @@ def generate_brief_task(
     Generate or update a brief for an entity.
     Aggregates all extractions and contacts to create a synthesized brief.
     """
+    log = get_task_logger("gpt")
+    log.step(f"Génération brief pour entité {entity_id[:8]}")
+    
     db = get_db()
     
     try:
         entity = db.query(Entity).filter(Entity.id == entity_id).first()
         if not entity:
-            logger.error(f"Entity not found: {entity_id}")
+            log.error(f"Entité non trouvée", entity_id=entity_id)
             return {"error": "Entity not found"}
         
+        log.info(f"Brief pour: {entity.name}", objective=objective)
         objective_enum = ObjectiveType[objective]
         
         # Get all extractions for this entity within timeframe
@@ -384,6 +414,8 @@ def generate_brief_task(
             Document.entity_id == entity.id,
             Document.is_processed == True,
         ).all()
+        
+        log.debug(f"Documents trouvés: {len(documents)}")
         
         extractions = []
         for doc in documents:
@@ -416,19 +448,21 @@ def generate_brief_task(
         ]
         
         # Generate brief via LLM
+        log.step("Appel GPT pour génération du brief")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            brief_data = loop.run_until_complete(
-                extraction_service.generate_brief(
-                    entity_name=entity.name,
-                    entity_type=entity.entity_type.value,
-                    objective=objective,
-                    timeframe_days=timeframe_days,
-                    extractions=extractions,
-                    existing_contacts=existing_contacts,
+            with log.timer("GPT generate_brief"):
+                brief_data = loop.run_until_complete(
+                    extraction_service.generate_brief(
+                        entity_name=entity.name,
+                        entity_type=entity.entity_type.value,
+                        objective=objective,
+                        timeframe_days=timeframe_days,
+                        extractions=extractions,
+                        existing_contacts=existing_contacts,
+                    )
                 )
-            )
         finally:
             loop.close()
         
@@ -469,7 +503,7 @@ def generate_brief_task(
         
         db.commit()
         
-        logger.info(f"Brief generated for entity {entity.name} ({objective})")
+        log.success(f"Brief généré: {entity.name}", completeness=brief.completeness_score)
         
         return {
             "brief_id": str(brief.id),
@@ -478,7 +512,7 @@ def generate_brief_task(
         }
         
     except Exception as e:
-        logger.error(f"Brief generation failed: {e}")
+        log.error(f"Échec génération brief: {e}")
         raise
     finally:
         db.close()

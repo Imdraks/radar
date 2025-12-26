@@ -5,12 +5,12 @@ import asyncio
 import re
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
-import logging
 
 from celery import shared_task
 from sqlalchemy.orm import Session
 
 from app.workers.celery_app import celery_app
+from app.workers.task_logger import get_task_logger, Colors
 from app.db.session import SessionLocal
 from app.db.models.source import SourceConfig
 from app.db.models.opportunity import Opportunity, OpportunityStatus, SourceType
@@ -27,8 +27,6 @@ from app.intelligence import (
     get_intelligence_engine,
     OpportunityGrade
 )
-
-logger = logging.getLogger(__name__)
 
 
 def get_db() -> Session:
@@ -65,7 +63,7 @@ def filter_items_by_search_params(items: List[Dict[str, Any]], search_params: Di
     # If no actual filters are defined, return all items
     has_filters = keyword_list or region or city or budget_min is not None or budget_max is not None
     if not has_filters:
-        logger.info("No search filters defined, returning all items")
+        print(f"{Colors.GRAY}[FILTER] Aucun filtre défini, retour de tous les items{Colors.RESET}", flush=True)
         return items
     
     filtered = []
@@ -113,7 +111,7 @@ def filter_items_by_search_params(items: List[Dict[str, Any]], search_params: Di
         
         filtered.append(item)
     
-    logger.info(f"Filtered {len(items)} items to {len(filtered)} with search params")
+    print(f"{Colors.CYAN}[FILTER] {len(items)} items → {len(filtered)} après filtrage{Colors.RESET}", flush=True)
     return filtered
 
 
@@ -127,13 +125,16 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
         source_id: The source configuration ID
         search_params: Optional search parameters (keywords, region, city, budget_min, budget_max)
     """
+    log = get_task_logger("crawler")
     db = get_db()
     
     try:
         source = db.query(SourceConfig).filter(SourceConfig.id == source_id).first()
         if not source:
-            logger.error(f"Source not found: {source_id}")
+            log.error(f"Source non trouvée: {source_id}")
             return {"error": "Source not found"}
+        
+        log.step(f"Ingestion: {source.name} ({source.connector_type})")
         
         # Create ingestion run record with search params in metadata
         run = IngestionRun(
@@ -148,21 +149,24 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
         try:
             # Get connector and fetch data
             connector = get_connector(source)
+            log.debug(f"Connecteur: {type(connector).__name__}")
             
             # Run async fetch in event loop
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                raw_items = loop.run_until_complete(connector.fetch())
+                with log.timer(f"Fetch {source.name}"):
+                    raw_items = loop.run_until_complete(connector.fetch())
             finally:
                 loop.close()
             
             run.items_fetched = len(raw_items)
+            log.info(f"Récupéré {len(raw_items)} items bruts")
             
             # Apply search filters if provided
             if search_params:
                 raw_items = filter_items_by_search_params(raw_items, search_params)
-                logger.info(f"Filtered to {len(raw_items)} items after applying search params")
+                log.info(f"Après filtrage: {len(raw_items)} items")
             
             # Process items
             extractor = DataExtractor()
@@ -230,7 +234,7 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
                     run.items_new += 1
                     
                 except Exception as e:
-                    logger.error(f"Error processing item: {str(e)}")
+                    log.error(f"Erreur traitement item: {e}")
                     run.items_error += 1
                     if not run.errors:
                         run.errors = []
@@ -258,6 +262,8 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             
             db.commit()
             
+            log.success(f"{source.name}: {run.items_new} nouveaux, {run.items_duplicate} doublons")
+            
             # Trigger notifications for high-score opportunities
             high_score_opps = [o for o in new_opportunities if o.score >= 10]
             if high_score_opps:
@@ -273,7 +279,7 @@ def run_ingestion_task(self, source_id: str, search_params: dict = None):
             }
             
         except Exception as e:
-            logger.exception(f"Ingestion failed for source {source.name}")
+            log.exception(f"Ingestion échouée pour {source.name}: {e}")
             run.complete(IngestionStatus.FAILED)
             run.errors = [str(e)[:500]]
             source.total_errors += 1
@@ -422,7 +428,9 @@ def run_intelligent_search(self, query: str, search_params: Dict[str, Any] = Non
         source_ids: Optional list of source IDs to search from
     """
     import traceback
+    log = get_task_logger("search")
     
+    log.step(f"Recherche intelligente: {query}")
     print(f"\n{'='*80}", flush=True)
     print(f"🔍 RECHERCHE INTELLIGENTE - DÉMARRAGE", flush=True)
     print(f"{'='*80}", flush=True)
@@ -551,7 +559,7 @@ def run_intelligent_search(self, query: str, search_params: Dict[str, Any] = Non
                     run.items_new += 1
                     
                 except Exception as e:
-                    logger.error(f"Error processing intelligent result: {str(e)}")
+                    log.error(f"Erreur traitement résultat intelligent: {e}")
                     run.items_error += 1
             
             db.commit()
@@ -602,7 +610,7 @@ def run_intelligent_search(self, query: str, search_params: Dict[str, Any] = Non
         except Exception as e:
             print(f"\n❌ ERREUR RECHERCHE INTELLIGENTE: {e}", flush=True)
             print(f"   {traceback.format_exc()}", flush=True)
-            logger.exception(f"Intelligent search failed for query: {query}")
+            log.exception(f"Recherche intelligente échouée: {query}")
             run.complete(IngestionStatus.FAILED)
             run.errors = [str(e)[:500]]
             db.commit()
@@ -640,7 +648,9 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
     """
     import sys
     import traceback
+    log = get_task_logger("gpt")
     
+    log.step(f"Analyse artiste: {artist_name}")
     print(f"\n{'='*80}", flush=True)
     print(f"🎯 ANALYZE_ARTIST_TASK STARTED", flush=True)
     print(f"{'='*80}", flush=True)
@@ -656,9 +666,10 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
         from app.db.models.artist_analysis import ArtistAnalysis
         
         print(f"✅ Imports réussis", flush=True)
-        logger.info(f"🔍 Starting AI-powered analysis for artist: {artist_name} (force_refresh={force_refresh})")
+        log.info(f"Début analyse AI pour: {artist_name}", force_refresh=force_refresh)
         
         # Stage 1: Web Scan
+        log.step("Stage 1: Web Scan")
         print(f"\n📡 STAGE 1: WEB SCAN", flush=True)
         print(f"   Création de l'event loop asyncio...", flush=True)
         
@@ -673,9 +684,11 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
                     print(f"   ✅ Scan terminé!", flush=True)
                     return result
             
-            profile = loop.run_until_complete(scan())
+            with log.timer("WebArtistScanner"):
+                profile = loop.run_until_complete(scan())
             result = profile.to_dict()
             
+            log.info(f"Scan terminé", tier=profile.market_tier, score=profile.popularity_score)
             print(f"\n   📊 RÉSULTATS DU SCAN:", flush=True)
             print(f"      Nom: {profile.name}", flush=True)
             print(f"      Tier: {profile.market_tier}", flush=True)
@@ -688,28 +701,28 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
             print(f"      Sources: {profile.sources_scanned}", flush=True)
             
         except Exception as scan_error:
+            log.error(f"Erreur scan: {scan_error}")
             print(f"\n   ❌ ERREUR SCAN: {scan_error}", flush=True)
             print(f"   Traceback: {traceback.format_exc()}", flush=True)
             raise
         finally:
             loop.close()
         
-        logger.info(f"✅ Web scan completed for {artist_name}: tier={profile.market_tier}, score={profile.popularity_score}, fee={profile.estimated_fee_min:,.0f}€-{profile.estimated_fee_max:,.0f}€")
-        
         # Stage 2: AI Intelligence Analysis
+        log.step("Stage 2: AI Intelligence Engine")
         print(f"\n🧠 STAGE 2: AI INTELLIGENCE ENGINE", flush=True)
-        logger.info(f"🧠 Running AI Intelligence Engine for {artist_name}...")
         ai_engine = ArtistIntelligenceEngine()
         
-        ai_report = ai_engine.analyze_artist(
-            artist_name=profile.name,
-            spotify_monthly_listeners=profile.spotify_monthly_listeners,
-            spotify_followers=0,  # Will be enhanced later
-            youtube_subscribers=profile.youtube_subscribers,
-            instagram_followers=profile.instagram_followers,
-            tiktok_followers=profile.tiktok_followers,
-            genre=profile.genre or "default",
-            country="FR",
+        with log.timer("ArtistIntelligenceEngine"):
+            ai_report = ai_engine.analyze_artist(
+                artist_name=profile.name,
+                spotify_monthly_listeners=profile.spotify_monthly_listeners,
+                spotify_followers=0,  # Will be enhanced later
+                youtube_subscribers=profile.youtube_subscribers,
+                instagram_followers=profile.instagram_followers,
+                tiktok_followers=profile.tiktok_followers,
+                genre=profile.genre or "default",
+                country="FR",
             historical_data=None,  # Could add historical tracking later
             known_events=None,
             # Pass scanner's fee estimates (more reliable from known artists DB)
@@ -782,12 +795,13 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
             "recommendations": ai_report.recommendations,
         }
         
-        logger.info(f"🎯 AI Score: {ai_report.overall_score:.1f}/100 | Tier: {ai_report.tier.value} | Trend: {ai_report.overall_trend.value}")
+        log.info(f"AI Score: {ai_report.overall_score:.1f}/100", tier=ai_report.tier.value, trend=ai_report.overall_trend.value)
         
         # Merge AI data into result
         result["ai_intelligence"] = ai_report_dict
         
         # Save to history with AI fields
+        log.step("Sauvegarde en base de données")
         try:
             db = get_db()
             analysis = ArtistAnalysis(
@@ -868,13 +882,14 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
             db.add(analysis)
             db.commit()
             analysis_id = analysis.id
-            logger.info(f"📝 Saved AI-powered analysis to history: ID={analysis_id}")
+            log.success(f"Analyse sauvegardée", analysis_id=str(analysis_id))
         except Exception as e:
-            logger.error(f"Failed to save analysis to history: {e}")
+            log.error(f"Échec sauvegarde: {e}")
             analysis_id = None
         finally:
             db.close()
         
+        log.success(f"Analyse terminée pour {artist_name}")
         return {
             "artist": artist_name,
             "status": "success",
@@ -888,5 +903,5 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
     except Exception as e:
         print(f"\n❌ ERREUR GLOBALE: {e}", flush=True)
         print(f"   Traceback: {traceback.format_exc()}", flush=True)
-        logger.exception(f"AI Artist analysis failed for: {artist_name}")
+        log.exception(f"Analyse artiste échouée: {artist_name}")
         raise self.retry(exc=e, countdown=30)
