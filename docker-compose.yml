@@ -102,7 +102,7 @@ services:
       - ./backend:/app
     depends_on:
       - worker
-    command: celery -A app.workers.celery_app beat --loglevel=info
+    command: celery -A app.workers.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
     networks:
       - radar_network
 
