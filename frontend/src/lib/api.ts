@@ -134,28 +134,28 @@ export const opportunitiesApi = {
   },
   
   // Notes
-  getNotes: async (opportunityId: string) => {
+  getNotes: async (opportunityId: string | number) => {
     const response = await api.get(`/opportunities/${opportunityId}/notes`);
     return response.data;
   },
   
-  addNote: async (opportunityId: string, data: { content: string; is_internal?: boolean }) => {
+  addNote: async (opportunityId: string | number, data: { content: string; is_internal?: boolean }) => {
     const response = await api.post(`/opportunities/${opportunityId}/notes`, data);
     return response.data;
   },
   
   // Tasks
-  getTasks: async (opportunityId: string) => {
+  getTasks: async (opportunityId: string | number) => {
     const response = await api.get(`/opportunities/${opportunityId}/tasks`);
     return response.data;
   },
   
-  addTask: async (opportunityId: string, data: Record<string, unknown>) => {
+  addTask: async (opportunityId: string | number, data: Record<string, unknown>) => {
     const response = await api.post(`/opportunities/${opportunityId}/tasks`, data);
     return response.data;
   },
   
-  updateTask: async (opportunityId: string, taskId: string, data: Record<string, unknown>) => {
+  updateTask: async (opportunityId: string | number, taskId: string | number, data: Record<string, unknown>) => {
     const response = await api.patch(`/opportunities/${opportunityId}/tasks/${taskId}`, data);
     return response.data;
   },
