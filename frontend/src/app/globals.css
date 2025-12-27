@@ -958,3 +958,238 @@
   }
 }
 
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+@layer utilities {
+  /* Staggered animation delays */
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+  
+  /* Animation fill modes */
+  .animate-fill-both { animation-fill-mode: both; }
+  .animate-fill-forwards { animation-fill-mode: forwards; }
+  
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+  
+  /* Hover scale effect */
+  .hover-scale {
+    @apply transition-transform duration-200 ease-out;
+  }
+  .hover-scale:hover {
+    @apply scale-[1.02];
+  }
+  
+  /* Hover glow effect */
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  .hover-glow:hover {
+    @apply shadow-lg shadow-primary/20;
+  }
+  
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+  
+  /* Fade in on scroll */
+  .fade-in-view {
+    @apply opacity-0 translate-y-4;
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+  
+  /* Glass morphism enhanced */
+  .glass-strong {
+    @apply backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-gray-700/30;
+  }
+  
+  /* Gradient border */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+                linear-gradient(135deg, #0000FF, #00BFFF) border-box;
+    border: 2px solid transparent;
+  }
+  
+  /* Text gradient */
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent;
+  }
+  
+  /* Active state pulse */
+  .active-pulse {
+    @apply relative;
+  }
+  .active-pulse::after {
+    content: '';
+    @apply absolute inset-0 rounded-lg bg-primary/10 animate-ping;
+  }
+}
+
+/* ============================================
+   MOBILE RESPONSIVE UTILITIES
+   ============================================ */
+@layer utilities {
+  /* Safe area padding for notched phones */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+  
+  /* Touch-friendly tap targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile-optimized scrolling */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Hide on mobile */
+  .mobile-hidden {
+    @apply hidden sm:block;
+  }
+  
+  /* Show only on mobile */
+  .mobile-only {
+    @apply block sm:hidden;
+  }
+  
+  /* Mobile card layout */
+  .mobile-card {
+    @apply rounded-2xl bg-card p-4 shadow-sm border border-border;
+  }
+  
+  /* Mobile full width */
+  .mobile-full {
+    @apply -mx-4 sm:mx-0 rounded-none sm:rounded-xl;
+  }
+  
+  /* Bottom sheet on mobile */
+  .mobile-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-card shadow-xl;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Floating action button */
+  .fab {
+    @apply fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center;
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINT HELPERS
+   ============================================ */
+/* Mobile first approach */
+@media (max-width: 639px) {
+  /* Smaller fonts on mobile */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  
+  /* Tighter spacing */
+  .card {
+    @apply p-4;
+  }
+  
+  /* Stack horizontal layouts */
+  .mobile-stack {
+    @apply flex-col gap-3;
+  }
+  
+  /* Full width buttons on mobile */
+  .mobile-button-full {
+    @apply w-full;
+  }
+  
+  /* Compact tables */
+  .mobile-table {
+    @apply block overflow-x-auto;
+  }
+  
+  /* Bottom navigation space */
+  main {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 640px) and (max-width: 1023px) {
+  /* Two column layouts */
+  .tablet-2cols {
+    @apply grid grid-cols-2 gap-4;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1024px) {
+  /* Hover effects only on desktop */
+  .desktop-hover:hover {
+    @apply bg-muted/50;
+  }
+}
+
+/* ============================================
+   TOUCH INTERACTIONS
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+  }
+  
+  /* Larger tap targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+  
+  /* Active states instead of hover */
+  .touch-active:active {
+    @apply scale-95 opacity-80;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION ACCESSIBILITY
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+}
+

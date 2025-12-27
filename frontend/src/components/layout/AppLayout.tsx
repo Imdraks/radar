@@ -32,6 +32,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { BackgroundTasksIndicator } from "@/components/tasks/BackgroundTasksIndicator";
 import { OnboardingProvider, OnboardingTour, OnboardingTrigger, WelcomeModal } from "@/components/onboarding";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 // Navigation structure
 const navigation: {
@@ -219,10 +220,15 @@ function AppLayoutInner({ children }: AppLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 pb-20 lg:pb-6 scroll-touch">
+          <div className="animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
       
       {/* Onboarding Tour */}
       <OnboardingTour />

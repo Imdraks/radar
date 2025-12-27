@@ -161,40 +161,53 @@ function LoginContent() {
 
   if (checkingSetup || (!authLoading && isAuthenticated)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+          <p className="text-muted-foreground text-sm">Chargement...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 dark:from-gray-900 dark:via-gray-950 dark:to-primary/5 p-4 safe-top safe-bottom">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse-soft" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse-soft animate-delay-500" />
+      </div>
+      
+      <Card className="w-full max-w-md relative animate-fade-in-up shadow-xl border-0 dark:border dark:border-gray-800">
+        <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30 animate-bounce-soft">
               <Target className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Radar</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            Radar
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
             Connectez-vous pour accéder à la plateforme
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {/* SSO Buttons - Always show */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3">
             {/* Google SSO */}
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full h-12 text-base font-medium hover-lift transition-all duration-200 hover:border-primary/50 hover:bg-primary/5"
               onClick={() => handleSsoLogin("google")}
               disabled={ssoLoading !== null}
             >
               {ssoLoading === "google" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-3 h-5 w-5 animate-spin" />
               ) : (
-                <GoogleIcon className="mr-2 h-4 w-4" />
+                <GoogleIcon className="mr-3 h-5 w-5" />
               )}
               Continuer avec Google
             </Button>
@@ -202,57 +215,62 @@ function LoginContent() {
             {/* Apple SSO - Coming Soon */}
             <Button
               variant="outline"
-              className="w-full opacity-60 cursor-not-allowed"
+              className="w-full h-12 text-base font-medium opacity-50 cursor-not-allowed"
               disabled={true}
             >
-              <AppleIcon className="mr-2 h-4 w-4" />
+              <AppleIcon className="mr-3 h-5 w-5" />
               Apple — Prochainement
             </Button>
+          </div>
             
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Ou avec email
-                </span>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-3 text-muted-foreground">
+                Ou avec email
+              </span>
             </div>
           </div>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm animate-fade-in flex items-center gap-2">
+                <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="vous@example.com"
+                className="h-12 text-base"
                 {...register("email")}
                 disabled={isLoading}
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+                <p className="text-sm text-destructive animate-fade-in">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                className="h-12 text-base"
                 {...register("password")}
                 disabled={isLoading}
               />
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
+                <p className="text-sm text-destructive animate-fade-in">{errors.password.message}</p>
               )}
             </div>
 
@@ -267,10 +285,14 @@ function LoginContent() {
               </Label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold hover-glow transition-all duration-200" 
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Connexion...
                 </>
               ) : (
@@ -286,7 +308,15 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center animate-pulse">
+            <Target className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+      </div>
+    }>
       <LoginContent />
     </Suspense>
   );

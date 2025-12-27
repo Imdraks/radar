@@ -169,29 +169,29 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
 
   return (
     <Link href={`/opportunities/${opportunity.id}`}>
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
+      <Card className="hover:border-primary/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer touch-active group">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex gap-3 sm:gap-4">
             {/* Score */}
             <div
-              className={`flex-shrink-0 w-16 h-16 rounded-lg flex flex-col items-center justify-center ${getScoreBgColor(
+              className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex flex-col items-center justify-center transition-transform group-hover:scale-105 ${getScoreBgColor(
                 opportunity.score
               )}`}
             >
-              <span className={`text-2xl font-bold ${getScoreColor(opportunity.score)}`}>
+              <span className={`text-lg sm:text-2xl font-bold ${getScoreColor(opportunity.score)}`}>
                 {opportunity.score?.toFixed(0) || 0}
               </span>
-              <span className="text-xs text-muted-foreground">score</span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">score</span>
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg truncate">
+                  <h3 className="font-semibold text-base sm:text-lg truncate group-hover:text-primary transition-colors">
                     {opportunity.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">
                     {truncate(cleanDescription(opportunity.description), 200)}
                   </p>
                 </div>
@@ -209,54 +209,54 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
               </div>
 
               {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge className={getStatusColor(opportunity.status)}>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                <Badge className={`text-[10px] sm:text-xs ${getStatusColor(opportunity.status)}`}>
                   {getStatusLabel(opportunity.status)}
                 </Badge>
                 {opportunity.category && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-[10px] sm:text-xs hidden sm:flex">
                     <Tag className="h-3 w-3 mr-1" />
                     {getCategoryLabel(opportunity.category)}
                   </Badge>
                 )}
                 {opportunity.source_type && (
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="text-[10px] sm:text-xs">
                     {opportunity.source_type.toUpperCase()}
                   </Badge>
                 )}
               </div>
 
               {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
                 {opportunity.organization_name && (
-                  <span className="flex items-center gap-1">
-                    <Building className="h-4 w-4" />
-                    {opportunity.organization_name}
+                  <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none">
+                    <Building className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">{opportunity.organization_name}</span>
                   </span>
                 )}
                 {opportunity.region && (
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 hidden sm:flex">
                     <MapPin className="h-4 w-4" />
                     {opportunity.region}
                   </span>
                 )}
                 {(opportunity.budget_hint || opportunity.budget_amount) && (
                   <span className="flex items-center gap-1 text-green-600 font-medium">
-                    <Euro className="h-4 w-4" />
+                    <Euro className="h-3 w-3 sm:h-4 sm:w-4" />
                     {opportunity.budget_hint || formatCurrency(opportunity.budget_amount)}
                   </span>
                 )}
                 {isValidDate(opportunity.deadline_at) && (
                   <span className="flex items-center gap-1 text-orange-600">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                     {formatRelativeDate(opportunity.deadline_at)}
                   </span>
                 )}
               </div>
 
-              {/* Contact */}
+              {/* Contact - hidden on mobile */}
               {(opportunity.contact_email || opportunity.contact_phone) && (
-                <div className="flex items-center gap-3 mt-2 text-sm">
+                <div className="hidden sm:flex items-center gap-3 mt-2 text-sm">
                   {opportunity.contact_email && (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Mail className="h-3 w-3" />
