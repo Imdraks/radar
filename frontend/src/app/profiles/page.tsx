@@ -486,7 +486,7 @@ function ProfilesContent() {
             <ProfileForm
               onSubmit={(data) => createMutation.mutate({
                 ...data,
-                weights: data.weights as Record<string, number>,
+                weights: data.weights as unknown as Record<string, number>,
               })}
               onCancel={() => setIsCreateDialogOpen(false)}
               isLoading={createMutation.isPending}
@@ -540,7 +540,7 @@ function ProfilesContent() {
               onSubmit={(data) =>
                 updateMutation.mutate({ 
                   id: editingProfile.id, 
-                  data: { ...data, weights: data.weights as Record<string, number> }
+                  data: { ...data, weights: data.weights as unknown as Record<string, number> }
                 })
               }
               onCancel={() => setEditingProfile(null)}
