@@ -147,7 +147,8 @@ async def startup_event():
     from app.db.session import engine
     from app.db import models  # Import all models
     
-    Base.metadata.create_all(bind=engine)
+    # checkfirst=True prevents errors if tables/indexes already exist
+    Base.metadata.create_all(bind=engine, checkfirst=True)
     logger.info("Database tables verified")
 
 
