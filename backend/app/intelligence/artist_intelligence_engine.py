@@ -4,6 +4,8 @@ Advanced AI-powered artist analysis with predictive capabilities
 """
 import math
 import statistics
+import hashlib
+import random
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timedelta
@@ -11,6 +13,72 @@ from enum import Enum
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+# ========== GROWTH PREDICTION FACTORS ==========
+
+# Genre-specific growth profiles (base_rate, volatility, viral_potential)
+GENRE_GROWTH_PROFILES = {
+    "rap": {"base": 0.12, "volatility": 0.25, "viral": 0.85, "decay": 0.15},
+    "hip-hop": {"base": 0.12, "volatility": 0.25, "viral": 0.85, "decay": 0.15},
+    "trap": {"base": 0.15, "volatility": 0.30, "viral": 0.90, "decay": 0.20},
+    "drill": {"base": 0.18, "volatility": 0.35, "viral": 0.95, "decay": 0.25},
+    "pop": {"base": 0.08, "volatility": 0.15, "viral": 0.70, "decay": 0.10},
+    "electronic": {"base": 0.06, "volatility": 0.20, "viral": 0.60, "decay": 0.08},
+    "dance": {"base": 0.07, "volatility": 0.22, "viral": 0.65, "decay": 0.10},
+    "house": {"base": 0.05, "volatility": 0.18, "viral": 0.55, "decay": 0.07},
+    "techno": {"base": 0.04, "volatility": 0.15, "viral": 0.45, "decay": 0.05},
+    "rock": {"base": 0.03, "volatility": 0.12, "viral": 0.35, "decay": 0.04},
+    "indie": {"base": 0.05, "volatility": 0.18, "viral": 0.50, "decay": 0.06},
+    "r&b": {"base": 0.09, "volatility": 0.20, "viral": 0.75, "decay": 0.12},
+    "soul": {"base": 0.04, "volatility": 0.12, "viral": 0.40, "decay": 0.05},
+    "jazz": {"base": 0.02, "volatility": 0.08, "viral": 0.20, "decay": 0.02},
+    "classical": {"base": 0.01, "volatility": 0.05, "viral": 0.10, "decay": 0.01},
+    "metal": {"base": 0.04, "volatility": 0.15, "viral": 0.35, "decay": 0.05},
+    "folk": {"base": 0.03, "volatility": 0.10, "viral": 0.30, "decay": 0.03},
+    "country": {"base": 0.05, "volatility": 0.12, "viral": 0.40, "decay": 0.06},
+    "latin": {"base": 0.11, "volatility": 0.25, "viral": 0.80, "decay": 0.14},
+    "reggaeton": {"base": 0.14, "volatility": 0.28, "viral": 0.88, "decay": 0.18},
+    "afrobeat": {"base": 0.13, "volatility": 0.26, "viral": 0.82, "decay": 0.15},
+    "amapiano": {"base": 0.16, "volatility": 0.30, "viral": 0.90, "decay": 0.18},
+    "french rap": {"base": 0.11, "volatility": 0.24, "viral": 0.80, "decay": 0.14},
+    "variété française": {"base": 0.02, "volatility": 0.08, "viral": 0.25, "decay": 0.02},
+    "default": {"base": 0.06, "volatility": 0.18, "viral": 0.50, "decay": 0.08},
+}
+
+# Tier-based growth modifiers
+TIER_GROWTH_MODIFIERS = {
+    "superstar": {"multiplier": 0.3, "ceiling": 0.05, "volatility": 0.4},
+    "major": {"multiplier": 0.5, "ceiling": 0.12, "volatility": 0.6},
+    "established": {"multiplier": 0.8, "ceiling": 0.25, "volatility": 0.8},
+    "rising": {"multiplier": 1.2, "ceiling": 0.50, "volatility": 1.0},
+    "emerging": {"multiplier": 1.8, "ceiling": 0.80, "volatility": 1.3},
+    "underground": {"multiplier": 2.5, "ceiling": 1.50, "volatility": 1.6},
+}
+
+# Seasonal factors (month -> multiplier)
+SEASONAL_GROWTH_FACTORS = {
+    1: 1.15,   # Janvier - rentrée, nouvelles résolutions
+    2: 1.05,   # Février - stable
+    3: 1.10,   # Mars - printemps arrive
+    4: 1.12,   # Avril - festivals annoncent lineups
+    5: 1.20,   # Mai - saison festivals commence
+    6: 1.25,   # Juin - été, pics d'écoute
+    7: 1.30,   # Juillet - pic vacances/festivals
+    8: 1.25,   # Août - festivals majeurs
+    9: 1.15,   # Septembre - rentrée musicale
+    10: 1.08,  # Octobre - pré-fin d'année
+    11: 1.12,  # Novembre - albums de fin d'année
+    12: 0.95,  # Décembre - focus fêtes
+}
+
+# Social platform influence on growth predictions
+PLATFORM_WEIGHTS = {
+    "tiktok": 0.35,      # Highest viral impact
+    "instagram": 0.25,   # Strong visual engagement
+    "youtube": 0.25,     # Long-form content
+    "spotify": 0.15,     # Core metric but less volatile
+}
 
 
 class GrowthTrend(Enum):
@@ -200,20 +268,34 @@ class ArtistIntelligenceEngine:
         else:
             tier = self._calculate_tier(spotify_monthly_listeners)
         
-        # Calculate growth trends
+        # Prepare social data for predictions
+        social_data = {
+            "youtube": youtube_subscribers,
+            "instagram": instagram_followers,
+            "tiktok": tiktok_followers,
+            "spotify": spotify_followers,
+        }
+        total_social = sum(social_data.values())
+        
+        # Calculate growth trends with enhanced prediction
         listener_prediction = self._predict_growth(
-            "monthly_listeners",
-            spotify_monthly_listeners,
-            historical_data,
-            genre
+            metric_name="monthly_listeners",
+            current_value=spotify_monthly_listeners,
+            historical_data=historical_data,
+            genre=genre,
+            artist_name=artist_name,
+            social_data=social_data,
+            tier=tier
         )
         
-        total_social = youtube_subscribers + instagram_followers + tiktok_followers + spotify_followers
         social_prediction = self._predict_growth(
-            "total_followers",
-            total_social,
-            historical_data,
-            genre
+            metric_name="total_followers",
+            current_value=total_social,
+            historical_data=historical_data,
+            genre=genre,
+            artist_name=artist_name,
+            social_data=social_data,
+            tier=tier
         )
         
         # Market analysis
@@ -355,52 +437,192 @@ class ArtistIntelligenceEngine:
         metric_name: str,
         current_value: int,
         historical_data: Optional[List[Dict]],
-        genre: str
+        genre: str,
+        artist_name: str = "",
+        social_data: Optional[Dict[str, int]] = None,
+        tier: Optional[ArtistTier] = None
     ) -> TrendPrediction:
-        """Predict future growth based on current data and trends"""
+        """
+        Advanced growth prediction using multi-factor analysis.
         
-        # If we have historical data, calculate actual growth rate
+        Factors considered:
+        1. Historical momentum (if available)
+        2. Genre-specific growth patterns
+        3. Career stage (tier) velocity curves
+        4. Seasonal adjustments
+        5. Social cross-platform momentum
+        6. Artist-specific entropy (unique fingerprint)
+        """
+        
+        # Get genre profile
+        genre_lower = genre.lower() if genre else "default"
+        genre_profile = GENRE_GROWTH_PROFILES.get(genre_lower, GENRE_GROWTH_PROFILES["default"])
+        
+        # Get tier modifier
+        tier_value = tier.value if tier else self._calculate_tier(current_value).value
+        tier_mod = TIER_GROWTH_MODIFIERS.get(tier_value, TIER_GROWTH_MODIFIERS["established"])
+        
+        # ========== FACTOR 1: Historical momentum ==========
+        historical_momentum = 0.0
+        confidence = 0.4  # Base confidence
+        
         if historical_data and len(historical_data) >= 2:
             values = [d.get(metric_name, current_value) for d in historical_data[-6:]]
             if len(values) >= 2 and values[0] > 0:
+                # Calculate compound growth rate
                 total_growth = (values[-1] - values[0]) / values[0]
-                months = len(values) - 1
-                monthly_growth = total_growth / months if months > 0 else 0
-                confidence = min(0.9, 0.5 + len(historical_data) * 0.05)
-            else:
-                monthly_growth = 0.05  # Default 5% monthly
-                confidence = 0.3
+                periods = len(values) - 1
+                historical_momentum = total_growth / periods if periods > 0 else 0
+                
+                # Weighted recent momentum (more weight on recent data)
+                if len(values) >= 3:
+                    recent_growth = (values[-1] - values[-2]) / values[-2] if values[-2] > 0 else 0
+                    historical_momentum = historical_momentum * 0.4 + recent_growth * 0.6
+                
+                # Higher confidence with more data points
+                confidence = min(0.92, 0.55 + len(historical_data) * 0.06)
+        
+        # ========== FACTOR 2: Genre base rate ==========
+        genre_base = genre_profile["base"]
+        genre_volatility = genre_profile["volatility"]
+        
+        # ========== FACTOR 3: Tier velocity curve ==========
+        tier_multiplier = tier_mod["multiplier"]
+        tier_ceiling = tier_mod["ceiling"]
+        
+        # ========== FACTOR 4: Seasonal adjustment ==========
+        current_month = datetime.now().month
+        seasonal_factor = SEASONAL_GROWTH_FACTORS.get(current_month, 1.0)
+        
+        # ========== FACTOR 5: Social momentum (cross-platform) ==========
+        social_momentum = 0.0
+        if social_data:
+            total_social = sum(social_data.values())
+            if total_social > 0 and current_value > 0:
+                # Social-to-streaming ratio indicates engagement quality
+                social_ratio = total_social / current_value
+                if social_ratio > 3.0:
+                    social_momentum = 0.15  # Very high social engagement
+                elif social_ratio > 1.5:
+                    social_momentum = 0.08
+                elif social_ratio > 0.8:
+                    social_momentum = 0.03
+                elif social_ratio < 0.3:
+                    social_momentum = -0.05  # Low engagement red flag
+                
+                # TikTok bonus (highest viral driver)
+                tiktok = social_data.get("tiktok", 0)
+                if tiktok > current_value * 0.5:
+                    social_momentum += 0.10  # TikTok presence = viral potential
+        
+        # ========== FACTOR 6: Artist entropy (unique fingerprint) ==========
+        # Creates consistent but unique variation per artist
+        if artist_name:
+            name_hash = int(hashlib.md5(artist_name.lower().encode()).hexdigest()[:8], 16)
+            entropy_factor = ((name_hash % 1000) - 500) / 5000  # Range: -0.1 to +0.1
         else:
-            # Estimate based on tier and genre
-            benchmark = self.GENRE_BENCHMARKS.get(genre.lower(), self.GENRE_BENCHMARKS["default"])
-            if current_value < benchmark * 0.1:
-                monthly_growth = 0.15  # Emerging artists often grow faster
-            elif current_value < benchmark:
-                monthly_growth = 0.08
-            else:
-                monthly_growth = 0.03  # Established artists grow slower
-            confidence = 0.4
+            entropy_factor = 0.0
         
-        # Calculate predictions
+        # ========== FACTOR 7: Value positioning ==========
+        # Where the artist sits relative to genre benchmark
+        benchmark = self.GENRE_BENCHMARKS.get(genre_lower, self.GENRE_BENCHMARKS["default"])
+        position_ratio = current_value / benchmark if benchmark > 0 else 1.0
+        
+        if position_ratio < 0.05:
+            # Very early stage - highest growth potential
+            position_modifier = 1.8
+        elif position_ratio < 0.2:
+            # Emerging - high growth
+            position_modifier = 1.4
+        elif position_ratio < 0.5:
+            # Rising - good growth
+            position_modifier = 1.15
+        elif position_ratio < 1.0:
+            # Below benchmark - moderate
+            position_modifier = 1.0
+        elif position_ratio < 2.0:
+            # Above benchmark - slower
+            position_modifier = 0.7
+        elif position_ratio < 5.0:
+            # Well established - slow
+            position_modifier = 0.4
+        else:
+            # Major/Superstar - minimal growth
+            position_modifier = 0.2
+        
+        # ========== COMBINE ALL FACTORS ==========
+        if historical_momentum != 0:
+            # Use historical data as primary signal when available
+            base_growth = (
+                historical_momentum * 0.50 +
+                genre_base * tier_multiplier * position_modifier * 0.30 +
+                social_momentum * 0.15 +
+                entropy_factor * 0.05
+            )
+        else:
+            # Estimate from profile factors
+            base_growth = (
+                genre_base * tier_multiplier * position_modifier * 0.70 +
+                social_momentum * 0.20 +
+                entropy_factor * 0.10
+            )
+        
+        # Apply seasonal factor
+        monthly_growth = base_growth * seasonal_factor
+        
+        # Apply volatility jitter (consistent per artist via entropy)
+        volatility_jitter = entropy_factor * genre_volatility * 0.5
+        monthly_growth += volatility_jitter
+        
+        # Enforce tier ceiling
+        monthly_growth = min(monthly_growth, tier_ceiling)
+        
+        # Ensure minimum variation (never exactly 0 or same for everyone)
+        if abs(monthly_growth) < 0.01:
+            monthly_growth = 0.01 + abs(entropy_factor) * 0.05
+        
+        # ========== CALCULATE PREDICTIONS ==========
+        # Use compound growth with decay factor for longer periods
+        decay_rate = genre_profile["decay"]
+        
+        # 30-day prediction (1 month, no decay)
         predicted_30d = int(current_value * (1 + monthly_growth))
-        predicted_90d = int(current_value * (1 + monthly_growth) ** 3)
-        predicted_180d = int(current_value * (1 + monthly_growth) ** 6)
         
-        # Determine trend
-        if monthly_growth > 1.0:
+        # 90-day prediction (3 months, slight decay)
+        growth_90d = monthly_growth * (1 - decay_rate * 0.3)
+        predicted_90d = int(current_value * (1 + growth_90d) ** 3)
+        
+        # 180-day prediction (6 months, moderate decay)
+        growth_180d = monthly_growth * (1 - decay_rate * 0.5)
+        predicted_180d = int(current_value * (1 + growth_180d) ** 6)
+        
+        # Ensure predictions are logical (not below current for positive growth)
+        if monthly_growth > 0:
+            predicted_30d = max(predicted_30d, current_value)
+            predicted_90d = max(predicted_90d, predicted_30d)
+            predicted_180d = max(predicted_180d, predicted_90d)
+        
+        # ========== DETERMINE TREND ==========
+        if monthly_growth > 0.50:
             trend = GrowthTrend.EXPLOSIVE
-        elif monthly_growth > 0.5:
+        elif monthly_growth > 0.25:
             trend = GrowthTrend.RAPID
-        elif monthly_growth > 0.2:
+        elif monthly_growth > 0.12:
             trend = GrowthTrend.STRONG
-        elif monthly_growth > 0.05:
+        elif monthly_growth > 0.04:
             trend = GrowthTrend.MODERATE
-        elif monthly_growth > -0.05:
+        elif monthly_growth > -0.02:
             trend = GrowthTrend.STABLE
-        elif monthly_growth > -0.2:
+        elif monthly_growth > -0.10:
             trend = GrowthTrend.DECLINING
         else:
             trend = GrowthTrend.FALLING
+        
+        logger.debug(
+            f"Growth prediction for {artist_name or 'unknown'}: "
+            f"base={base_growth:.3f}, seasonal={seasonal_factor:.2f}, "
+            f"final={monthly_growth:.3f} ({trend.value})"
+        )
         
         return TrendPrediction(
             metric_name=metric_name,

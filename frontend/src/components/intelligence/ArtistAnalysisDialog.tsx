@@ -146,6 +146,7 @@ interface WebArtistProfile {
       predicted_180d: number;
       growth_rate_monthly: number;
       trend: string;
+      confidence?: number;
     };
     booking_intelligence: {
       estimated_fee_min: number;
@@ -700,69 +701,171 @@ export function ArtistAnalysisDialog() {
                   <TabsContent value="predictions" className="space-y-4">
                     {aiData?.listener_prediction ? (
                       <>
-                        {/* Growth Trend */}
-                        <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg">
+                        {/* Growth Trend - Enhanced Design */}
+                        <div className={`p-5 rounded-xl border-2 ${
+                          aiData.listener_prediction.trend === "explosive" ? "bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-red-500/10 border-purple-400/50" :
+                          aiData.listener_prediction.trend === "rapid" ? "bg-gradient-to-br from-green-500/10 via-emerald-500/10 to-teal-500/10 border-green-400/50" :
+                          aiData.listener_prediction.trend === "strong" ? "bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-sky-500/10 border-blue-400/50" :
+                          aiData.listener_prediction.trend === "moderate" ? "bg-gradient-to-br from-yellow-500/10 via-amber-500/10 to-orange-500/10 border-yellow-400/50" :
+                          aiData.listener_prediction.trend === "stable" ? "bg-gradient-to-br from-gray-500/10 via-slate-500/10 to-zinc-500/10 border-gray-400/50" :
+                          "bg-gradient-to-br from-red-500/10 via-orange-500/10 to-yellow-500/10 border-red-400/50"
+                        }`}>
                           <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-medium flex items-center gap-2">
-                              <LineChart className="h-4 w-4" />
+                            <h4 className="font-semibold flex items-center gap-2 text-lg">
+                              <LineChart className="h-5 w-5" />
                               Tendance de Croissance
                             </h4>
-                            <Badge className={`${
-                              aiData.listener_prediction.trend === "explosive" ? "bg-purple-500" :
+                            <Badge className={`px-3 py-1 text-sm font-bold ${
+                              aiData.listener_prediction.trend === "explosive" ? "bg-purple-500 animate-pulse" :
                               aiData.listener_prediction.trend === "rapid" ? "bg-green-500" :
                               aiData.listener_prediction.trend === "strong" ? "bg-blue-500" :
-                              aiData.listener_prediction.trend === "moderate" ? "bg-yellow-500" :
-                              "bg-gray-500"
+                              aiData.listener_prediction.trend === "moderate" ? "bg-yellow-500 text-yellow-900" :
+                              aiData.listener_prediction.trend === "stable" ? "bg-gray-500" :
+                              "bg-red-500"
                             }`}>
-                              {aiData.listener_prediction.trend?.toUpperCase()}
+                              {aiData.listener_prediction.trend === "explosive" ? "🚀 EXPLOSIVE" :
+                               aiData.listener_prediction.trend === "rapid" ? "📈 RAPIDE" :
+                               aiData.listener_prediction.trend === "strong" ? "💪 FORTE" :
+                               aiData.listener_prediction.trend === "moderate" ? "📊 MODÉRÉE" :
+                               aiData.listener_prediction.trend === "stable" ? "➡️ STABLE" :
+                               aiData.listener_prediction.trend === "declining" ? "📉 DÉCLIN" :
+                               "⬇️ CHUTE"}
                             </Badge>
                           </div>
-                          <div className="text-3xl font-bold">
-                            {aiData.listener_prediction.growth_rate_monthly > 0 ? "+" : ""}
-                            {aiData.listener_prediction.growth_rate_monthly?.toFixed(1)}%
-                            <span className="text-sm font-normal text-muted-foreground ml-2">/ mois</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className={`text-4xl font-bold ${
+                              aiData.listener_prediction.growth_rate_monthly > 15 ? "text-purple-600 dark:text-purple-400" :
+                              aiData.listener_prediction.growth_rate_monthly > 8 ? "text-green-600 dark:text-green-400" :
+                              aiData.listener_prediction.growth_rate_monthly > 4 ? "text-blue-600 dark:text-blue-400" :
+                              aiData.listener_prediction.growth_rate_monthly > 0 ? "text-yellow-600 dark:text-yellow-400" :
+                              "text-red-600 dark:text-red-400"
+                            }`}>
+                              {aiData.listener_prediction.growth_rate_monthly > 0 ? "+" : ""}
+                              {aiData.listener_prediction.growth_rate_monthly?.toFixed(1)}%
+                            </span>
+                            <span className="text-sm text-muted-foreground">/ mois</span>
+                          </div>
+                          {/* Growth context message */}
+                          <p className="text-sm text-muted-foreground mt-3 italic">
+                            {aiData.listener_prediction.growth_rate_monthly > 20 
+                              ? "🔥 Croissance exceptionnelle ! Artiste en phase virale."
+                              : aiData.listener_prediction.growth_rate_monthly > 10
+                              ? "📈 Excellente dynamique. Momentum à capitaliser rapidement."
+                              : aiData.listener_prediction.growth_rate_monthly > 5
+                              ? "✨ Bonne progression. L'artiste gagne en traction."
+                              : aiData.listener_prediction.growth_rate_monthly > 2
+                              ? "📊 Croissance stable. Base de fans qui se consolide."
+                              : aiData.listener_prediction.growth_rate_monthly > 0
+                              ? "🌱 Croissance lente mais régulière."
+                              : "⚠️ Attention: audience en régression."}
+                          </p>
+                        </div>
+
+                        {/* Predictions Cards - Enhanced with Deltas */}
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="p-4 border rounded-xl bg-gradient-to-b from-blue-50 to-white dark:from-blue-900/20 dark:to-transparent text-center relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <div className="text-xs text-muted-foreground mb-2 font-medium">Dans 30 jours</div>
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                              {formatNumber(aiData.listener_prediction.predicted_30d)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">auditeurs prévus</div>
+                            {aiData.listener_prediction.current_value && (
+                              <div className="mt-2 text-xs font-medium text-blue-500">
+                                +{formatNumber(aiData.listener_prediction.predicted_30d - aiData.listener_prediction.current_value)} nouveaux
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-4 border rounded-xl bg-gradient-to-b from-green-50 to-white dark:from-green-900/20 dark:to-transparent text-center relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <div className="text-xs text-muted-foreground mb-2 font-medium">Dans 90 jours</div>
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {formatNumber(aiData.listener_prediction.predicted_90d)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">auditeurs prévus</div>
+                            {aiData.listener_prediction.current_value && (
+                              <div className="mt-2 text-xs font-medium text-green-500">
+                                +{formatNumber(aiData.listener_prediction.predicted_90d - aiData.listener_prediction.current_value)} nouveaux
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-4 border rounded-xl bg-gradient-to-b from-purple-50 to-white dark:from-purple-900/20 dark:to-transparent text-center relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <div className="text-xs text-muted-foreground mb-2 font-medium">Dans 180 jours</div>
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                              {formatNumber(aiData.listener_prediction.predicted_180d)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">auditeurs prévus</div>
+                            {aiData.listener_prediction.current_value && (
+                              <div className="mt-2 text-xs font-medium text-purple-500">
+                                +{formatNumber(aiData.listener_prediction.predicted_180d - aiData.listener_prediction.current_value)} nouveaux
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Predictions */}
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="p-4 border rounded-lg text-center">
-                            <div className="text-xs text-muted-foreground mb-1">Dans 30 jours</div>
-                            <div className="text-xl font-bold text-blue-600">
-                              {formatNumber(aiData.listener_prediction.predicted_30d)}
+                        {/* Confidence Indicator */}
+                        {aiData.listener_prediction.confidence !== undefined && (
+                          <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Confiance de la prédiction</span>
+                              <span className={`text-sm font-bold ${
+                                aiData.listener_prediction.confidence > 0.7 ? "text-green-600" :
+                                aiData.listener_prediction.confidence > 0.4 ? "text-yellow-600" :
+                                "text-red-600"
+                              }`}>
+                                {(aiData.listener_prediction.confidence * 100).toFixed(0)}%
+                              </span>
                             </div>
-                            <div className="text-xs text-muted-foreground">auditeurs</div>
+                            <Progress 
+                              value={aiData.listener_prediction.confidence * 100} 
+                              className="h-2"
+                            />
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {aiData.listener_prediction.confidence > 0.7 
+                                ? "Haute fiabilité - basé sur données historiques" 
+                                : aiData.listener_prediction.confidence > 0.4
+                                ? "Fiabilité moyenne - estimation algorithmique"
+                                : "Estimation préliminaire - données limitées"}
+                            </p>
                           </div>
-                          <div className="p-4 border rounded-lg text-center">
-                            <div className="text-xs text-muted-foreground mb-1">Dans 90 jours</div>
-                            <div className="text-xl font-bold text-green-600">
-                              {formatNumber(aiData.listener_prediction.predicted_90d)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">auditeurs</div>
-                          </div>
-                          <div className="p-4 border rounded-lg text-center">
-                            <div className="text-xs text-muted-foreground mb-1">Dans 180 jours</div>
-                            <div className="text-xl font-bold text-purple-600">
-                              {formatNumber(aiData.listener_prediction.predicted_180d)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">auditeurs</div>
-                          </div>
-                        </div>
+                        )}
 
                         {/* Content Strategy */}
                         {aiData.content_strategy?.best_platforms?.length > 0 && (
-                          <div className="p-4 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
-                            <h4 className="font-medium mb-3">📱 Meilleures Plateformes</h4>
-                            <div className="flex flex-wrap gap-2 mb-3">
+                          <div className="p-4 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-xl border border-pink-200 dark:border-pink-800">
+                            <h4 className="font-semibold mb-3 flex items-center gap-2">
+                              📱 Meilleures Plateformes
+                            </h4>
+                            <div className="flex flex-wrap gap-2 mb-4">
                               {aiData.content_strategy.best_platforms.map((platform, i) => (
-                                <Badge key={i} variant="secondary">{platform}</Badge>
+                                <Badge key={i} variant="secondary" className="px-3 py-1">
+                                  {platform === "TikTok" ? "🎵 " : 
+                                   platform === "Instagram" ? "📸 " :
+                                   platform === "YouTube" ? "🎬 " :
+                                   platform === "Spotify" ? "🎧 " : ""}
+                                  {platform}
+                                </Badge>
                               ))}
                             </div>
                             {aiData.content_strategy.viral_potential !== undefined && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">Potentiel viral:</span>
-                                <Progress value={aiData.content_strategy.viral_potential * 100} className="flex-1 h-2" />
-                                <span className="text-sm font-medium">{(aiData.content_strategy.viral_potential * 100).toFixed(0)}%</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">Potentiel viral</span>
+                                  <span className={`text-sm font-bold ${
+                                    aiData.content_strategy.viral_potential > 0.7 ? "text-purple-600" :
+                                    aiData.content_strategy.viral_potential > 0.4 ? "text-blue-600" :
+                                    "text-gray-600"
+                                  }`}>
+                                    {(aiData.content_strategy.viral_potential * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                                <div className="relative">
+                                  <Progress value={aiData.content_strategy.viral_potential * 100} className="h-3" />
+                                  {aiData.content_strategy.viral_potential > 0.7 && (
+                                    <span className="absolute right-0 -top-1 text-xs">🔥</span>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -770,7 +873,7 @@ export function ArtistAnalysisDialog() {
                       </>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        <LineChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <LineChart className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
                         <p>Prédictions en cours de calcul...</p>
                       </div>
                     )}
