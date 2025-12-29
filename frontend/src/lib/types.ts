@@ -220,7 +220,7 @@ export interface LoginResponse {
 
 // Profiles (Fit Score)
 export interface Profile {
-  id: string;
+  id: number;
   name: string;
   description?: string;
   is_active: boolean;
