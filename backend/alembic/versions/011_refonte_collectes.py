@@ -60,7 +60,7 @@ def upgrade():
             sa.Column('params', JSONB, nullable=True),  # Inputs utilisateur
             sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
             sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-            sa.Column('created_by', UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
+            sa.Column('created_by', sa.Integer(), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
             sa.Column('stats', JSONB, nullable=True),  # pages_fetched, results_count, errors_count, tokens_used, cost_estimate
             sa.Column('error', sa.Text, nullable=True),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
@@ -122,7 +122,7 @@ def upgrade():
             sa.Column('score_breakdown', JSONB, nullable=True),  # Détail du scoring
             sa.Column('status', sa.String(30), nullable=False, default='NEW'),  # NEW, QUALIFIED, CONTACTED, WON, LOST, ARCHIVED
             sa.Column('tags', JSONB, nullable=True),  # Array de tags
-            sa.Column('assigned_to', UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
+            sa.Column('assigned_to', sa.Integer(), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
             sa.Column('canonical_hash', sa.String(64), nullable=True, unique=True),  # Pour dédup sans URL
             sa.Column('metadata', JSONB, nullable=True),  # Données additionnelles
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),

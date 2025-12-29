@@ -4,6 +4,7 @@ Revision ID: 012_radar_features
 Revises: 011c_merge_heads
 Create Date: 2024-12-28
 
+NOTE: All tables use Integer PKs/FKs to match the existing schema from migration 001.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -24,14 +25,32 @@ def table_exists(table_name):
     return table_name in inspector.get_table_names()
 
 
+def enum_exists(enum_name):
+    """Check if an enum type exists in the database."""
+    bind = op.get_bind()
+    result = bind.execute(
+        sa.text("SELECT 1 FROM pg_type WHERE typname = :name"),
+        {"name": enum_name}
+    ).fetchone()
+    return result is not None
+
+
 def upgrade():
     # ========================================================================
-    # PROFILES TABLE
+    # CREATE ENUMS FIRST (with existence checks)
+    # ========================================================================
+    if not enum_exists('alerttype'):
+        op.execute("CREATE TYPE alerttype AS ENUM ('D7', 'D3', 'D1')")
+    if not enum_exists('alertstatus'):
+        op.execute("CREATE TYPE alertstatus AS ENUM ('pending', 'sent', 'failed', 'cancelled')")
+
+    # ========================================================================
+    # PROFILES TABLE (Integer PK to match other tables)
     # ========================================================================
     if not table_exists('profiles'):
         op.create_table(
             'profiles',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
             sa.Column('name', sa.String(100), nullable=False),
             sa.Column('description', sa.Text(), nullable=True),
             sa.Column('is_active', sa.Boolean(), default=True),
@@ -52,14 +71,14 @@ def upgrade():
         op.create_index('ix_profiles_is_active', 'profiles', ['is_active'])
 
     # ========================================================================
-    # OPPORTUNITY PROFILE SCORES TABLE
+    # OPPORTUNITY PROFILE SCORES TABLE (Integer FKs)
     # ========================================================================
     if not table_exists('opportunity_profile_scores'):
         op.create_table(
             'opportunity_profile_scores',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('opportunity_id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('profile_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('opportunity_id', sa.Integer(), nullable=False),
+            sa.Column('profile_id', sa.Integer(), nullable=False),
             sa.Column('fit_score', sa.Integer(), default=0),
             sa.Column('reasons', postgresql.JSON(), default={}),
             sa.Column('computed_at', sa.DateTime(), nullable=True),
@@ -71,14 +90,14 @@ def upgrade():
         op.create_index('ix_opp_profile_score', 'opportunity_profile_scores', ['profile_id', 'fit_score'])
 
     # ========================================================================
-    # DAILY SHORTLISTS TABLE
+    # DAILY SHORTLISTS TABLE (Integer FKs)
     # ========================================================================
     if not table_exists('daily_shortlists'):
         op.create_table(
             'daily_shortlists',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
             sa.Column('date', sa.Date(), nullable=False),
-            sa.Column('profile_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('profile_id', sa.Integer(), nullable=False),
             sa.Column('items', postgresql.JSON(), default=[]),
             sa.Column('total_candidates', sa.Integer(), default=0),
             sa.Column('items_count', sa.Integer(), default=0),
@@ -90,13 +109,13 @@ def upgrade():
         op.create_index('ix_shortlist_date_profile', 'daily_shortlists', ['date', 'profile_id'])
 
     # ========================================================================
-    # OPPORTUNITY CLUSTERS TABLE
+    # OPPORTUNITY CLUSTERS TABLE (Integer FKs)
     # ========================================================================
     if not table_exists('opportunity_clusters'):
         op.create_table(
             'opportunity_clusters',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('canonical_opportunity_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('canonical_opportunity_id', sa.Integer(), nullable=False),
             sa.Column('cluster_score', sa.Float(), default=1.0),
             sa.Column('member_count', sa.Integer(), default=1),
             sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -107,14 +126,14 @@ def upgrade():
         op.create_index('ix_cluster_canonical', 'opportunity_clusters', ['canonical_opportunity_id'])
 
     # ========================================================================
-    # OPPORTUNITY CLUSTER MEMBERS TABLE
+    # OPPORTUNITY CLUSTER MEMBERS TABLE (Integer FKs)
     # ========================================================================
     if not table_exists('opportunity_cluster_members'):
         op.create_table(
             'opportunity_cluster_members',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('cluster_id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('opportunity_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('cluster_id', sa.Integer(), nullable=False),
+            sa.Column('opportunity_id', sa.Integer(), nullable=False),
             sa.Column('similarity_score', sa.Float(), default=1.0),
             sa.Column('match_type', sa.String(50), default='hash'),
             sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -126,16 +145,16 @@ def upgrade():
         op.create_index('ix_cluster_member', 'opportunity_cluster_members', ['cluster_id', 'opportunity_id'])
 
     # ========================================================================
-    # DEADLINE ALERTS TABLE
+    # DEADLINE ALERTS TABLE (Integer FKs, use create_type=False for enums)
     # ========================================================================
     if not table_exists('deadline_alerts'):
         op.create_table(
             'deadline_alerts',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('opportunity_id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('alert_type', sa.Enum('D7', 'D3', 'D1', name='alerttype'), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('opportunity_id', sa.Integer(), nullable=False),
+            sa.Column('alert_type', postgresql.ENUM('D7', 'D3', 'D1', name='alerttype', create_type=False), nullable=False),
             sa.Column('scheduled_for', sa.DateTime(), nullable=False),
-            sa.Column('status', sa.Enum('pending', 'sent', 'failed', 'cancelled', name='alertstatus'), default='pending'),
+            sa.Column('status', postgresql.ENUM('pending', 'sent', 'failed', 'cancelled', name='alertstatus', create_type=False), default='pending'),
             sa.Column('sent_at', sa.DateTime(), nullable=True),
             sa.Column('error_message', sa.Text(), nullable=True),
             sa.Column('channels', postgresql.JSON(), default=[]),
@@ -147,13 +166,13 @@ def upgrade():
         op.create_index('ix_deadline_alert_scheduled', 'deadline_alerts', ['scheduled_for', 'status'])
 
     # ========================================================================
-    # SOURCE HEALTH TABLE
+    # SOURCE HEALTH TABLE (Integer FKs - source_configs.id is Integer)
     # ========================================================================
     if not table_exists('source_health'):
         op.create_table(
             'source_health',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('source_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('source_id', sa.Integer(), nullable=False),
             sa.Column('date', sa.Date(), nullable=False),
             sa.Column('requests', sa.Integer(), default=0),
             sa.Column('success_count', sa.Integer(), default=0),
@@ -178,13 +197,13 @@ def upgrade():
         op.create_index('ix_source_health_score', 'source_health', ['health_score'])
 
     # ========================================================================
-    # CONTACT FINDER RESULTS TABLE
+    # CONTACT FINDER RESULTS TABLE (Integer FKs)
     # ========================================================================
     if not table_exists('contact_finder_results'):
         op.create_table(
             'contact_finder_results',
-            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-            sa.Column('opportunity_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column('opportunity_id', sa.Integer(), nullable=False),
             sa.Column('status', sa.String(20), default='pending'),
             sa.Column('contact_email', sa.String(255), nullable=True),
             sa.Column('contact_phone', sa.String(50), nullable=True),
