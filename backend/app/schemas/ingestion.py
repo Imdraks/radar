@@ -3,8 +3,9 @@ Ingestion run schemas
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from app.db.models.ingestion import IngestionStatus
 
@@ -20,7 +21,7 @@ class IngestionSearchParams(BaseModel):
 
 class IngestionRunResponse(BaseModel):
     """Ingestion run response schema"""
-    id: int
+    id: str  # UUID
     source_config_id: Optional[int] = None
     source_name: str
     status: IngestionStatus
@@ -37,6 +38,13 @@ class IngestionRunResponse(BaseModel):
 
     class Config:
         from_attributes = True
+    
+    @validator('id', pre=True)
+    def convert_uuid_to_str(cls, v):
+        """Convert UUID to string"""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
 
 
 class IngestionTriggerRequest(BaseModel):

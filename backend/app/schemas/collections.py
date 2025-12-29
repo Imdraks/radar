@@ -6,10 +6,29 @@ Schemas Pydantic pour le système de collectes refondé
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from uuid import UUID
 
 from enum import Enum
 
 from pydantic import BaseModel, Field, validator
+
+
+# ================================================================
+# BASE MODEL WITH UUID HANDLING
+# ================================================================
+
+class UUIDBaseModel(BaseModel):
+    """Base model that automatically converts UUID to string"""
+    
+    class Config:
+        from_attributes = True
+    
+    @validator('*', pre=True, allow_reuse=True)
+    def convert_uuid_to_str(cls, v: Any) -> Any:
+        """Convert UUID objects to strings automatically"""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
 
 
 # ================================================================
@@ -106,21 +125,18 @@ class CollectionStatsSchema(BaseModel):
     cost_estimate: Optional[float] = None
 
 
-class CollectionLogSchema(BaseModel):
+class CollectionLogSchema(UUIDBaseModel):
     """Log d'une collecte"""
-    id: int
+    id: str  # UUID
     ts: datetime
     level: str
     message: str
     context: Optional[Dict[str, Any]] = None
 
-    class Config:
-        from_attributes = True
 
-
-class CollectionResponse(BaseModel):
+class CollectionResponse(UUIDBaseModel):
     """Réponse collecte"""
-    id: int
+    id: str  # UUID
     type: str
     status: str
     name: Optional[str] = None
@@ -132,9 +148,6 @@ class CollectionResponse(BaseModel):
     error: Optional[str] = None
     created_at: datetime
     results_count: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class CollectionDetailResponse(CollectionResponse):
@@ -156,7 +169,7 @@ class CollectionListResponse(BaseModel):
 # OPPORTUNITIES (LEAD_ITEMS) SCHEMAS
 # ================================================================
 
-class EvidenceSchema(BaseModel):
+class EvidenceSchema(UUIDBaseModel):
     """Evidence d'un champ"""
     field_key: str
     value: Optional[str] = None
@@ -169,21 +182,18 @@ class EvidenceSchema(BaseModel):
         from_attributes = True
 
 
-class SourceDocumentSchema(BaseModel):
+class SourceDocumentSchema(UUIDBaseModel):
     """Document source"""
-    id: int
+    id: str  # UUID
     doc_type: str
     source_url: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class OpportunityResponse(BaseModel):
+class OpportunityResponse(UUIDBaseModel):
     """Réponse opportunité"""
-    id: int
+    id: str  # UUID
     title: str
     description: Optional[str] = None
     organization_name: Optional[str] = None
@@ -211,9 +221,6 @@ class OpportunityResponse(BaseModel):
     has_dossier: bool = False
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class OpportunityDetailResponse(OpportunityResponse):
@@ -266,7 +273,7 @@ class UpdateOpportunityRequest(BaseModel):
 
 class BulkUpdateOpportunitiesRequest(BaseModel):
     """Mise à jour en masse"""
-    ids: List[int]
+    ids: List[str]  # UUIDs
     status: Optional[LeadItemStatusEnum] = None
     tags_add: Optional[List[str]] = None
     tags_remove: Optional[List[str]] = None
@@ -304,10 +311,10 @@ class FactSchema(BaseModel):
     snippet: Optional[str] = None
 
 
-class DossierResponse(BaseModel):
+class DossierResponse(UUIDBaseModel):
     """Réponse dossier"""
-    id: int
-    lead_item_id: int
+    id: str  # UUID
+    lead_item_id: str  # UUID
     lead_item_title: Optional[str] = None
     lead_item_url: Optional[str] = None
     objective: str
@@ -319,14 +326,11 @@ class DossierResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
 
-
-class DossierDetailResponse(BaseModel):
+class DossierDetailResponse(UUIDBaseModel):
     """Détail complet d'un dossier"""
-    id: int
-    lead_item_id: int
+    id: str  # UUID
+    lead_item_id: str  # UUID
     lead_item_title: Optional[str] = None
     lead_item_url: Optional[str] = None
     objective: str
@@ -346,9 +350,6 @@ class DossierDetailResponse(BaseModel):
     updated_at: datetime
     evidence: List[EvidenceSchema] = []
     source_documents: List[SourceDocumentSchema] = []
-
-    class Config:
-        from_attributes = True
 
 
 class DossierListResponse(BaseModel):
@@ -371,7 +372,7 @@ class DossierFilters(BaseModel):
 
 class CreateDossierRequest(BaseModel):
     """Créer un dossier depuis une opportunité"""
-    lead_item_id: Optional[int] = None
+    lead_item_id: Optional[str] = None  # UUID
     objective: DossierObjectiveEnum
     target_entities: Optional[List[str]] = None
     title: Optional[str] = None
