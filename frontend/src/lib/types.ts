@@ -1,4 +1,48 @@
-// Opportunity types
+// ============================================================================
+// LEAD TYPES (V2 - UUID based)
+// ============================================================================
+
+/**
+ * Lead represents a LeadItem from the V2 API
+ * Uses UUID for id, corresponds to /api/v2/leads
+ */
+export interface Lead {
+  id: string; // UUID
+  title: string;
+  description?: string;
+  organization_name?: string;
+  source_type?: SourceType;
+  source_name?: string;
+  url_primary?: string;
+  status: LeadStatus;
+  region?: string;
+  budget_min?: number;
+  budget_max?: number;
+  budget_currency: string;
+  deadline_at?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  score_base?: number;
+  score_breakdown?: ScoreBreakdownItem[];
+  tags?: string[];
+  has_contact?: boolean;
+  has_deadline?: boolean;
+  budget_display?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export type LeadStatus = "NEW" | "QUALIFIED" | "CONTACTED" | "WON" | "LOST" | "ARCHIVED";
+
+// ============================================================================
+// LEGACY OPPORTUNITY TYPES (V1 - Integer ID based)
+// For backward compatibility with /api/v1/opportunities
+// ============================================================================
+
+/**
+ * @deprecated Use Lead interface for V2 API
+ */
 export interface Opportunity {
   id: number;
   uid: string;

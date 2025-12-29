@@ -29,7 +29,7 @@ import type { OpportunityCluster, ClusterMatchType } from "@/lib/types";
 import { truncate } from "@/lib/utils";
 
 interface ClusterBadgeProps {
-  opportunityId: number;
+  leadId: number;
   showDetails?: boolean;
 }
 
@@ -68,10 +68,10 @@ function getMatchTypeInfo(matchType: ClusterMatchType) {
   }
 }
 
-export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadgeProps) {
+export function ClusterBadge({ leadId, showDetails = true }: ClusterBadgeProps) {
   const { data: cluster, isLoading } = useQuery<OpportunityCluster | null>({
-    queryKey: ["clusters", "opportunity", opportunityId],
-    queryFn: () => clustersApi.getForOpportunity(opportunityId).catch(() => null),
+    queryKey: ["clusters", "lead", leadId],
+    queryFn: () => clustersApi.getForOpportunity(leadId).catch(() => null),
     staleTime: 60000, // Cache for 1 minute
   });
 
@@ -80,7 +80,7 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
     return null;
   }
 
-  const isCanonical = cluster.canonical_id === opportunityId;
+  const isCanonical = cluster.canonical_id === leadId;
   const matchInfo = getMatchTypeInfo(cluster.match_type);
   const duplicateCount = cluster.members.length - 1;
 
@@ -97,7 +97,7 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Cette opportunité a {duplicateCount} doublon{duplicateCount > 1 ? "s" : ""}</p>
+              <p>Ce lead a {duplicateCount} doublon{duplicateCount > 1 ? "s" : ""}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -116,7 +116,7 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
             </TooltipTrigger>
             <TooltipContent>
               <p>Doublon détecté par {matchInfo.label.toLowerCase()}</p>
-              <Link href={`/opportunities/${cluster.canonical_id}`} className="text-primary underline">
+              <Link href={`/leads/${cluster.canonical_id}`} className="text-primary underline">
                 Voir l&apos;original
               </Link>
             </TooltipContent>
@@ -161,26 +161,26 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
           {/* Status */}
           {isCanonical ? (
             <div className="p-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
-              ✅ Ceci est l&apos;opportunité principale du cluster
+              ✅ Ceci est le lead principal du cluster
             </div>
           ) : (
             <div className="p-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm">
-              ⚠️ Ceci est un doublon. L&apos;opportunité principale est plus complète.
+              ⚠️ Ceci est un doublon. Le lead principal est plus complet.
             </div>
           )}
 
           {/* Members list */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground">
-              Opportunités liées ({cluster.members.length})
+              Leads liés ({cluster.members.length})
             </p>
             <div className="max-h-40 overflow-y-auto space-y-1">
               {cluster.members.map((member) => (
                 <Link
                   key={member.opportunity_id}
-                  href={`/opportunities/${member.opportunity_id}`}
+                  href={`/leads/${member.opportunity_id}`}
                   className={`flex items-center justify-between p-2 rounded-lg text-sm hover:bg-muted transition-colors ${
-                    member.opportunity_id === opportunityId ? "bg-muted" : ""
+                    member.opportunity_id === leadId ? "bg-muted" : ""
                   }`}
                 >
                   <span className="flex items-center gap-2 truncate">
@@ -195,7 +195,7 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
                         : `#${member.opportunity_id}`}
                     </span>
                   </span>
-                  {member.opportunity_id !== opportunityId && (
+                  {member.opportunity_id !== leadId && (
                     <ExternalLink className="h-3 w-3 text-muted-foreground" />
                   )}
                 </Link>
@@ -205,9 +205,9 @@ export function ClusterBadge({ opportunityId, showDetails = true }: ClusterBadge
 
           {/* Action for duplicates */}
           {!isCanonical && (
-            <Link href={`/opportunities/${cluster.canonical_id}`}>
+            <Link href={`/leads/${cluster.canonical_id}`}>
               <Button size="sm" className="w-full">
-                Voir l&apos;opportunité principale
+                Voir le lead principal
               </Button>
             </Link>
           )}

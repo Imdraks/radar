@@ -6,7 +6,10 @@ from .smart_crawler import SmartCrawler
 from .price_extractor import PriceExtractor, PriceType, ExtractedPrice
 from .contact_extractor import ContactExtractor, ContactType, ExtractedContact
 from .artist_analyzer import ArtistAnalyzer, ArtistProfile, ArtistEvent
-from .opportunity_scorer import OpportunityScorer, ScoringResult, OpportunityGrade, TimingScore
+from .radar_scorer import RadarScorer, ScoringResult, LeadGrade, TimingScore
+# Alias for backward compatibility
+OpportunityScorer = RadarScorer
+OpportunityGrade = LeadGrade
 from .engine import IntelligenceEngine, get_intelligence_engine
 
 __all__ = [

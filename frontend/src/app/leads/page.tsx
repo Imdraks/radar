@@ -14,7 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 import { AppLayout, ProtectedRoute } from "@/components/layout";
-import { OpportunityFilters } from "@/components/filters";
+import { LeadFilters } from "@/components/filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,11 +41,11 @@ import {
 } from "@/lib/utils";
 import type { Opportunity, PaginatedResponse } from "@/lib/types";
 
-function OpportunitiesContent() {
+function LeadsContent() {
   const { filters, page, perPage, setPage, setPerPage } = useFiltersStore();
 
   const { data, isLoading, error } = useQuery<PaginatedResponse<Opportunity>>({
-    queryKey: ["opportunities", filters, page, perPage],
+    queryKey: ["leads", filters, page, perPage],
     queryFn: () =>
       opportunitiesApi.getAll({
         ...filters,
@@ -61,14 +61,14 @@ function OpportunitiesContent() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Opportunités</h1>
+        <h1 className="text-3xl font-bold">Leads</h1>
         <p className="text-muted-foreground">
-          {data?.total || 0} opportunités trouvées
+          {data?.total || 0} leads trouvés
         </p>
       </div>
 
       {/* Filters */}
-      <OpportunityFilters />
+      <LeadFilters />
 
       {/* Results */}
       {isLoading ? (
@@ -78,17 +78,17 @@ function OpportunitiesContent() {
         </div>
       ) : error ? (
         <div className="text-center py-12 text-destructive">
-          Erreur lors du chargement des opportunités
+          Erreur lors du chargement des leads
         </div>
       ) : data?.items.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          Aucune opportunité ne correspond à vos critères
+          Aucun lead ne correspond à vos critères
         </div>
       ) : (
         <>
           <div className="grid gap-4">
-            {data?.items.map((opportunity) => (
-              <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+            {data?.items.map((lead) => (
+              <LeadCard key={lead.id} lead={lead} />
             ))}
           </div>
 
@@ -143,12 +143,12 @@ function OpportunitiesContent() {
   );
 }
 
-function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
+function LeadCard({ lead }: { lead: Opportunity }) {
   const handleExternalClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (opportunity.url_primary) {
-      window.open(opportunity.url_primary, '_blank', 'noopener,noreferrer');
+    if (lead.url_primary) {
+      window.open(lead.url_primary, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -168,18 +168,18 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   };
 
   return (
-    <Link href={`/opportunities/${opportunity.id}`}>
+    <Link href={`/leads/${lead.id}`}>
       <Card className="hover:border-primary/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer touch-active group">
         <CardContent className="p-3 sm:p-4">
           <div className="flex gap-3 sm:gap-4">
             {/* Score */}
             <div
               className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex flex-col items-center justify-center transition-transform group-hover:scale-105 ${getScoreBgColor(
-                opportunity.score
+                lead.score
               )}`}
             >
-              <span className={`text-lg sm:text-2xl font-bold ${getScoreColor(opportunity.score)}`}>
-                {opportunity.score?.toFixed(0) || 0}
+              <span className={`text-lg sm:text-2xl font-bold ${getScoreColor(lead.score)}`}>
+                {lead.score?.toFixed(0) || 0}
               </span>
               <span className="text-[10px] sm:text-xs text-muted-foreground">score</span>
             </div>
@@ -189,15 +189,15 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base sm:text-lg truncate group-hover:text-primary transition-colors">
-                    {opportunity.title}
+                    {lead.title}
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">
-                    {truncate(cleanDescription(opportunity.description), 200)}
+                    {truncate(cleanDescription(lead.description), 200)}
                   </p>
                 </div>
 
                 {/* External link */}
-                {opportunity.url_primary && (
+                {lead.url_primary && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -210,63 +210,63 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
 
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
-                <Badge className={`text-[10px] sm:text-xs ${getStatusColor(opportunity.status)}`}>
-                  {getStatusLabel(opportunity.status)}
+                <Badge className={`text-[10px] sm:text-xs ${getStatusColor(lead.status)}`}>
+                  {getStatusLabel(lead.status)}
                 </Badge>
-                {opportunity.category && (
+                {lead.category && (
                   <Badge variant="outline" className="text-[10px] sm:text-xs hidden sm:flex">
                     <Tag className="h-3 w-3 mr-1" />
-                    {getCategoryLabel(opportunity.category)}
+                    {getCategoryLabel(lead.category)}
                   </Badge>
                 )}
-                {opportunity.source_type && (
+                {lead.source_type && (
                   <Badge variant="secondary" className="text-[10px] sm:text-xs">
-                    {opportunity.source_type.toUpperCase()}
+                    {lead.source_type.toUpperCase()}
                   </Badge>
                 )}
               </div>
 
               {/* Meta info */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
-                {opportunity.organization_name && (
+                {lead.organization_name && (
                   <span className="flex items-center gap-1 truncate max-w-[150px] sm:max-w-none">
                     <Building className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">{opportunity.organization_name}</span>
+                    <span className="truncate">{lead.organization_name}</span>
                   </span>
                 )}
-                {opportunity.region && (
+                {lead.region && (
                   <span className="flex items-center gap-1 hidden sm:flex">
                     <MapPin className="h-4 w-4" />
-                    {opportunity.region}
+                    {lead.region}
                   </span>
                 )}
-                {(opportunity.budget_hint || opportunity.budget_amount) && (
+                {(lead.budget_hint || lead.budget_amount) && (
                   <span className="flex items-center gap-1 text-green-600 font-medium">
                     <Euro className="h-3 w-3 sm:h-4 sm:w-4" />
-                    {opportunity.budget_hint || formatCurrency(opportunity.budget_amount)}
+                    {lead.budget_hint || formatCurrency(lead.budget_amount)}
                   </span>
                 )}
-                {isValidDate(opportunity.deadline_at) && (
+                {isValidDate(lead.deadline_at) && (
                   <span className="flex items-center gap-1 text-orange-600">
                     <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                    {formatRelativeDate(opportunity.deadline_at)}
+                    {formatRelativeDate(lead.deadline_at)}
                   </span>
                 )}
               </div>
 
               {/* Contact - hidden on mobile */}
-              {(opportunity.contact_email || opportunity.contact_phone) && (
+              {(lead.contact_email || lead.contact_phone) && (
                 <div className="hidden sm:flex items-center gap-3 mt-2 text-sm">
-                  {opportunity.contact_email && (
+                  {lead.contact_email && (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Mail className="h-3 w-3" />
-                      {opportunity.contact_email}
+                      {lead.contact_email}
                     </span>
                   )}
-                  {opportunity.contact_phone && (
+                  {lead.contact_phone && (
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Phone className="h-3 w-3" />
-                      {opportunity.contact_phone}
+                      {lead.contact_phone}
                     </span>
                   )}
                 </div>
@@ -279,11 +279,11 @@ function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   );
 }
 
-export default function OpportunitiesPage() {
+export default function LeadsPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <OpportunitiesContent />
+        <LeadsContent />
       </AppLayout>
     </ProtectedRoute>
   );

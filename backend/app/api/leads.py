@@ -1,12 +1,15 @@
 """
-API Opportunities (LeadItems) - Gestion des opportunités
+API Leads (LeadItems) - Lead management with UUID-based entities
 
-GET /opportunities - Liste paginée avec filtres serveur
-GET /opportunities/{id} - Détail d'une opportunité
-PATCH /opportunities/{id} - Mise à jour (statut, tags, assignation)
-POST /opportunities/bulk-update - Mise à jour en masse
-POST /opportunities/{id}/create-dossier - Créer un dossier depuis une opportunité
-GET /opportunities/stats - Statistiques pour filtres
+V2 API - Uses LeadItem model with UUIDs instead of legacy Opportunity (Integer IDs)
+
+Routes:
+GET /leads - Paginated list with server-side filters
+GET /leads/{id} - Lead detail
+PATCH /leads/{id} - Update (status, tags, assignment)
+POST /leads/bulk-update - Bulk update
+POST /leads/{id}/create-dossier - Create dossier from lead
+GET /leads/stats - Statistics for filters
 """
 from datetime import datetime
 from typing import Optional, List
@@ -32,7 +35,7 @@ from app.schemas.collections import (
 )
 from app.workers.collection_pipeline import run_dossier_builder_task
 
-router = APIRouter(prefix="/opportunities", tags=["Opportunities"])
+router = APIRouter(prefix="/leads", tags=["Leads"])
 
 
 # ================================================================

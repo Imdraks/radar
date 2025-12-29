@@ -65,7 +65,7 @@ function DashboardContent() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Vue d&apos;ensemble de vos opportunités
+            Vue d&apos;ensemble de vos leads
           </p>
         </div>
         
@@ -85,13 +85,13 @@ function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Opportunités
+              Total Leads
             </CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statsLoading ? "..." : stats?.total_opportunities || 0}
+              {statsLoading ? "..." : stats?.total_leads || stats?.total_opportunities || 0}
             </div>
           </CardContent>
         </Card>
@@ -170,11 +170,11 @@ function DashboardContent() {
 
       {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Opportunities */}
-        <Card data-onboarding="top-opportunities">
+        {/* Top Leads */}
+        <Card data-onboarding="top-leads">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Top Opportunités</CardTitle>
-            <Link href="/opportunities?sort_by=score&sort_order=desc">
+            <CardTitle>Top Leads</CardTitle>
+            <Link href="/leads?sort_by=score&sort_order=desc">
               <Button variant="ghost" size="sm">
                 Voir tout
                 <ArrowRight className="h-4 w-4 ml-1" />
@@ -196,7 +196,7 @@ function DashboardContent() {
                   {topOpportunities?.map((opp) => (
                     <Link
                       key={opp.id}
-                      href={`/opportunities/${opp.id}`}
+                      href={`/leads/${opp.id}`}
                       className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -232,7 +232,7 @@ function DashboardContent() {
         <Card data-onboarding="deadlines">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Deadlines à venir</CardTitle>
-            <Link href="/opportunities?sort_by=deadline_at&sort_order=asc">
+            <Link href="/leads?sort_by=deadline_at&sort_order=asc">
               <Button variant="ghost" size="sm">
                 Voir tout
                 <ArrowRight className="h-4 w-4 ml-1" />
@@ -254,7 +254,7 @@ function DashboardContent() {
                   {upcomingDeadlines?.map((opp) => (
                     <Link
                       key={opp.id}
-                      href={`/opportunities/${opp.id}`}
+                      href={`/leads/${opp.id}`}
                       className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">

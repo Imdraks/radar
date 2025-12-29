@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 const mobileNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Opportunités', href: '/opportunities', icon: Target },
+  { name: 'Leads', href: '/leads', icon: Target },
   { name: 'Dossiers', href: '/dossiers', icon: FileText },
   { name: 'Découverte', href: '/discovery', icon: Search },
   { name: 'Profil', href: '/settings', icon: User },

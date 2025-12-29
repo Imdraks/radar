@@ -353,10 +353,10 @@ export default function DossiersPage() {
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="font-medium mb-2">Aucun dossier</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Les dossiers sont créés à partir des opportunités enrichies par GPT.
+              Les dossiers sont créés à partir des leads enrichis par GPT.
             </p>
-            <Button onClick={() => router.push("/opportunities")}>
-              Voir les opportunités
+            <Button onClick={() => router.push("/leads")}>
+              Voir les leads
             </Button>
           </CardContent>
         </Card>

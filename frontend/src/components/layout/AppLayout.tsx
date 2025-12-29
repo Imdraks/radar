@@ -49,10 +49,10 @@ const navigation: {
 }[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Daily Picks", href: "/shortlist", icon: Sparkles, isNew: true },
-  { name: "Opportunités", href: "/opportunities", icon: Target },
+  { name: "Leads", href: "/leads", icon: Target },
   { name: "Dossiers", href: "/dossiers", icon: FileText, isNew: true },
-  { name: "Kanban", href: "/opportunities/kanban", icon: Kanban },
-  { name: "Calendrier", href: "/opportunities/calendar", icon: Calendar },
+  { name: "Kanban", href: "/leads/kanban", icon: Kanban },
+  { name: "Calendrier", href: "/leads/calendar", icon: Calendar },
   { name: "Deadlines", href: "/deadlines", icon: Clock, isNew: true },
   { name: "Profils", href: "/profiles", icon: Sliders, isNew: true },
   { name: "Artistes", href: "/artist-history", icon: Music },

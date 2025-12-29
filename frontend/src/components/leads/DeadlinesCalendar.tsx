@@ -264,7 +264,7 @@ export function DeadlinesCalendar() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <Link
-                          href={`/opportunities/${opp.id}`}
+                          href={`/leads/${opp.id}`}
                           className="font-medium hover:underline flex items-center gap-1"
                         >
                           {opp.title}

@@ -1,8 +1,7 @@
 "use client";
 
-import { DeadlinesCalendar } from "@/components/opportunities/DeadlinesCalendar";
-import { AppLayout } from "@/components/layout";
-import { ProtectedRoute } from "@/components/layout";
+import { DeadlinesCalendar } from "@/components/leads";
+import { AppLayout, ProtectedRoute } from "@/components/layout";
 
 export default function CalendarPage() {
   return (

@@ -1,5 +1,12 @@
 """
-Opportunity Scorer - Scoring intelligent des opportunités
+Radar Scorer - Intelligent lead scoring system
+
+Evaluates leads based on:
+- Timing (urgency, optimal window)
+- Information quality (contacts, pricing, conditions)
+- Agency profile match
+- Budget alignment
+- Success potential
 """
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
@@ -11,15 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 class TimingScore(str, Enum):
-    URGENT = "urgent"       # < 7 jours
-    OPTIMAL = "optimal"     # 7-30 jours
-    GOOD = "good"           # 30-60 jours
-    EARLY = "early"         # 60-90 jours
-    LATE = "late"           # Date passée ou très proche
+    URGENT = "urgent"       # < 7 days
+    OPTIMAL = "optimal"     # 7-30 days
+    GOOD = "good"           # 30-60 days
+    EARLY = "early"         # 60-90 days
+    LATE = "late"           # Past deadline or very close
     UNKNOWN = "unknown"
 
 
-class OpportunityGrade(str, Enum):
+class LeadGrade(str, Enum):
+    """Lead quality grade based on score"""
     A_PLUS = "A+"   # Score >= 90
     A = "A"         # Score >= 80
     B_PLUS = "B+"   # Score >= 70
@@ -28,12 +36,15 @@ class OpportunityGrade(str, Enum):
     D = "D"         # Score >= 40
     F = "F"         # Score < 40
 
+# Backward compatibility alias
+OpportunityGrade = LeadGrade
+
 
 @dataclass
 class ScoringResult:
-    """Résultat du scoring d'une opportunité"""
+    """Result of lead scoring"""
     total_score: float
-    grade: OpportunityGrade
+    grade: LeadGrade
     timing_score: TimingScore
     breakdown: Dict[str, float]
     recommendations: List[str]
@@ -50,17 +61,17 @@ class ScoringResult:
         }
 
 
-class OpportunityScorer:
+class RadarScorer:
     """
-    Système de scoring intelligent qui évalue les opportunités selon :
-    - Timing (urgence, fenêtre optimale)
-    - Qualité des informations (contacts, prix, conditions)
-    - Adéquation avec le profil de l'agence
-    - Budget disponible vs estimation
-    - Potentiel de réussite
+    Intelligent scoring system that evaluates leads based on:
+    - Timing (urgency, optimal window)
+    - Information quality (contacts, pricing, conditions)
+    - Agency profile match
+    - Available budget vs estimate
+    - Success potential
     """
     
-    # Poids des critères
+    # Criteria weights
     WEIGHTS = {
         'timing': 0.20,
         'information_quality': 0.15,
@@ -70,7 +81,7 @@ class OpportunityScorer:
         'potential': 0.10,
     }
     
-    # Mots-clés par catégorie d'intérêt pour l'agence
+    # Keywords by category for agency relevance
     RELEVANCE_KEYWORDS = {
         'high_priority': {
             'rap': 5,

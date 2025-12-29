@@ -1,4 +1,4 @@
-// Opportunities components exports
+// Leads components exports
 export { ClusterBadge } from "./ClusterBadge";
 export { ContactFinder } from "./ContactFinder";
 export { FitScoreBadge } from "./FitScoreBadge";

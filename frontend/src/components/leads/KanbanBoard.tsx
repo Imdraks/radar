@@ -81,7 +81,7 @@ function KanbanCard({ opportunity, isDragging }: KanbanCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <Link
-              href={`/opportunities/${opportunity.id}`}
+              href={`/leads/${opportunity.id}`}
               className="font-medium text-sm truncate hover:underline flex items-center gap-1"
             >
               {opportunity.title}

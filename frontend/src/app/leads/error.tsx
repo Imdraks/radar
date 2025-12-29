@@ -12,7 +12,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Opportunities error:', error)
+    console.error('Leads error:', error)
   }, [error])
 
   return (
@@ -24,7 +24,7 @@ export default function Error({
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold">Erreur de chargement</h2>
           <p className="text-muted-foreground">
-            {error.message || "Impossible de charger les opportunités."}
+            {error.message || "Impossible de charger les leads."}
           </p>
         </div>
         <Button onClick={reset} variant="outline" className="gap-2">

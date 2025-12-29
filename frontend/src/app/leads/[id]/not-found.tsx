@@ -9,17 +9,17 @@ export default function NotFound() {
           <FileQuestion className="w-10 h-10 text-muted-foreground" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">Opportunité introuvable</h2>
+          <h2 className="text-2xl font-semibold">Lead introuvable</h2>
           <p className="text-muted-foreground">
-            Cette opportunité n'existe pas ou a été supprimée.
+            Ce lead n'existe pas ou a été supprimé.
           </p>
         </div>
         <Link 
-          href="/opportunities" 
+          href="/leads" 
           className="inline-flex items-center gap-2 text-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
-          Retour aux opportunités
+          Retour aux leads
         </Link>
       </div>
     </div>

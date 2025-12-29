@@ -1,5 +1,6 @@
 """
-FastAPI Application - Opportunities Radar
+FastAPI Application - Radar
+Lead intelligence and opportunity tracking platform
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,9 +11,13 @@ import logging
 import time
 
 from app.core.config import settings
+
+# ============================================================================
+# API ROUTERS - V1 (Legacy Opportunity-based)
+# ============================================================================
 from app.api import (
     auth_router,
-    opportunities_router,
+    opportunities_router,  # Legacy v1 - uses Integer IDs
     sources_router,
     ingestion_router,
     scoring_router,
@@ -31,11 +36,17 @@ from app.api.dossiers import router as dossiers_router
 from app.api.progress import router as progress_router
 from app.api.radar import router as radar_router
 from app.api.activity import router as activity_router
-# Nouveaux routers refonte
+
+# ============================================================================
+# API ROUTERS - V2 (New LeadItem-based with UUIDs)
+# ============================================================================
 from app.api.collections_api import router as collections_v2_router
-from app.api.opportunities_api import router as opportunities_v2_router
+from app.api.leads import router as leads_v2_router  # Renamed from opportunities_api
 from app.api.dossiers_api import router as dossiers_v2_router
-# Radar Features - nouvelles fonctionnalités
+
+# ============================================================================
+# RADAR FEATURES - Advanced functionality
+# ============================================================================
 from app.api.profiles import router as profiles_router
 from app.api.shortlists import router as shortlists_router
 from app.api.clusters import router as clusters_router
@@ -119,9 +130,13 @@ async def health_check():
     return {"status": "healthy", "app": settings.app_name}
 
 
-# API routes
+# ============================================================================
+# API ROUTE REGISTRATION
+# ============================================================================
+
+# V1 Routes - Legacy (Integer IDs, Opportunity model)
 app.include_router(auth_router, prefix="/api/v1")
-app.include_router(opportunities_router, prefix="/api/v1")
+app.include_router(opportunities_router, prefix="/api/v1")  # Legacy /opportunities
 app.include_router(sources_router, prefix="/api/v1")
 app.include_router(ingestion_router, prefix="/api/v1")
 app.include_router(scoring_router, prefix="/api/v1")
@@ -137,18 +152,18 @@ app.include_router(collection_router, prefix="/api/v1", tags=["Collection"])
 app.include_router(collect_router, prefix="/api/v1", tags=["Unified Collection"])
 app.include_router(dossiers_router, prefix="/api/v1/dossiers", tags=["Dossiers"])
 
-# Auto Radar - Récolte automatique
+# Auto Radar - Automatic harvesting
 app.include_router(radar_router, prefix="/api/v1/radar", tags=["Auto Radar"])
 
 # Activity Logs - Superadmin only
 app.include_router(activity_router, prefix="/api/v1/admin", tags=["Activity Logs"])
 
-# Nouveaux routers refonte (v2)
+# V2 Routes - New architecture (UUIDs, LeadItem model)
 app.include_router(collections_v2_router, prefix="/api/v2", tags=["Collections V2"])
-app.include_router(opportunities_v2_router, prefix="/api/v2", tags=["Opportunities V2"])
+app.include_router(leads_v2_router, prefix="/api/v2", tags=["Leads V2"])  # /api/v2/leads
 app.include_router(dossiers_v2_router, prefix="/api/v2", tags=["Dossiers V2"])
 
-# Radar Features - nouvelles fonctionnalités
+# Radar Features - Advanced functionality
 app.include_router(profiles_router, prefix="/api/v1", tags=["Profiles"])
 app.include_router(shortlists_router, prefix="/api/v1", tags=["Shortlists"])
 app.include_router(clusters_router, prefix="/api/v1", tags=["Clusters"])

@@ -13,7 +13,9 @@ from .smart_crawler import SmartCrawler
 from .price_extractor import PriceExtractor, ExtractedPrice
 from .contact_extractor import ContactExtractor, ExtractedContact
 from .artist_analyzer import ArtistAnalyzer, ArtistProfile
-from .opportunity_scorer import OpportunityScorer, ScoringResult
+from .radar_scorer import RadarScorer, ScoringResult
+# Alias for backward compatibility
+OpportunityScorer = RadarScorer
 
 logger = logging.getLogger(__name__)
 

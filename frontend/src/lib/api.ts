@@ -10,31 +10,45 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
   return `${config.method}:${config.url}:${JSON.stringify(config.params || {})}`;
 }
 
-// Create axios instance with optimized config
+// Create axios instance for V1 API (legacy)
 export const api: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api/v1`,
   headers: {
     "Content-Type": "application/json",
-    "Accept-Encoding": "gzip, deflate, br", // Explicitly request compression
+    "Accept-Encoding": "gzip, deflate, br",
   },
-  timeout: 30000, // 30 second timeout
+  timeout: 30000,
 });
 
-// Request interceptor - add auth token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+// Create axios instance for V2 API (new architecture with UUIDs)
+export const apiV2: AxiosInstance = axios.create({
+  baseURL: `${API_URL}/api/v2`,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept-Encoding": "gzip, deflate, br",
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  timeout: 30000,
+});
 
-// Response interceptor - handle 401
+// Helper to setup auth interceptor on an axios instance
+function setupAuthInterceptor(instance: AxiosInstance) {
+  instance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+}
+
+// Apply auth to both API instances
+setupAuthInterceptor(api);
+setupAuthInterceptor(apiV2);
+
+// Response interceptor - handle 401 (only on V1 for now)
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -111,7 +125,47 @@ export const authApi = {
   },
 };
 
-// Opportunities API
+// =============================================================================
+// LEADS API (V2 - UUID based, uses /api/v2/leads)
+// =============================================================================
+
+export const leadsApi = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await apiV2.get("/leads", { params });
+    return response.data;
+  },
+  
+  getOne: async (id: string) => {
+    const response = await apiV2.get(`/leads/${id}`);
+    return response.data;
+  },
+  
+  update: async (id: string, data: Record<string, unknown>) => {
+    const response = await apiV2.patch(`/leads/${id}`, data);
+    return response.data;
+  },
+  
+  bulkUpdate: async (data: { ids: string[]; updates: Record<string, unknown> }) => {
+    const response = await apiV2.post("/leads/bulk-update", data);
+    return response.data;
+  },
+  
+  createDossier: async (id: string, data?: Record<string, unknown>) => {
+    const response = await apiV2.post(`/leads/${id}/create-dossier`, data || {});
+    return response.data;
+  },
+  
+  getStats: async () => {
+    const response = await apiV2.get("/leads/stats");
+    return response.data;
+  },
+};
+
+// =============================================================================
+// LEGACY OPPORTUNITIES API (V1 - Integer IDs, uses /api/v1/opportunities)
+// @deprecated - Use leadsApi for new features
+// =============================================================================
+
 export const opportunitiesApi = {
   getAll: async (params?: Record<string, unknown>) => {
     const response = await api.get("/opportunities", { params });

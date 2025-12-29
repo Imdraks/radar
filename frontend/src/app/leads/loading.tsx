@@ -8,7 +8,7 @@ export default function Loading() {
           <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
           <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
         </div>
-        <p className="text-muted-foreground text-sm">Chargement des opportunités...</p>
+        <p className="text-muted-foreground text-sm">Chargement des leads...</p>
       </div>
     </div>
   )

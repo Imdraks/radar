@@ -110,7 +110,7 @@ function ShortlistContent() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <Link
-                href={`/opportunities/${item.opportunity_id}`}
+                href={`/leads/${item.opportunity_id}`}
                 className="font-semibold text-lg hover:text-primary truncate"
               >
                 {item.title}

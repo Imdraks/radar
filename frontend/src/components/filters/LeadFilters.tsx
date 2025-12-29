@@ -71,7 +71,7 @@ const REGION_OPTIONS = [
   "National",
 ];
 
-export function OpportunityFilters() {
+export function LeadFilters() {
   const { filters, setFilters, resetFilters } = useFiltersStore();
 
   // Fetch budget stats for histogram

@@ -71,7 +71,7 @@ const STATUS_OPTIONS = [
   { value: "archived", label: "Archivé" },
 ];
 
-function OpportunityDetailContent() {
+function LeadDetailContent() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -170,8 +170,8 @@ function OpportunityDetailContent() {
   if (!opportunity) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Opportunité non trouvée</p>
-        <Button className="mt-4" onClick={() => router.push("/opportunities")}>
+        <p className="text-muted-foreground">Lead non trouvé</p>
+        <Button className="mt-4" onClick={() => router.push("/leads")}>
           Retour à la liste
         </Button>
       </div>
@@ -181,7 +181,7 @@ function OpportunityDetailContent() {
   return (
     <div className="space-y-6">
       {/* Back button */}
-      <Button variant="ghost" onClick={() => router.push("/opportunities")}>
+      <Button variant="ghost" onClick={() => router.push("/leads")}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Retour
       </Button>
@@ -657,11 +657,11 @@ function TaskForm({
   );
 }
 
-export default function OpportunityDetailPage() {
+export default function LeadDetailPage() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <OpportunityDetailContent />
+        <LeadDetailContent />
       </AppLayout>
     </ProtectedRoute>
   );

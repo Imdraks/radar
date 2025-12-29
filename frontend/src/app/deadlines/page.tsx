@@ -123,7 +123,7 @@ function DeadlineAlertCard({ alert }: { alert: DeadlineAlertResponse }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <Link
-                href={`/opportunities/${alert.opportunity_id}`}
+                href={`/leads/${alert.opportunity_id}`}
                 className="font-semibold text-lg hover:text-primary truncate"
               >
                 {truncate(alert.opportunity_title, 60)}
@@ -159,7 +159,7 @@ function DeadlineAlertCard({ alert }: { alert: DeadlineAlertResponse }) {
 
           {/* Actions */}
           <div className="flex-shrink-0">
-            <Link href={`/opportunities/${alert.opportunity_id}`}>
+            <Link href={`/leads/${alert.opportunity_id}`}>
               <Button size="sm" variant="outline">
                 Voir
                 <ArrowRight className="h-4 w-4 ml-1" />
@@ -400,7 +400,7 @@ function DeadlinesContent() {
                         <X className="h-5 w-5 text-red-500" />
                         <div>
                           <Link
-                            href={`/opportunities/${alert.opportunity_id}`}
+                            href={`/leads/${alert.opportunity_id}`}
                             className="font-medium hover:text-primary"
                           >
                             {truncate(alert.opportunity_title, 50)}
