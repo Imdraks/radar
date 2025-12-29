@@ -60,6 +60,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { BatchArtistAnalysisDialog } from "@/components/intelligence";
 
 // Spotify icon component
 const SpotifyIcon = ({ className }: { className?: string }) => (
@@ -232,6 +233,7 @@ function ArtistHistoryContent() {
             Consultez l'historique de toutes les analyses d'artistes
           </p>
         </div>
+        <BatchArtistAnalysisDialog />
       </div>
 
       {/* Statistics Cards */}

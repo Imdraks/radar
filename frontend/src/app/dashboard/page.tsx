@@ -30,7 +30,7 @@ import {
 } from "@/lib/utils";
 import type { Opportunity, IngestionRun, DashboardStats } from "@/lib/types";
 import { UnifiedCollectModal } from "@/components/collection";
-import { ArtistAnalysisDialog } from "@/components/intelligence";
+import { ArtistAnalysisDialog, BatchArtistAnalysisDialog } from "@/components/intelligence";
 import { EmergingArtistsWidget } from "@/components/intelligence/EmergingArtistsWidget";
 import { DashboardOnboarding } from "@/components/onboarding";
 
@@ -77,6 +77,9 @@ function DashboardContent() {
           
           {/* Analyse d'artiste */}
           <ArtistAnalysisDialog />
+          
+          {/* Analyse multiple */}
+          <BatchArtistAnalysisDialog />
         </div>
       </div>
 
