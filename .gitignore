@@ -87,3 +87,7 @@ frontend/out/
 backend/__pycache__/
 backend/.pytest_cache/
 backend/htmlcov/
+
+# Token caches (sensitive)
+spotify_token_cache.json
+*_token_cache.json
