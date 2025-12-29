@@ -104,7 +104,7 @@ class Document(Base):
     entity_id = Column(UUID(as_uuid=True), ForeignKey('entities.id'), nullable=False, index=True)
     
     # Source info
-    source_config_id = Column(UUID(as_uuid=True), ForeignKey('source_configs.id'), nullable=True)
+    source_config_id = Column(Integer, ForeignKey('source_configs.id'), nullable=True)
     source_name = Column(String(255), nullable=False)
     source_url = Column(String(2000), nullable=True)
     

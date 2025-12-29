@@ -65,7 +65,7 @@ def upgrade() -> None:
             'documents',
             sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
             sa.Column('entity_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('entities.id', ondelete='CASCADE'), nullable=False, index=True),
-            sa.Column('source_config_id', postgresql.UUID(as_uuid=True), nullable=True),
+            sa.Column('source_config_id', sa.Integer, sa.ForeignKey('source_configs.id'), nullable=True),
             sa.Column('source_name', sa.String(255), nullable=False),
             sa.Column('source_url', sa.String(2000), nullable=True),
             sa.Column('title', sa.String(500), nullable=False),

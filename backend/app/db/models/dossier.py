@@ -71,7 +71,7 @@ class SourceDocument(Base):
     
     # Link to opportunity
     opportunity_id = Column(
-        UUID(as_uuid=True), 
+        Integer, 
         ForeignKey('opportunities.id', ondelete='CASCADE'), 
         nullable=False,
         index=True
@@ -125,7 +125,7 @@ class Dossier(Base):
     
     # Link to opportunity (1:1)
     opportunity_id = Column(
-        UUID(as_uuid=True), 
+        Integer, 
         ForeignKey('opportunities.id', ondelete='CASCADE'), 
         nullable=False,
         unique=True,
