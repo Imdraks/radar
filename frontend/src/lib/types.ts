@@ -287,20 +287,27 @@ export interface DailyShortlist {
 export type ClusterMatchType = "url" | "hash" | "text" | "ai";
 
 export interface ClusterMember {
-  opportunity_id: string;
+  opportunity_id: number;
   title: string;
   source_name: string;
   url?: string;
   similarity_score: number;
   match_type: string;
+  is_canonical?: boolean;
+  opportunity?: {
+    title: string;
+  };
 }
 
 export interface OpportunityCluster {
   cluster_id: string;
-  canonical_opportunity_id: string;
+  canonical_id: number;
+  canonical_opportunity_id?: string;
   canonical_title: string;
   member_count: number;
   cluster_score: number;
+  confidence: number;
+  match_type: ClusterMatchType;
   members: ClusterMember[];
 }
 

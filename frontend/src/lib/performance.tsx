@@ -12,7 +12,7 @@ export function withMemo<P extends object>(
   Component: ComponentType<P>,
   propsAreEqual?: (prevProps: Readonly<P>, nextProps: Readonly<P>) => boolean
 ): ComponentType<P> {
-  return memo(Component, propsAreEqual);
+  return memo(Component, propsAreEqual) as unknown as ComponentType<P>;
 }
 
 /**
