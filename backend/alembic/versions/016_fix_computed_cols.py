@@ -3,7 +3,7 @@
 These columns (has_contact, has_deadline, budget_display) are now computed via @property
 in the SQLAlchemy model and should not be stored in the database.
 
-Revision ID: 016_fix_lead_items_computed_columns
+Revision ID: 016_fix_computed_cols
 Revises: 015_add_two_factor_columns
 Create Date: 2025-12-29
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 # revision identifiers
-revision = '016_fix_lead_items_computed_columns'
+revision = '016_fix_computed_cols'
 down_revision = '015_add_two_factor_columns'
 branch_labels = None
 depends_on = None
