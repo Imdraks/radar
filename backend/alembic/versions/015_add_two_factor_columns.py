@@ -32,9 +32,14 @@ def upgrade():
     
     if not column_exists('users', 'backup_codes'):
         op.add_column('users', sa.Column('backup_codes', sa.JSON(), nullable=True))
+    
+    if not column_exists('users', 'last_login_at'):
+        op.add_column('users', sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True))
 
 
 def downgrade():
+    if column_exists('users', 'last_login_at'):
+        op.drop_column('users', 'last_login_at')
     if column_exists('users', 'backup_codes'):
         op.drop_column('users', 'backup_codes')
     if column_exists('users', 'two_factor_secret'):
