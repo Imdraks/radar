@@ -177,13 +177,13 @@ class LeadItem(Base):
     budget_min = Column(Float, nullable=True)
     budget_max = Column(Float, nullable=True)
     budget_currency = Column(String(10), nullable=True, default='EUR')
-    budget_display = Column(String(100), nullable=True)
+    # budget_display is computed via @property
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(50), nullable=True)
     contact_url = Column(String(500), nullable=True)
     contact_name = Column(String(200), nullable=True)
-    has_contact = Column(Boolean, default=False)
-    has_deadline = Column(Boolean, default=False)
+    # has_contact and has_deadline computed via @property, not stored columns
+    # budget_display computed via @property, not stored column
     score_base = Column(Integer, nullable=True, default=0)
     score_breakdown = Column(JSONB, nullable=True)
     status = Column(String(30), nullable=False, default=LeadItemStatus.NEW.value)

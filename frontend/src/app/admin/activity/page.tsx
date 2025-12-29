@@ -80,19 +80,6 @@ export default function ActivityLogsPage() {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  // Check if superuser
-  if (user && !user.is_superuser) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Accès Refusé</h1>
-          <p className="text-gray-400">Cette page est réservée aux super administrateurs.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Fetch users with tracking IDs
   const { data: users = [] } = useQuery<UserTracking[]>({
     queryKey: ['admin-users-tracking'],
@@ -101,6 +88,7 @@ export default function ActivityLogsPage() {
       return response;
     },
     staleTime: 60000,
+    enabled: user?.is_superuser === true,
   });
 
   // Fetch activity logs
@@ -114,6 +102,7 @@ export default function ActivityLogsPage() {
       return response;
     },
     refetchInterval: autoRefresh ? 5000 : false,
+    enabled: user?.is_superuser === true,
   });
 
   // Fetch stats
@@ -121,6 +110,7 @@ export default function ActivityLogsPage() {
     queryKey: ['activity-stats'],
     queryFn: () => adminApi.getStats(24),
     refetchInterval: autoRefresh ? 30000 : false,
+    enabled: user?.is_superuser === true,
   });
 
   useEffect(() => {
@@ -133,6 +123,19 @@ export default function ActivityLogsPage() {
     refetch();
     setLastUpdate(new Date());
   }, [refetch]);
+
+  // Check if superuser - moved AFTER hooks
+  if (user && !user.is_superuser) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-2">Accès Refusé</h1>
+          <p className="text-gray-400">Cette page est réservée aux super administrateurs.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">

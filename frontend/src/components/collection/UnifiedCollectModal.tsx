@@ -136,10 +136,10 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
   };
 
   const removeEntity = (index: number) => {
-    setEntities(entities.filter((_, i) => i !== index));
+    setEntities(entities.filter((_: EntityInput, i: number) => i !== index));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       addEntity();
@@ -201,8 +201,8 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
       const budget = BUDGET_RANGES[advancedBudgetRange];
       const result = await collectApi.startAdvanced({
         objective,
-        entities: entities.map(e => ({ name: e.name, type: e.type })),
-        secondary_keywords: secondaryKeywords.split(",").map(k => k.trim()).filter(Boolean),
+        entities: entities.map((e: EntityInput) => ({ name: e.name, type: e.type })),
+        secondary_keywords: secondaryKeywords.split(",").map((k: string) => k.trim()).filter(Boolean),
         timeframe_days: timeframeDays,
         require_contact: requireContact,
         region: advancedRegion !== "Toutes les régions" ? advancedRegion : undefined,
@@ -212,7 +212,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
       });
 
       const objectiveLabel = OBJECTIVES.find(o => o.value === objective)?.label || objective;
-      const entityNames = entities.map(e => e.name).join(", ");
+      const entityNames = entities.map((e: EntityInput) => e.name).join(", ");
 
       addTask({
         id: result.run_id,
@@ -281,7 +281,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "standard" | "advanced")}>
+        <Tabs value={activeTab} onValueChange={(v: string) => setActiveTab(v as "standard" | "advanced")}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="standard" className="gap-2">
               <Database className="h-4 w-4" />
@@ -319,7 +319,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                 <Input
                   placeholder="Ex: festival, concert, marché public, appel d'offres..."
                   value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKeywords(e.target.value)}
                   className={!keywords.trim() ? "border-destructive" : ""}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -354,7 +354,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   <Input
                     placeholder="Ex: Paris, Lyon..."
                     value={standardCity}
-                    onChange={(e) => setStandardCity(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStandardCity(e.target.value)}
                     className="h-9"
                   />
                 </div>
@@ -366,7 +366,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   </Label>
                   <Select
                     value={standardBudgetRange.toString()}
-                    onValueChange={(v) => setStandardBudgetRange(parseInt(v))}
+                    onValueChange={(v: string) => setStandardBudgetRange(parseInt(v))}
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue />
@@ -456,7 +456,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   Cible(s) *
                 </Label>
                 <div className="flex gap-2">
-                  <Select value={entityType} onValueChange={(v) => setEntityType(v as any)}>
+                  <Select value={entityType} onValueChange={(v: string) => setEntityType(v as "PERSON" | "ORGANIZATION" | "TOPIC")}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -474,7 +474,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   <Input
                     placeholder="Ex: Théodora, Accor, festival rap..."
                     value={entityInput}
-                    onChange={(e) => setEntityInput(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEntityInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     className="flex-1"
                   />
@@ -516,7 +516,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                 <Input
                   placeholder="Ex: rap, concerts, Paris, sponsoring..."
                   value={secondaryKeywords}
-                  onChange={(e) => setSecondaryKeywords(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecondaryKeywords(e.target.value)}
                 />
               </div>
 
@@ -528,7 +528,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                 </Label>
                 <Select
                   value={timeframeDays.toString()}
-                  onValueChange={(v) => setTimeframeDays(parseInt(v))}
+                  onValueChange={(v: string) => setTimeframeDays(parseInt(v))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -570,7 +570,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   <Input
                     placeholder="Ex: Paris, Lyon..."
                     value={advancedCity}
-                    onChange={(e) => setAdvancedCity(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdvancedCity(e.target.value)}
                     className="h-9"
                   />
                 </div>
@@ -582,7 +582,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
                   </Label>
                   <Select
                     value={advancedBudgetRange.toString()}
-                    onValueChange={(v) => setAdvancedBudgetRange(parseInt(v))}
+                    onValueChange={(v: string) => setAdvancedBudgetRange(parseInt(v))}
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue />
