@@ -36,6 +36,7 @@ from app.api.dossiers import router as dossiers_router
 from app.api.progress import router as progress_router
 from app.api.radar import router as radar_router
 from app.api.activity import router as activity_router
+from app.api.health import router as health_router
 
 # ============================================================================
 # API ROUTERS - V2 (New LeadItem-based with UUIDs)
@@ -124,10 +125,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Health check
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "app": settings.app_name}
+# Health check endpoints (no prefix for /health and /health/detailed)
+app.include_router(health_router, tags=["Health"])
 
 
 # ============================================================================
