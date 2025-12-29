@@ -37,6 +37,11 @@ def upgrade() -> None:
     if not enum_exists('contacttype'):
         op.execute("CREATE TYPE contacttype AS ENUM ('EMAIL', 'FORM', 'BOOKING', 'PRESS', 'AGENT', 'MANAGEMENT', 'SOCIAL', 'PHONE')")
 
+    # Pre-create ENUM types for use in columns (with create_type=False to prevent auto-creation)
+    entitytype_enum = postgresql.ENUM('PERSON', 'ORGANIZATION', 'TOPIC', name='entitytype', create_type=False)
+    objectivetype_enum = postgresql.ENUM('SPONSOR', 'BOOKING', 'PRESS', 'VENUE', 'SUPPLIER', 'GRANT', name='objectivetype', create_type=False)
+    contacttype_enum = postgresql.ENUM('EMAIL', 'FORM', 'BOOKING', 'PRESS', 'AGENT', 'MANAGEMENT', 'SOCIAL', 'PHONE', name='contacttype', create_type=False)
+
     # === ENTITIES TABLE ===
     if 'entities' not in existing_tables:
         op.create_table(
@@ -44,7 +49,7 @@ def upgrade() -> None:
             sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
             sa.Column('name', sa.String(255), nullable=False, index=True),
             sa.Column('normalized_name', sa.String(255), nullable=False, index=True),
-            sa.Column('entity_type', sa.Enum('PERSON', 'ORGANIZATION', 'TOPIC', name='entitytype', create_type=False), nullable=False, index=True),
+            sa.Column('entity_type', entitytype_enum, nullable=False, index=True),
             sa.Column('aliases', postgresql.ARRAY(sa.String), server_default='{}'),
             sa.Column('official_urls', postgresql.JSON, server_default='[]'),
             sa.Column('description', sa.Text, nullable=True),
@@ -84,7 +89,7 @@ def upgrade() -> None:
             sa.Column('contacts_found', postgresql.JSON, server_default='[]'),
             sa.Column('entities_found', postgresql.JSON, server_default='[]'),
             sa.Column('event_signals', postgresql.JSON, server_default='[]'),
-            sa.Column('opportunity_type', sa.Enum('SPONSOR', 'BOOKING', 'PRESS', 'VENUE', 'SUPPLIER', 'GRANT', name='objectivetype', create_type=False), nullable=True),
+            sa.Column('opportunity_type', objectivetype_enum, nullable=True),
             sa.Column('confidence', sa.Float, server_default='0.0'),
             sa.Column('raw_json', postgresql.JSON, nullable=True),
             sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
@@ -96,7 +101,7 @@ def upgrade() -> None:
             'contacts',
             sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
             sa.Column('entity_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('entities.id', ondelete='CASCADE'), nullable=False, index=True),
-            sa.Column('contact_type', sa.Enum('EMAIL', 'FORM', 'BOOKING', 'PRESS', 'AGENT', 'MANAGEMENT', 'SOCIAL', 'PHONE', name='contacttype', create_type=False), nullable=False),
+            sa.Column('contact_type', contacttype_enum, nullable=False),
             sa.Column('value', sa.String(500), nullable=False),
             sa.Column('label', sa.String(255), nullable=True),
             sa.Column('source_url', sa.String(2000), nullable=True),
@@ -116,7 +121,7 @@ def upgrade() -> None:
             'briefs',
             sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
             sa.Column('entity_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('entities.id', ondelete='CASCADE'), nullable=False, index=True),
-            sa.Column('objective', sa.Enum('SPONSOR', 'BOOKING', 'PRESS', 'VENUE', 'SUPPLIER', 'GRANT', name='objectivetype', create_type=False), nullable=False),
+            sa.Column('objective', objectivetype_enum, nullable=False),
             sa.Column('timeframe_days', sa.Integer, server_default='30'),
             sa.Column('overview', sa.Text, nullable=True),
             sa.Column('contacts_ranked', postgresql.JSON, server_default='[]'),
@@ -135,7 +140,7 @@ def upgrade() -> None:
         op.create_table(
             'collection_runs',
             sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-            sa.Column('objective', sa.Enum('SPONSOR', 'BOOKING', 'PRESS', 'VENUE', 'SUPPLIER', 'GRANT', name='objectivetype', create_type=False), nullable=False),
+            sa.Column('objective', objectivetype_enum, nullable=False),
             sa.Column('entities_requested', postgresql.JSON, server_default='[]'),
             sa.Column('secondary_keywords', postgresql.ARRAY(sa.String), server_default='{}'),
             sa.Column('timeframe_days', sa.Integer, server_default='30'),
