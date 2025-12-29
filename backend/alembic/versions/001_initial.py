@@ -203,21 +203,26 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id'),
     )
     
+    # Create ingestionstatus ENUM
+    op.execute("CREATE TYPE ingestionstatus AS ENUM ('PENDING', 'RUNNING', 'SUCCESS', 'PARTIAL', 'FAILED')")
+    
     # Ingestion runs table
     op.create_table(
         'ingestion_runs',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('source_config_id', sa.Integer(), nullable=True),
-        sa.Column('source_type', sa.String(length=50), nullable=False),
-        sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('status', sa.String(length=50), server_default='running', nullable=False),
-        sa.Column('items_found', sa.Integer(), server_default='0', nullable=True),
+        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, server_default=sa.text('gen_random_uuid()')),
+        sa.Column('source_config_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('source_name', sa.String(length=255), nullable=False),
+        sa.Column('status', postgresql.ENUM('PENDING', 'RUNNING', 'SUCCESS', 'PARTIAL', 'FAILED', name='ingestionstatus', create_type=False), server_default='PENDING', nullable=False),
+        sa.Column('started_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+        sa.Column('completed_at', sa.DateTime(), nullable=True),
+        sa.Column('duration_seconds', sa.Integer(), nullable=True),
+        sa.Column('items_fetched', sa.Integer(), server_default='0', nullable=True),
         sa.Column('items_new', sa.Integer(), server_default='0', nullable=True),
         sa.Column('items_duplicate', sa.Integer(), server_default='0', nullable=True),
+        sa.Column('items_updated', sa.Integer(), server_default='0', nullable=True),
         sa.Column('items_error', sa.Integer(), server_default='0', nullable=True),
-        sa.Column('error_message', sa.Text(), nullable=True),
-        sa.Column('details', sa.JSON(), nullable=True),
+        sa.Column('errors', sa.JSON(), server_default='[]', nullable=True),
+        sa.Column('run_metadata', sa.JSON(), server_default='{}', nullable=True),
         sa.ForeignKeyConstraint(['source_config_id'], ['source_configs.id'], ondelete='SET NULL'),
         sa.PrimaryKeyConstraint('id'),
     )
@@ -257,6 +262,7 @@ def downgrade() -> None:
     op.drop_table('users')
     
     # Drop ENUM types
+    op.execute('DROP TYPE IF EXISTS ingestionstatus')
     op.execute('DROP TYPE IF EXISTS ruletype')
     op.execute('DROP TYPE IF EXISTS taskstatus')
     op.execute('DROP TYPE IF EXISTS opportunitystatus')
