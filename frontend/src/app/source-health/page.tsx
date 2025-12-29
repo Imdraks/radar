@@ -14,6 +14,7 @@ import {
   PowerOff,
   BarChart3,
   Clock,
+  Copy,
 } from "lucide-react";
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
