@@ -92,6 +92,8 @@ class ArtistStatistics(BaseModel):
     unique_artists: int
     avg_fee_min: float
     avg_fee_max: float
+    total_fee_min: float = 0  # Sum of all unique artist fees
+    total_fee_max: float = 0  # Sum of all unique artist fees
     most_searched_artist: Optional[str]
     tier_distribution: dict
     avg_ai_score: Optional[float] = None
@@ -158,9 +160,37 @@ async def get_artist_statistics(
     total = db.query(ArtistAnalysis).count()
     unique = db.query(func.count(func.distinct(ArtistAnalysis.artist_name))).scalar()
     
+    # Calculate average fees based on UNIQUE artists (latest analysis per artist)
+    # Subquery to get the latest analysis ID for each artist
+    from sqlalchemy import and_
+    
+    latest_per_artist = db.query(
+        ArtistAnalysis.artist_name,
+        func.max(ArtistAnalysis.id).label('latest_id')
+    ).group_by(ArtistAnalysis.artist_name).subquery()
+    
+    # Get average fees from only the latest analysis of each unique artist
     avg_fees = db.query(
         func.avg(ArtistAnalysis.fee_min),
         func.avg(ArtistAnalysis.fee_max)
+    ).join(
+        latest_per_artist,
+        and_(
+            ArtistAnalysis.artist_name == latest_per_artist.c.artist_name,
+            ArtistAnalysis.id == latest_per_artist.c.latest_id
+        )
+    ).first()
+    
+    # Also calculate total fees (sum) for display
+    total_fees = db.query(
+        func.sum(ArtistAnalysis.fee_min),
+        func.sum(ArtistAnalysis.fee_max)
+    ).join(
+        latest_per_artist,
+        and_(
+            ArtistAnalysis.artist_name == latest_per_artist.c.artist_name,
+            ArtistAnalysis.id == latest_per_artist.c.latest_id
+        )
     ).first()
     
     # Most searched artist
@@ -194,6 +224,8 @@ async def get_artist_statistics(
         unique_artists=unique or 0,
         avg_fee_min=float(avg_fees[0] or 0),
         avg_fee_max=float(avg_fees[1] or 0),
+        total_fee_min=float(total_fees[0] or 0),
+        total_fee_max=float(total_fees[1] or 0),
         most_searched_artist=most_searched[0] if most_searched else None,
         tier_distribution=tier_distribution,
         avg_ai_score=float(avg_ai_score) if avg_ai_score else None,

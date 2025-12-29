@@ -141,6 +141,8 @@ interface Statistics {
   unique_artists: number;
   avg_fee_min: number;
   avg_fee_max: number;
+  total_fee_min: number;
+  total_fee_max: number;
   most_searched_artist?: string;
   tier_distribution: Record<string, number>;
   avg_ai_score?: number;
@@ -255,11 +257,14 @@ function ArtistHistoryContent() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Cachet Moyen</CardDescription>
+              <CardDescription>Budget Total Artistes</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-2">
                 <DollarSign className="h-6 w-6 text-green-500" />
-                {stats.avg_fee_min.toLocaleString()}€ - {stats.avg_fee_max.toLocaleString()}€
+                {(stats.total_fee_min || 0).toLocaleString()}€ - {(stats.total_fee_max || 0).toLocaleString()}€
               </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Moy: {(stats.avg_fee_min || 0).toLocaleString()}€ - {(stats.avg_fee_max || 0).toLocaleString()}€
+              </p>
             </CardHeader>
           </Card>
           <Card>
