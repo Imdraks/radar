@@ -6,7 +6,7 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum as PyEnum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -32,7 +32,7 @@ class User(Base):
     """User model"""
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     tracking_id = Column(String(15), unique=True, default=generate_tracking_id, index=True)  # Hidden ID for superadmin
     email = Column(String(255), unique=True, index=True, nullable=True)  # Nullable for SSO without email
     hashed_password = Column(String(255), nullable=True)  # Nullable for SSO users
