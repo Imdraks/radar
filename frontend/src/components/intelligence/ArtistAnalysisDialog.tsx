@@ -63,6 +63,7 @@ interface WebArtistProfile {
   sub_genres: string[];
   nationality: string;
   birth_year?: number;
+  image_url?: string;  // Photo de l'artiste Spotify
   social_metrics: {
     total_followers: number;
     spotify_monthly_listeners: number;
@@ -429,8 +430,16 @@ export function ArtistAnalysisDialog() {
                     {/* Artist Header with AI Score */}
                     <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg">
                       <div className="relative">
-                        <div className="h-20 w-20 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center">
-                          <User className="h-10 w-10 text-purple-600 dark:text-purple-300" />
+                        <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center bg-purple-200 dark:bg-purple-800">
+                          {profile.image_url ? (
+                            <img 
+                              src={profile.image_url} 
+                              alt={profile.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <User className="h-10 w-10 text-purple-600 dark:text-purple-300" />
+                          )}
                         </div>
                         {aiScore && (
                           <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ${
