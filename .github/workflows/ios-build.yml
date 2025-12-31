@@ -1,178 +1,75 @@
-name: iOS Build & Deploy
+name: iOS Build - Generate IPA
 
 on:
   push:
     branches: [main]
     paths:
       - 'ios/**'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'ios/**'
   workflow_dispatch:
-    inputs:
-      deploy_testflight:
-        description: 'Deploy to TestFlight'
-        required: false
-        default: 'false'
-        type: boolean
-
-env:
-  XCODE_VERSION: '16.0'
-  IOS_DEPLOYMENT_TARGET: '17.0'
 
 jobs:
-  build:
-    name: Build iOS App
+  build-unsigned-ipa:
+    name: 🔨 Build Unsigned IPA
     runs-on: macos-14
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.0.app
 
-      - name: Show Xcode version
-        run: xcodebuild -version
-
-      - name: Cache Swift packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-
-
-      - name: Install certificates (for signed builds)
-        if: github.event_name != 'pull_request'
-        env:
-          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      - name: Show build info
         run: |
-          if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
-            # Create variables
-            CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-            KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          xcodebuild -version
+          echo "Building Radarapp iOS..."
 
-            # Import certificate from secrets
-            echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-
-            # Create temporary keychain
-            security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-            security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-            security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-            # Import certificate to keychain
-            security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-            security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-            security list-keychain -d user -s $KEYCHAIN_PATH
-          fi
-
-      - name: Install provisioning profile (for signed builds)
-        if: github.event_name != 'pull_request'
-        env:
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          if [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
-            PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
-            echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-            cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-          fi
-
-      - name: Build iOS app (Debug - unsigned)
-        if: github.event_name == 'pull_request'
+      - name: Build for iOS Device (unsigned)
         working-directory: ios
         run: |
           xcodebuild clean build \
             -project Radarapp.xcodeproj \
             -scheme Radarapp \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
-
-      - name: Build iOS app (Release - signed)
-        if: github.event_name != 'pull_request'
-        working-directory: ios
-        run: |
-          xcodebuild clean archive \
-            -project Radarapp.xcodeproj \
-            -scheme Radarapp \
-            -archivePath $RUNNER_TEMP/Radarapp.xcarchive \
-            -destination 'generic/platform=iOS' \
             -configuration Release \
-            | xcpretty
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
 
-      - name: Export IPA
-        if: github.event_name != 'pull_request' && success()
+      - name: Create unsigned IPA
         working-directory: ios
         run: |
-          if [ -d "$RUNNER_TEMP/Radarapp.xcarchive" ]; then
-            xcodebuild -exportArchive \
-              -archivePath $RUNNER_TEMP/Radarapp.xcarchive \
-              -exportOptionsPlist ExportOptions.plist \
-              -exportPath $RUNNER_TEMP/export \
-              | xcpretty
-          fi
+          # Find the .app
+          APP_PATH=$(find build -name "*.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          
+          # Create Payload folder and IPA
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r Radarapp-unsigned.ipa Payload
+          rm -rf Payload
+          
+          echo "✅ IPA created: Radarapp-unsigned.ipa"
+          ls -la Radarapp-unsigned.ipa
 
-      - name: Upload IPA artifact
-        if: github.event_name != 'pull_request' && success()
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Radarapp-iOS
-          path: ${{ runner.temp }}/export/*.ipa
-          retention-days: 14
+          name: Radarapp-unsigned-IPA
+          path: ios/Radarapp-unsigned.ipa
+          retention-days: 30
 
-  deploy-testflight:
-    name: Deploy to TestFlight
-    runs-on: macos-14
-    needs: build
-    if: |
-      github.event_name == 'workflow_dispatch' && 
-      github.event.inputs.deploy_testflight == 'true'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download IPA artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: Radarapp-iOS
-          path: ./artifacts
-
-      - name: Upload to TestFlight
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+      - name: Build Summary
         run: |
-          # Install xcrun altool alternative (app-store-connect-api)
-          pip3 install codemagic-cli-tools
-          
-          # Upload to TestFlight
-          app-store-connect publish \
-            --path ./artifacts/*.ipa \
-            --api-key-id "$APP_STORE_CONNECT_API_KEY_ID" \
-            --api-issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --api-private-key "$APP_STORE_CONNECT_API_KEY_CONTENT"
-
-  notify:
-    name: Notify on completion
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: always()
-    
-    steps:
-      - name: Build Status
-        run: |
-          if [ "${{ needs.build.result }}" == "success" ]; then
-            echo "✅ iOS build successful!"
-          else
-            echo "❌ iOS build failed"
-            exit 1
-          fi
+          echo "## 📱 Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Download your IPA:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to **Actions** tab" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "3. Download **Radarapp-unsigned-IPA** artifact" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### To install on iPhone:" >> $GITHUB_STEP_SUMMARY
+          echo "- Use **AltStore** or **Sideloadly** (free, re-sign every 7 days)" >> $GITHUB_STEP_SUMMARY
+          echo "- Or get Apple Developer account (99€/year) for permanent install" >> $GITHUB_STEP_SUMMARY
