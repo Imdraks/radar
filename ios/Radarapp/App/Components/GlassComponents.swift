@@ -1,36 +1,10 @@
 // GlassComponents.swift
-// Liquid Glass UI components for iOS 26 aesthetic
+// Standard iOS 17 UI components
 
 import SwiftUI
 
-// MARK: - Glass Background
-struct GlassBackground: View {
-    let style: GlassStyle
-    let cornerRadius: CGFloat
-    
-    init(style: GlassStyle = .default, cornerRadius: CGFloat = 20) {
-        self.style = style
-        self.cornerRadius = cornerRadius
-    }
-    
-    var body: some View {
-        ZStack {
-            // Blur layer
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
-            
-            // Gradient overlay
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(style.gradient)
-            
-            // Border
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(style.borderGradient, lineWidth: 0.5)
-        }
-    }
-}
-
-enum GlassStyle {
+// MARK: - Card Style
+enum CardStyle {
     case `default`
     case primary
     case success
@@ -39,88 +13,79 @@ enum GlassStyle {
     case elevated
     case card
     
-    var gradient: LinearGradient {
+    var backgroundColor: Color {
         switch self {
-        case .default:
-            return LinearGradient(
-                colors: [Color.white.opacity(0.1), Color.white.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .primary:
-            return LinearGradient(
-                colors: [Color.blue.opacity(0.3), Color.blue.opacity(0.1)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .success:
-            return LinearGradient(
-                colors: [Color.green.opacity(0.3), Color.green.opacity(0.1)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .warning:
-            return LinearGradient(
-                colors: [Color.orange.opacity(0.4), Color.orange.opacity(0.2)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .danger:
-            return LinearGradient(
-                colors: [Color.red.opacity(0.3), Color.red.opacity(0.1)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .elevated:
-            return LinearGradient(
-                colors: [Color.white.opacity(0.15), Color.white.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .card:
-            return LinearGradient(
-                colors: [Color.white.opacity(0.08), Color.clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+        case .default: return Color(.systemBackground)
+        case .primary: return Color.blue.opacity(0.1)
+        case .success: return Color.green.opacity(0.1)
+        case .warning: return Color.orange.opacity(0.1)
+        case .danger: return Color.red.opacity(0.1)
+        case .elevated: return Color(.secondarySystemBackground)
+        case .card: return Color(.tertiarySystemBackground)
         }
     }
     
-    var borderGradient: LinearGradient {
-        LinearGradient(
-            colors: [Color.white.opacity(0.3), Color.white.opacity(0.1)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    var borderColor: Color {
+        switch self {
+        case .default: return Color(.separator)
+        case .primary: return Color.blue.opacity(0.3)
+        case .success: return Color.green.opacity(0.3)
+        case .warning: return Color.orange.opacity(0.3)
+        case .danger: return Color.red.opacity(0.3)
+        case .elevated: return Color(.separator)
+        case .card: return Color(.separator).opacity(0.5)
+        }
     }
 }
 
-// MARK: - Glass Card
-struct GlassCard<Content: View>: View {
-    let style: GlassStyle
-    let padding: CGFloat
+// MARK: - Glass Background (simplified)
+struct GlassBackground: View {
+    let style: CardStyle
     let cornerRadius: CGFloat
-    @ViewBuilder let content: () -> Content
     
-    init(
-        style: GlassStyle = .card,
-        padding: CGFloat = 16,
-        cornerRadius: CGFloat = 16,
-        @ViewBuilder content: @escaping () -> Content
-    ) {
+    init(style: CardStyle = .default, cornerRadius: CGFloat = 12) {
         self.style = style
-        self.padding = padding
         self.cornerRadius = cornerRadius
-        self.content = content
     }
     
     var body: some View {
-        content()
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(style.backgroundColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(style.borderColor, lineWidth: 1)
+            )
+    }
+}
+
+// Backward compatibility alias
+typealias GlassStyle = CardStyle
+
+// MARK: - Glass Card
+struct GlassCard<Content: View>: View {
+    let style: CardStyle
+    let padding: CGFloat
+    let cornerRadius: CGFloat
+    @ViewBuilder let content: Content
+    
+    init(style: CardStyle = .default, padding: CGFloat = 16, cornerRadius: CGFloat = 12, @ViewBuilder content: () -> Content) {
+        self.style = style
+        self.padding = padding
+        self.cornerRadius = cornerRadius
+        self.content = content()
+    }
+    
+    var body: some View {
+        content
             .padding(padding)
-            .background {
-                GlassBackground(style: style, cornerRadius: cornerRadius)
-            }
-            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(style.backgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(style.borderColor, lineWidth: 0.5)
+            )
     }
 }
 
@@ -128,14 +93,36 @@ struct GlassCard<Content: View>: View {
 struct GlassButton: View {
     let title: String
     let icon: String?
-    let style: GlassButtonStyle
+    let style: ButtonStyle
     let isLoading: Bool
     let action: () -> Void
+    
+    enum ButtonStyle {
+        case primary
+        case secondary
+        case danger
+        
+        var backgroundColor: Color {
+            switch self {
+            case .primary: return .blue
+            case .secondary: return Color(.secondarySystemBackground)
+            case .danger: return .red
+            }
+        }
+        
+        var foregroundColor: Color {
+            switch self {
+            case .primary: return .white
+            case .secondary: return .primary
+            case .danger: return .white
+            }
+        }
+    }
     
     init(
         _ title: String,
         icon: String? = nil,
-        style: GlassButtonStyle = .primary,
+        style: ButtonStyle = .primary,
         isLoading: Bool = false,
         action: @escaping () -> Void
     ) {
@@ -151,153 +138,69 @@ struct GlassButton: View {
             HStack(spacing: 8) {
                 if isLoading {
                     ProgressView()
-                        .tint(style.foregroundColor)
+                        .progressViewStyle(CircularProgressViewStyle(tint: style.foregroundColor))
                         .scaleEffect(0.8)
-                } else if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.body.weight(.semibold))
+                } else {
+                    if let icon = icon {
+                        Image(systemName: icon)
+                    }
+                    Text(title)
+                        .fontWeight(.semibold)
                 }
-                
-                Text(title)
-                    .font(.body.weight(.semibold))
             }
-            .foregroundStyle(style.foregroundColor)
-            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .frame(maxWidth: style == .primary ? .infinity : nil)
-            .background {
-                switch style {
-                case .primary:
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.accentColor.gradient)
-                case .secondary:
-                    GlassBackground(style: .default, cornerRadius: 14)
-                case .ghost:
-                    Color.clear
-                case .danger:
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.red.gradient)
-                }
-            }
+            .background(style.backgroundColor)
+            .foregroundColor(style.foregroundColor)
+            .cornerRadius(10)
         }
         .disabled(isLoading)
     }
 }
 
-enum GlassButtonStyle {
-    case primary
-    case secondary
-    case ghost
-    case danger
-    
-    var foregroundColor: Color {
-        switch self {
-        case .primary, .danger: return .white
-        case .secondary, .ghost: return .primary
-        }
-    }
-}
-
-// MARK: - Glass Text Field
+// MARK: - Glass TextField
 struct GlassTextField: View {
     let placeholder: String
     @Binding var text: String
     let icon: String?
     let isSecure: Bool
-    let keyboardType: UIKeyboardType
-    let submitLabel: SubmitLabel
-    let onSubmit: (() -> Void)?
     
-    @FocusState private var isFocused: Bool
-    
-    init(
-        _ placeholder: String,
-        text: Binding<String>,
-        icon: String? = nil,
-        isSecure: Bool = false,
-        keyboardType: UIKeyboardType = .default,
-        submitLabel: SubmitLabel = .done,
-        onSubmit: (() -> Void)? = nil
-    ) {
+    init(_ placeholder: String, text: Binding<String>, icon: String? = nil, isSecure: Bool = false) {
         self.placeholder = placeholder
         self._text = text
         self.icon = icon
         self.isSecure = isSecure
-        self.keyboardType = keyboardType
-        self.submitLabel = submitLabel
-        self.onSubmit = onSubmit
     }
     
     var body: some View {
         HStack(spacing: 12) {
             if let icon = icon {
                 Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
             }
             
-            Group {
-                if isSecure {
-                    SecureField(placeholder, text: $text)
-                } else {
-                    TextField(placeholder, text: $text)
-                }
+            if isSecure {
+                SecureField(placeholder, text: $text)
+            } else {
+                TextField(placeholder, text: $text)
             }
-            .keyboardType(keyboardType)
-            .submitLabel(submitLabel)
-            .onSubmit {
-                onSubmit?()
-            }
-            .focused($isFocused)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.regularMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(
-                            isFocused ? Color.accentColor : Color.clear,
-                            lineWidth: 2
-                        )
-                }
-        }
-        .animation(.easeInOut(duration: 0.2), value: isFocused)
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(.separator), lineWidth: 0.5)
+        )
     }
 }
 
 // MARK: - Score Badge
 struct ScoreBadge: View {
     let score: Int
-    let size: BadgeSize
     
-    enum BadgeSize {
-        case small, medium, large
-        
-        var font: Font {
-            switch self {
-            case .small: return .caption.weight(.bold)
-            case .medium: return .subheadline.weight(.bold)
-            case .large: return .title2.weight(.bold)
-            }
-        }
-        
-        var padding: CGFloat {
-            switch self {
-            case .small: return 6
-            case .medium: return 10
-            case .large: return 14
-            }
-        }
-    }
-    
-    init(_ score: Int, size: BadgeSize = .medium) {
-        self.score = score
-        self.size = size
-    }
-    
-    var scoreColor: Color {
+    private var color: Color {
         switch score {
         case 80...100: return .green
         case 60..<80: return .blue
@@ -307,98 +210,55 @@ struct ScoreBadge: View {
     }
     
     var body: some View {
-        Text("\(score)%")
-            .font(size.font)
-            .foregroundStyle(.white)
-            .padding(.horizontal, size.padding)
-            .padding(.vertical, size.padding * 0.6)
-            .background {
-                Capsule()
-                    .fill(scoreColor.gradient)
-            }
+        Text("\(score)")
+            .font(.system(.caption, design: .rounded, weight: .bold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(color)
+            .cornerRadius(12)
     }
 }
 
 // MARK: - Status Badge
 struct StatusBadge: View {
-    let status: OpportunityStatus
+    let status: String
+    let color: Color
+    
+    init(_ status: String, color: Color = .blue) {
+        self.status = status
+        self.color = color
+    }
     
     var body: some View {
-        Text(status.displayName)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(statusColor)
+        Text(status)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundColor(color)
             .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background {
-                Capsule()
-                    .fill(statusColor.opacity(0.15))
-            }
-    }
-    
-    var statusColor: Color {
-        switch status {
-        case .new: return .blue
-        case .reviewed: return .gray
-        case .interested: return .orange
-        case .applied: return .purple
-        case .rejected: return .red
-        case .won: return .green
-        case .lost: return .gray
-        }
+            .padding(.vertical, 4)
+            .background(color.opacity(0.15))
+            .cornerRadius(8)
     }
 }
 
-// MARK: - Shimmer Effect
-struct ShimmerModifier: ViewModifier {
-    @State private var phase: CGFloat = 0
+// MARK: - Loading View
+struct LoadingView: View {
+    let message: String
     
-    func body(content: Content) -> some View {
-        content
-            .overlay {
-                GeometryReader { geometry in
-                    LinearGradient(
-                        colors: [
-                            .clear,
-                            .white.opacity(0.3),
-                            .clear
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: geometry.size.width * 2)
-                    .offset(x: -geometry.size.width + (geometry.size.width * 2 * phase))
-                }
-            }
-            .mask(content)
-            .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                    phase = 1
-                }
-            }
-    }
-}
-
-extension View {
-    func shimmer() -> some View {
-        modifier(ShimmerModifier())
-    }
-}
-
-// MARK: - Skeleton Loader
-struct SkeletonView: View {
-    let height: CGFloat
-    let cornerRadius: CGFloat
-    
-    init(height: CGFloat = 20, cornerRadius: CGFloat = 8) {
-        self.height = height
-        self.cornerRadius = cornerRadius
+    init(_ message: String = "Chargement...") {
+        self.message = message
     }
     
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.gray.opacity(0.2))
-            .frame(height: height)
-            .shimmer()
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -407,8 +267,8 @@ struct EmptyStateView: View {
     let icon: String
     let title: String
     let message: String
-    let action: (() -> Void)?
     let actionTitle: String?
+    let action: (() -> Void)?
     
     init(
         icon: String,
@@ -420,91 +280,89 @@ struct EmptyStateView: View {
         self.icon = icon
         self.title = title
         self.message = message
-        self.action = action
         self.actionTitle = actionTitle
+        self.action = action
     }
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
             
-            VStack(spacing: 8) {
-                Text(title)
-                    .font(.title3.weight(.semibold))
-                
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+            Text(title)
+                .font(.title3)
+                .fontWeight(.semibold)
             
-            if let action = action, let actionTitle = actionTitle {
-                GlassButton(actionTitle, icon: "arrow.clockwise", style: .secondary, action: action)
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            
+            if let actionTitle = actionTitle, let action = action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 8)
             }
         }
-        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 }
 
-// MARK: - Pull to Refresh
-struct RefreshableModifier: ViewModifier {
-    let isRefreshing: Bool
-    let onRefresh: () async -> Void
+// MARK: - Section Header
+struct SectionHeader: View {
+    let title: String
+    let icon: String?
     
-    func body(content: Content) -> some View {
-        content
-            .refreshable {
-                await onRefresh()
+    init(_ title: String, icon: String? = nil) {
+        self.title = title
+        self.icon = icon
+    }
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .foregroundColor(.blue)
             }
-            .overlay(alignment: .top) {
-                if isRefreshing {
-                    ProgressView()
-                        .padding(.top, 20)
-                }
-            }
+            Text(title)
+                .font(.headline)
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 }
 
-// MARK: - Previews
-#Preview("Glass Components") {
-    ZStack {
-        LinearGradient(
-            colors: [.blue.opacity(0.3), .purple.opacity(0.3)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-        
-        ScrollView {
-            VStack(spacing: 24) {
-                GlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Festival Jazz 2025")
-                                .font(.headline)
-                            Spacer()
-                            ScoreBadge(85)
-                        }
-                        
-                        Text("Paris • 15 Jan 2025")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        StatusBadge(status: .interested)
-                    }
-                }
-                
-                GlassTextField("Email", text: .constant(""), icon: "envelope")
-                
-                GlassButton("Connexion", icon: "arrow.right", style: .primary) {}
-                
-                GlassButton("Annuler", style: .secondary) {}
-                
-                SkeletonView(height: 100, cornerRadius: 16)
+// MARK: - Info Row
+struct InfoRow: View {
+    let label: String
+    let value: String
+    let icon: String?
+    
+    init(_ label: String, value: String, icon: String? = nil) {
+        self.label = label
+        self.value = value
+        self.icon = icon
+    }
+    
+    var body: some View {
+        HStack {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .foregroundColor(.secondary)
+                    .frame(width: 24)
             }
-            .padding()
+            Text(label)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .fontWeight(.medium)
         }
     }
 }
