@@ -7,30 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0001 /* RadarappApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001 /* RadarappApp.swift */; };
-		0002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1002 /* ContentView.swift */; };
-		0003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1003 /* Assets.xcassets */; };
-		0004 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1004 /* Preview Assets.xcassets */; };
+		F001 /* RadarappApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E001; };
+		F002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002; };
+		F003 /* GlassComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E003; };
+		F004 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E004; };
+		F005 /* OpportunitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E005; };
+		F006 /* OpportunityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E006; };
+		F007 /* DossiersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E007; };
+		F008 /* DossierDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E008; };
+		F009 /* NewCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E009; };
+		F010 /* CollectionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010; };
+		F011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E011; };
+		F012 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E012; };
+		F013 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E013; };
+		F014 /* Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E014; };
+		F100 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E100; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
-		1001 /* RadarappApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarappApp.swift; sourceTree = "<group>"; };
-		1002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		1003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1004 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		2001 /* Radarapp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Radarapp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		2002 /* RadarappTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarappTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		2003 /* RadarappUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RadarappUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3002 /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
-		3003 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
+		E001 /* RadarappApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarappApp.swift; sourceTree = "<group>"; };
+		E002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		E003 /* GlassComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassComponents.swift; sourceTree = "<group>"; };
+		E004 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		E005 /* OpportunitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunitiesView.swift; sourceTree = "<group>"; };
+		E006 /* OpportunityDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpportunityDetailView.swift; sourceTree = "<group>"; };
+		E007 /* DossiersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DossiersView.swift; sourceTree = "<group>"; };
+		E008 /* DossierDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DossierDetailView.swift; sourceTree = "<group>"; };
+		E009 /* NewCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewCollectionView.swift; sourceTree = "<group>"; };
+		E010 /* CollectionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionHistoryView.swift; sourceTree = "<group>"; };
+		E011 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		E012 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		E013 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		E014 /* Environment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Environment.swift; sourceTree = "<group>"; };
+		E100 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E101 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		P001 /* Radarapp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Radarapp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		5001 /* Frameworks */ = {
+		B001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -40,110 +55,143 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		6001 = {
+		G001 = {
 			isa = PBXGroup;
 			children = (
-				6002 /* Radarapp */,
-				6003 /* RadarappTests */,
-				6004 /* RadarappUITests */,
-				6005 /* Products */,
-				6006 /* Configuration */,
+				G002 /* Radarapp */,
+				G003 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		6002 /* Radarapp */ = {
+		G002 /* Radarapp */ = {
 			isa = PBXGroup;
 			children = (
-				1001 /* RadarappApp.swift */,
-				1002 /* ContentView.swift */,
-				1003 /* Assets.xcassets */,
-				3001 /* Info.plist */,
-				6007 /* Preview Content */,
-				6008 /* App */,
-				6009 /* Core */,
-				6010 /* Features */,
-				6011 /* DesignSystem */,
+				E001 /* RadarappApp.swift */,
+				E100 /* Assets.xcassets */,
+				E101 /* Info.plist */,
+				G010 /* App */,
+				G020 /* Core */,
 			);
 			path = Radarapp;
 			sourceTree = "<group>";
 		};
-		6003 /* RadarappTests */ = {
+		G003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-			);
-			path = RadarappTests;
-			sourceTree = "<group>";
-		};
-		6004 /* RadarappUITests */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = RadarappUITests;
-			sourceTree = "<group>";
-		};
-		6005 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				2001 /* Radarapp.app */,
-				2002 /* RadarappTests.xctest */,
-				2003 /* RadarappUITests.xctest */,
+				P001 /* Radarapp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		6006 /* Configuration */ = {
+		G010 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				3002 /* Dev.xcconfig */,
-				3003 /* Prod.xcconfig */,
-			);
-			path = Configuration;
-			sourceTree = "<group>";
-		};
-		6007 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				1004 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		6008 /* App */ = {
-			isa = PBXGroup;
-			children = (
+				E002 /* RootView.swift */,
+				G011 /* Components */,
+				G012 /* Views */,
 			);
 			path = App;
 			sourceTree = "<group>";
 		};
-		6009 /* Core */ = {
+		G011 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				E003 /* GlassComponents.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		G012 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				G013 /* Auth */,
+				G014 /* Opportunities */,
+				G015 /* Dossiers */,
+				G016 /* Collection */,
+				G017 /* History */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		G013 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				E004 /* LoginView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		G014 /* Opportunities */ = {
+			isa = PBXGroup;
+			children = (
+				E005 /* OpportunitiesView.swift */,
+				E006 /* OpportunityDetailView.swift */,
+			);
+			path = Opportunities;
+			sourceTree = "<group>";
+		};
+		G015 /* Dossiers */ = {
+			isa = PBXGroup;
+			children = (
+				E007 /* DossiersView.swift */,
+				E008 /* DossierDetailView.swift */,
+			);
+			path = Dossiers;
+			sourceTree = "<group>";
+		};
+		G016 /* Collection */ = {
+			isa = PBXGroup;
+			children = (
+				E009 /* NewCollectionView.swift */,
+			);
+			path = Collection;
+			sourceTree = "<group>";
+		};
+		G017 /* History */ = {
+			isa = PBXGroup;
+			children = (
+				E010 /* CollectionHistoryView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		G020 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				E014 /* Environment.swift */,
+				G021 /* Models */,
+				G022 /* Services */,
 			);
 			path = Core;
 			sourceTree = "<group>";
 		};
-		6010 /* Features */ = {
+		G021 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				E011 /* Models.swift */,
 			);
-			path = Features;
+			path = Models;
 			sourceTree = "<group>";
 		};
-		6011 /* DesignSystem */ = {
+		G022 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				E012 /* APIService.swift */,
+				E013 /* AuthService.swift */,
 			);
-			path = DesignSystem;
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7001 /* Radarapp */ = {
+		T001 /* Radarapp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 8001 /* Build configuration list for PBXNativeTarget "Radarapp" */;
+			buildConfigurationList = C001;
 			buildPhases = (
-				5001 /* Frameworks */,
+				B002 /* Sources */,
+				B003 /* Resources */,
+				B001 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -151,25 +199,25 @@
 			);
 			name = Radarapp;
 			productName = Radarapp;
-			productReference = 2001 /* Radarapp.app */;
+			productReference = P001 /* Radarapp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		9001 /* Project object */ = {
+		R001 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					7001 = {
-						CreatedOnToolsVersion = 16.0;
+					T001 = {
+						CreatedOnToolsVersion = 15.0;
 					};
 				};
 			};
-			buildConfigurationList = 8002 /* Build configuration list for PBXProject "Radarapp" */;
+			buildConfigurationList = C002;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -178,39 +226,95 @@
 				Base,
 				fr,
 			);
-			mainGroup = 6001;
-			productRefGroup = 6005 /* Products */;
+			mainGroup = G001;
+			productRefGroup = G003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7001 /* Radarapp */,
+				T001 /* Radarapp */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F100 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F001 /* RadarappApp.swift in Sources */,
+				F002 /* RootView.swift in Sources */,
+				F003 /* GlassComponents.swift in Sources */,
+				F004 /* LoginView.swift in Sources */,
+				F005 /* OpportunitiesView.swift in Sources */,
+				F006 /* OpportunityDetailView.swift in Sources */,
+				F007 /* DossiersView.swift in Sources */,
+				F008 /* DossierDetailView.swift in Sources */,
+				F009 /* NewCollectionView.swift in Sources */,
+				F010 /* CollectionHistoryView.swift in Sources */,
+				F011 /* Models.swift in Sources */,
+				F012 /* APIService.swift in Sources */,
+				F013 /* AuthService.swift in Sources */,
+				F014 /* Environment.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		A001 /* Debug */ = {
+		X001 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3002 /* Dev.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_ASSET_PATHS = "\"Radarapp/Preview Content\"";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -231,13 +335,14 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -248,28 +353,54 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		A002 /* Release */ = {
+		X002 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3003 /* Prod.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_ASSET_PATHS = "\"Radarapp/Preview Content\"";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -284,13 +415,14 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = fr.radarapp.ios;
@@ -299,7 +431,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -308,25 +440,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8001 /* Build configuration list for PBXNativeTarget "Radarapp" */ = {
+		C001 /* Build configuration list for PBXNativeTarget "Radarapp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A001 /* Debug */,
-				A002 /* Release */,
+				X001 /* Debug */,
+				X002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		8002 /* Build configuration list for PBXProject "Radarapp" */ = {
+		C002 /* Build configuration list for PBXProject "Radarapp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A001 /* Debug */,
-				A002 /* Release */,
+				X001 /* Debug */,
+				X002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 9001 /* Project object */;
+	rootObject = R001 /* Project object */;
 }
