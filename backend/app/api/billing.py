@@ -1,6 +1,6 @@
 """
 Billing API endpoints for quotes (devis) and invoices (factures)
-Part of Radar Business add-on
+Part of the Radar Business subscription
 """
 from datetime import date, datetime
 from decimal import Decimal
@@ -15,7 +15,7 @@ from io import BytesIO
 logger = logging.getLogger(__name__)
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import get_db, get_current_user, get_current_workspace_id
 from app.db.models.user import User
@@ -79,49 +79,26 @@ class EmitterInfoUpdate(BaseModel):
 
 # ============ Helper Functions ============
 
+def next_document_reference(db: Session, workspace_id: int, kind: str) -> str:
+    from sqlalchemy.dialects.postgresql import insert
+    from app.db.models.billing import BillingCounter
+    year = datetime.utcnow().year
+    counter = BillingCounter.__table__
+    statement = insert(counter).values(workspace_id=workspace_id, year=year, kind=kind, last_number=1)
+    statement = statement.on_conflict_do_update(
+        index_elements=[counter.c.workspace_id, counter.c.year, counter.c.kind],
+        set_={"last_number": counter.c.last_number + 1}
+    ).returning(counter.c.last_number)
+    number = db.execute(statement).scalar_one()
+    return f"{kind}-{year}-{number:04d}"
+
+
 def generate_quote_reference(db: Session, workspace_id: int) -> str:
-    """Generate unique quote reference: DEV-YYYY-XXXX"""
-    year = datetime.now().year
-    prefix = f"DEV-{year}-"
-    
-    # Get the last quote number for this workspace and year
-    last_quote = db.query(Quote).filter(
-        Quote.workspace_id == workspace_id,
-        Quote.reference.like(f"{prefix}%")
-    ).order_by(Quote.id.desc()).first()
-    
-    if last_quote:
-        try:
-            last_num = int(last_quote.reference.split("-")[-1])
-            new_num = last_num + 1
-        except:
-            new_num = 1
-    else:
-        new_num = 1
-    
-    return f"{prefix}{new_num:04d}"
+    return next_document_reference(db, workspace_id, "DEV")
 
 
 def generate_invoice_reference(db: Session, workspace_id: int) -> str:
-    """Generate unique invoice reference: FAC-YYYY-XXXX"""
-    year = datetime.now().year
-    prefix = f"FAC-{year}-"
-    
-    last_invoice = db.query(Invoice).filter(
-        Invoice.workspace_id == workspace_id,
-        Invoice.reference.like(f"{prefix}%")
-    ).order_by(Invoice.id.desc()).first()
-    
-    if last_invoice:
-        try:
-            last_num = int(last_invoice.reference.split("-")[-1])
-            new_num = last_num + 1
-        except:
-            new_num = 1
-    else:
-        new_num = 1
-    
-    return f"{prefix}{new_num:04d}"
+    return next_document_reference(db, workspace_id, "FAC")
 
 
 def calculate_quote_totals(quote: Quote):
@@ -815,6 +792,11 @@ async def convert_quote_to_invoice(
     if quote.status != QuoteStatus.ACCEPTED:
         raise HTTPException(status_code=400, detail="Seuls les devis acceptés peuvent être convertis")
     
+    db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    db.refresh(quote)
+    if quote.status == QuoteStatus.INVOICED:
+        raise HTTPException(status_code=409, detail="Devis déjà converti")
+
     # Create invoice
     invoice = Invoice(
         workspace_id=workspace_id,
@@ -1890,8 +1872,8 @@ async def delete_invoice(
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible de supprimer une facture payée")
+    if invoice.status != InvoiceStatus.DRAFT:
+        raise HTTPException(status_code=400, detail="Seules les factures brouillon peuvent être supprimées")
     
     db.delete(invoice)
     db.commit()

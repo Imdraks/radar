@@ -16,7 +16,7 @@ const reasons = [
   {
     icon: Eye,
     title: "Veille & Analytics avancés",
-    description: "Cockpit temps réel, veille concurrentielle, carte événements et prédictions IA intégrées.",
+    description: "Organisation, événements et intelligence artistique réunis autour de vos projets.",
   },
   {
     icon: Shield,

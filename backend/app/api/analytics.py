@@ -4,7 +4,7 @@ Graphiques, tendances, KPIs avancés
 """
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import HTTPException, APIRouter, Depends, Query
 from sqlalchemy import func, and_, case, extract
 from sqlalchemy.orm import Session
 from collections import defaultdict
@@ -14,6 +14,10 @@ from app.db.models.user import User
 from app.db.models.opportunity import Opportunity, OpportunityStatus, OpportunityCategory
 from app.api.deps import get_current_user
 from app.core.cache import cache_get, cache_set
+
+def suspend_predictions():
+    raise HTTPException(status_code=503, detail="Prédictions commerciales suspendues : méthode non validée")
+
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -35,7 +39,7 @@ def get_timeline_data(
     - Nouvelles opportunités par jour/semaine
     - Tendance globale
     """
-    cache_key = f"analytics:timeline:{current_user.id}:{period}"
+    cache_key = f"analytics:timeline:{current_user.id}:{db.info.get('workspace_id')}:{period}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -126,7 +130,7 @@ def get_conversion_metrics(
     - Par catégorie
     - Par source
     """
-    cache_key = f"analytics:conversion:{current_user.id}:{period}"
+    cache_key = f"analytics:conversion:{current_user.id}:{db.info.get('workspace_id')}:{period}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -238,7 +242,7 @@ def get_deadline_heatmap(
     - Nombre d'opportunités par mois
     - Valeur totale par mois
     """
-    cache_key = f"analytics:heatmap:{current_user.id}"
+    cache_key = f"analytics:heatmap:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -314,7 +318,7 @@ def get_period_comparison(
     - Valeur totale
     - Taux de conversion
     """
-    cache_key = f"analytics:comparison:{current_user.id}"
+    cache_key = f"analytics:comparison:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -394,7 +398,7 @@ def get_realtime_kpis(
     """
     KPIs principaux avec tendances
     """
-    cache_key = f"analytics:kpis:{current_user.id}"
+    cache_key = f"analytics:kpis:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -486,7 +490,7 @@ def get_top_performers(
     """
     Top sources, catégories et régions performantes
     """
-    cache_key = f"analytics:top:{current_user.id}:{period}"
+    cache_key = f"analytics:top:{current_user.id}:{db.info.get('workspace_id')}:{period}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -580,7 +584,7 @@ def get_weak_signals(
     - Opportunités à fort budget non traitées
     - Tendances négatives
     """
-    cache_key = f"analytics:signals:{current_user.id}"
+    cache_key = f"analytics:signals:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -735,7 +739,7 @@ def get_automated_insights(
     - Jour/période optimale
     - Recommandations d'action
     """
-    cache_key = f"analytics:insights:{current_user.id}"
+    cache_key = f"analytics:insights:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -865,7 +869,7 @@ def get_automated_insights(
 # PRÉDICTIONS PIPELINE 30/60/90 JOURS
 # ============================================================================
 
-@router.get("/predictions-summary")
+@router.get("/predictions-summary", dependencies=[Depends(suspend_predictions)])
 def get_predictions_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -876,7 +880,7 @@ def get_predictions_summary(
     - Valeur estimée
     - Projets à forte probabilité de gain
     """
-    cache_key = f"analytics:predictions:{current_user.id}"
+    cache_key = f"analytics:predictions:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached

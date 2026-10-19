@@ -115,6 +115,10 @@ class ArtistPredictionService:
         
         # Récupérer les snapshots
         snapshots = self._get_snapshots(normalized_name, workspace_id)
+        return self._predict_from_snapshots(artist_name, snapshots)
+
+    def _predict_from_snapshots(self, artist_name, snapshots):
+        """Shared inference path; evaluations pass only observations available at the origin."""
         
         # Vérifier si on a assez de données
         if len(snapshots) < self.MIN_SNAPSHOTS:
@@ -186,6 +190,39 @@ class ArtistPredictionService:
             is_valid=True
         )
     
+    def evaluate_history(self, artist_name: str, workspace_id: int) -> dict:
+        """Rolling-origin evaluation of the actual model, compared with a last-value baseline.
+
+        Uses only prior observations at every origin. Small samples are descriptive
+        diagnostics and cannot establish a calibrated probability of success.
+        """
+        snapshots = self._get_snapshots(ArtistSnapshot.normalize_name(artist_name), workspace_id, limit=180)
+        chronological = sorted(snapshots, key=lambda row: row.snapshot_date)
+        observations = [row for row in chronological if row.spotify_monthly_listeners and row.spotify_monthly_listeners > 0]
+        samples = []
+        for i in range(1, len(observations) - 1):
+            origin = observations[i]
+            future = [row for row in observations[i+1:] if 30 <= (row.snapshot_date-origin.snapshot_date).days <= 90]
+            if not future:
+                continue
+            target = future[0]
+            training = sorted([row for row in snapshots if row.snapshot_date <= origin.snapshot_date], key=lambda row: row.snapshot_date, reverse=True)
+            prediction = self._predict_from_snapshots(artist_name, training)
+            if not prediction.is_valid:
+                continue
+            horizon = (target.snapshot_date-origin.snapshot_date).days
+            expected = int(origin.spotify_monthly_listeners * math.exp(prediction.central.growth_rate * horizon))
+            actual = target.spotify_monthly_listeners
+            samples.append({"origin": origin.snapshot_date.isoformat(), "target": target.snapshot_date.isoformat(),
+                            "horizon_days": horizon, "predicted": expected, "observed": actual,
+                            "absolute_error": abs(expected-actual), "baseline_error": abs(origin.spotify_monthly_listeners-actual)})
+        count = len(samples)
+        return {"method": "rolling_origin_existing_model", "status": "descriptive" if count else "insufficient_history",
+                "sample_count": count, "calibrated_probability": False,
+                "mae_listeners": sum(row["absolute_error"] for row in samples)/count if count else None,
+                "baseline_mae_listeners": sum(row["baseline_error"] for row in samples)/count if count else None,
+                "samples": samples}
+
     # ========================================================================
     # PRIVATE METHODS
     # ========================================================================

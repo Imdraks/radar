@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
@@ -49,7 +50,7 @@ export function GoogleCalendarIntegration() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/api/v1/calendar/google/status`, {
+      const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/status`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -138,7 +139,7 @@ export function GoogleCalendarIntegration() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/api/v1/calendar/google/init`, {
+      const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/init`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -167,7 +168,7 @@ export function GoogleCalendarIntegration() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/api/v1/calendar/google/disconnect`, {
+      const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/disconnect`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -195,7 +196,7 @@ export function GoogleCalendarIntegration() {
     setSyncResult(null);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/api/v1/calendar/google/sync`, {
+      const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/sync`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -417,7 +418,7 @@ export function useGoogleCalendar() {
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(
+      const response = await workspaceFetch(
         `${API_BASE}/api/v1/calendar/google/sync-single/${opportunityId}`,
         {
           method: "POST",
@@ -460,7 +461,7 @@ export function useGoogleCalendar() {
       const token = localStorage.getItem("token");
       if (!token) return false;
 
-      const response = await fetch(`${API_BASE}/api/v1/calendar/google/status`, {
+      const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/status`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

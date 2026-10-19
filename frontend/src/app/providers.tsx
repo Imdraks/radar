@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toaster";
-import { useState } from "react";
+import { useMemo } from "react";
+import { useAuthStore } from "@/store/auth";
+import { useSubscriptionStore } from "@/store/subscriptionStore";
 import dynamic from "next/dynamic";
 
 // Lazy load devtools only in development
@@ -14,7 +16,9 @@ const ReactQueryDevtools = dynamic(
 );
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
+  const userId = useAuthStore(s => s.user?.id);
+  const workspaceId = useSubscriptionStore(s => s.subscription?.workspace_id);
+  const queryClient = useMemo(
     () =>
       new QueryClient({
         defaultOptions: {
@@ -31,7 +35,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             retry: 0,
           },
         },
-      })
+      }),
+    [userId, workspaceId]
   );
 
   return (

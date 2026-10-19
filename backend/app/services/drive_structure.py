@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from app.db.models.drive_folder_map import DriveFolderMap, DriveFolderType
+from app.core.subscription import Feature, effective_features
 from app.db.models.workspace import Workspace
 from app.db.models.agency import Project
 from app.services.google_workspace import (
@@ -209,10 +210,10 @@ class DriveStructureService:
             settings = workspace.settings or {}
             
             # Check pack/addon flags
-            business_enabled = "radar_business" in addons
-            analytics_enabled = "intelligence" in enabled_packs
-            intelligence_enabled = "intelligence" in enabled_packs
-            discovery_enabled = "talents" in enabled_packs
+            business_enabled = Feature.INVOICES in effective_features(workspace)
+            analytics_enabled = Feature.ANALYTICS in effective_features(workspace)
+            intelligence_enabled = Feature.ANALYTICS in effective_features(workspace)
+            discovery_enabled = Feature.DISCOVERY in effective_features(workspace)
             data_enabled = "data" in enabled_packs
             templates_enabled = settings.get("templates_enabled", True)
 
@@ -307,10 +308,10 @@ class DriveStructureService:
             enabled_packs = workspace.enabled_packs or []
             addons = workspace.addons or []
             
-            business_enabled = "radar_business" in addons
-            analytics_enabled = "intelligence" in enabled_packs
-            intelligence_enabled = "intelligence" in enabled_packs
-            discovery_enabled = "talents" in enabled_packs
+            business_enabled = Feature.INVOICES in effective_features(workspace)
+            analytics_enabled = Feature.ANALYTICS in effective_features(workspace)
+            intelligence_enabled = Feature.ANALYTICS in effective_features(workspace)
+            discovery_enabled = Feature.DISCOVERY in effective_features(workspace)
 
             # Create project core folders
             await self._ensure_project_folders(

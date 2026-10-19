@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -79,6 +80,8 @@ interface ArtistDetail {
   patterns: string[];
   signals: string[];
   summary?: string;
+  evidence?: { source: string; collected_at: string; status: string; error_code?: string; contains_deezer_data?: boolean }[];
+  missing_data?: string[];
   booking_range?: { min: number; max: number };
   last_enriched_at?: string;
   created_at: string;
@@ -442,14 +445,17 @@ export default function DiscoveryArtistDetailPage() {
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">Score</div>
                       <Progress value={artist.score} className="w-20 mt-2" />
-                      {artist.confidence_score != null && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Confiance : {Math.round(artist.confidence_score * 100)}%
-                        </div>
-                      )}
+                      <div className="text-xs text-muted-foreground mt-1">Indicateur heuristique · confiance non calibrée</div>
                     </div>
                   </div>
 
+                  <div className="mt-4 text-sm space-y-2">
+                    <p>Sources et dates de collecte</p>
+                    {artist.evidence?.length ? artist.evidence.map(e => <p key={e.source}>{e.source}{e.contains_deezer_data ? ' / Deezer' : ''} · {new Date(e.collected_at).toLocaleString('fr-FR')} · {e.status}{e.error_code ? ` (${e.error_code})` : ''}</p>) : <p>Provenance de collecte indisponible.</p>}
+                    {!!artist.missing_data?.length && <p>Données manquantes : {artist.missing_data.join(', ')}</p>}
+                    <p>Les projections et fourchettes de cachet sont des estimations. Leur précision prédictive n’est pas encore validée.</p>
+                    <Link href={`/events?artist=${artist.id}`} className="underline">Ajouter à un événement</Link>
+                  </div>
                   {/* Action buttons */}
                   <div className="flex items-center gap-3 mt-5 pt-4 border-t">
                     <Button
@@ -658,15 +664,9 @@ export default function DiscoveryArtistDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {artist.optimal_fee != null && (
-                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
-                          <div className="text-xs text-muted-foreground">Cachet optimal</div>
-                          <div className="text-lg font-bold text-emerald-600">{formatNumber(artist.optimal_fee)} €</div>
-                        </div>
-                      )}
                       {artist.booking_range && (
                         <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                          <div className="text-xs text-muted-foreground">Fourchette</div>
+                          <div className="text-xs text-muted-foreground">Estimation indicative, à confirmer</div>
                           <div className="text-sm font-semibold">
                             {formatNumber(artist.booking_range.min)} – {formatNumber(artist.booking_range.max)} €
                           </div>

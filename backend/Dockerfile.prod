@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements first for caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir pip==26.2.1 && pip install --no-cache-dir -r requirements.txt
 
 # Create non-root user BEFORE installing Playwright
 RUN adduser --disabled-password --gecos '' appuser

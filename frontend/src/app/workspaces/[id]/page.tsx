@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -120,24 +121,6 @@ interface WorkspaceSubscription {
   available_features: string[];
 }
 
-const PLANS = [
-  { value: 'mini', label: 'Mini', icon: Zap, color: 'bg-blue-100 text-blue-700', packs: ['core', 'clients'] },
-  { value: 'standard', label: 'Standard', icon: Building2, color: 'bg-purple-100 text-purple-700', packs: ['core', 'clients', 'leads', 'talents'] },
-  { value: 'premium', label: 'Premium', icon: Rocket, color: 'bg-orange-100 text-orange-700', packs: ['core', 'clients', 'leads', 'talents', 'intelligence'] },
-];
-
-const PACKS = [
-  { value: 'core', label: 'Core', description: 'Cockpit, Pipeline, Projets, Production, Assets, Calendrier', minPlan: 'mini' },
-  { value: 'clients', label: 'Clients', description: 'Gestion des clients, Dossiers, Daily Picks', minPlan: 'mini' },
-  { value: 'leads', label: 'Leads', description: 'Leads, Kanban, Scoring', minPlan: 'standard' },
-  { value: 'talents', label: 'Talents', description: 'Artistes, Profils, Découverte, Comparaison, Map', minPlan: 'standard' },
-  { value: 'intelligence', label: 'Intelligence', description: 'Analytics, Veille concurrentielle, Prédictions avancées', minPlan: 'premium' },
-];
-
-const ADDONS = [
-  { value: 'radar_business', label: 'Radar Business', description: 'CRM étendu, Devis, Factures', includedIn: 'premium' },
-];
-
 const roleLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   admin: { label: 'Admin', icon: <Shield className="h-3 w-3" />, color: 'bg-red-100 text-red-700' },
   member: { label: 'Membre', icon: <User className="h-3 w-3" />, color: 'bg-blue-100 text-blue-700' },
@@ -213,7 +196,7 @@ function WorkspaceDetailContent() {
   const fetchWorkspace = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -228,7 +211,7 @@ function WorkspaceDetailContent() {
   const fetchSubscription = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/subscription/admin/workspace/${workspaceId}`, {
+      const res = await workspaceFetch(`/api/v1/subscription/admin/workspace/${workspaceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -243,135 +226,10 @@ function WorkspaceDetailContent() {
     }
   };
 
-  // Check if there are unsaved changes
-  const hasChanges = () => {
-    if (!subscription) return false;
-    if (editPlan !== null && editPlan !== subscription.plan) return true;
-    if (editAddons !== null && JSON.stringify(editAddons) !== JSON.stringify(subscription.addons)) return true;
-    return false;
-  };
-
-  // Get current values (local edit or saved)
-  const currentPlan = editPlan ?? subscription?.plan ?? 'standard';
-  const currentAddons = editAddons ?? subscription?.addons ?? [];
-
-  const saveSubscriptionChanges = async () => {
-    if (!hasChanges()) return;
-    
-    setSavingSubscription(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      const updates: any = {};
-      
-      if (editPlan !== null) {
-        updates.plan = editPlan;
-      }
-      if (editAddons !== null) {
-        updates.addons = editAddons;
-      }
-      
-      const res = await fetch(`/api/v1/subscription/admin/workspace/${workspaceId}`, {
-        method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSubscription(data);
-        // Reset local edit states
-        setEditPlan(null);
-        setEditAddons(null);
-        // Refresh global subscription store so navigation updates
-        refreshGlobalSubscription(parseInt(workspaceId));
-        toast.success('Abonnement mis à jour avec succès !');
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Erreur');
-      }
-    } catch (err) {
-      toast.error('Erreur de mise à jour');
-    } finally {
-      setSavingSubscription(false);
-    }
-  };
-
-  const toggleAddonLocal = (addonValue: string) => {
-    const addons = editAddons ?? subscription?.addons ?? [];
-    const newAddons = addons.includes(addonValue)
-      ? addons.filter(a => a !== addonValue)
-      : [...addons, addonValue];
-    setEditAddons(newAddons);
-  };
-
-  const changePlanLocal = (planValue: string) => {
-    setEditPlan(planValue);
-    // When changing plan, also update addons if Premium (auto-include radar_business)
-    if (planValue === 'premium') {
-      const addons = editAddons ?? subscription?.addons ?? [];
-      if (!addons.includes('radar_business')) {
-        setEditAddons([...addons, 'radar_business']);
-      }
-    }
-  };
-
-  // Legacy functions for backward compatibility (now unused)
-  const updateSubscription = async (updates: Partial<WorkspaceSubscription>) => {
-    setSavingSubscription(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/subscription/admin/workspace/${workspaceId}`, {
-        method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSubscription(data);
-        refreshGlobalSubscription(parseInt(workspaceId));
-        toast.success('Abonnement mis à jour');
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Erreur');
-      }
-    } catch (err) {
-      toast.error('Erreur de mise à jour');
-    } finally {
-      setSavingSubscription(false);
-    }
-  };
-
-  const togglePack = (packValue: string) => {
-    if (!subscription) return;
-    const currentPacks = subscription.enabled_packs || [];
-    const newPacks = currentPacks.includes(packValue)
-      ? currentPacks.filter(p => p !== packValue)
-      : [...currentPacks, packValue];
-    updateSubscription({ enabled_packs: newPacks } as any);
-  };
-
-  const toggleAddon = (addonValue: string) => {
-    if (!subscription) return;
-    const currentAddons = subscription.addons || [];
-    const newAddons = currentAddons.includes(addonValue)
-      ? currentAddons.filter(a => a !== addonValue)
-      : [...currentAddons, addonValue];
-    updateSubscription({ addons: newAddons } as any);
-  };
-
-  const changePlan = (planValue: string) => {
-    updateSubscription({ plan: planValue } as any);
-  };
-
   const fetchInvites = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}/invites`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}/invites`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -391,7 +249,7 @@ function WorkspaceDetailContent() {
     setAdding(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}/invites`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}/invites`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -420,7 +278,7 @@ function WorkspaceDetailContent() {
   const removeInvite = async (inviteId: number) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}/invites/${inviteId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}/invites/${inviteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -441,7 +299,7 @@ function WorkspaceDetailContent() {
   const fetchMembers = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -471,7 +329,7 @@ function WorkspaceDetailContent() {
       if (memberAuthProvider === 'credentials') {
         payload.password = memberPassword;
       }
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}/members`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}/members`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -499,7 +357,7 @@ function WorkspaceDetailContent() {
   const updateMemberRole = async (memberId: number, newRole: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/workspaces/${workspaceId}/members/${memberId}`, {
+      await workspaceFetch(`/api/v1/workspaces/${workspaceId}/members/${memberId}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -514,7 +372,7 @@ function WorkspaceDetailContent() {
     if (!confirm('Retirer ce membre ?')) return;
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/workspaces/${workspaceId}/members/${memberId}`, {
+      await workspaceFetch(`/api/v1/workspaces/${workspaceId}/members/${memberId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -540,7 +398,7 @@ function WorkspaceDetailContent() {
     setResetPwError(null);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}/members/${resetTarget.id}/reset-password`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}/members/${resetTarget.id}/reset-password`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -571,7 +429,7 @@ function WorkspaceDetailContent() {
     setDeleting(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -643,170 +501,10 @@ function WorkspaceDetailContent() {
         </Button>
       </div>
 
-      {/* Subscription Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-yellow-500" />
-            Abonnement & Options
-            {savingSubscription && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
-          </CardTitle>
-          <CardDescription>
-            Gérez le plan, les packs et les add-ons de ce workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Plan Selection */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Plan</Label>
-            <div className="flex gap-2">
-              {PLANS.map((plan) => {
-                const Icon = plan.icon;
-                const isActive = currentPlan === plan.value;
-                return (
-                  <button
-                    key={plan.value}
-                    onClick={() => changePlanLocal(plan.value)}
-                    disabled={savingSubscription}
-                    className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                      isActive 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                        : 'border-gray-200 hover:border-gray-300 dark:border-gray-700'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                    <span className={isActive ? 'font-semibold text-blue-700' : 'text-gray-600 dark:text-gray-300'}>
-                      {plan.label}
-                    </span>
-                    {isActive && <Check className="h-4 w-4 text-blue-600" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Packs */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Packs activés (selon le plan)</Label>
-            <div className="grid gap-3">
-              {PACKS.map((pack) => {
-                const isEnabled = subscription?.enabled_packs?.includes(pack.value);
-                const currentPlan = PLANS.find(p => p.value === subscription?.plan);
-                const includedInPlan = currentPlan?.packs?.includes(pack.value) || false;
-                return (
-                  <div
-                    key={pack.value}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      isEnabled ? 'bg-green-50 dark:bg-green-950 border border-green-200' : 'bg-gray-50 dark:bg-gray-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Package className={`h-5 w-5 ${isEnabled ? 'text-green-600' : 'text-gray-400'}`} />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{pack.label}</p>
-                          {includedInPlan && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
-                              Inclus dans {currentPlan?.label}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">{pack.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isEnabled ? (
-                        <Check className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <span className="text-sm text-gray-400">Non inclus</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Add-ons */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Add-ons</Label>
-            <div className="grid gap-3">
-              {ADDONS.map((addon) => {
-                const isEnabled = currentAddons.includes(addon.value);
-                const includedInPremium = currentPlan === 'premium';
-                return (
-                  <div
-                    key={addon.value}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      isEnabled ? 'bg-yellow-50 dark:bg-yellow-950 border border-yellow-200' : 'bg-gray-50 dark:bg-gray-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Zap className={`h-5 w-5 ${isEnabled ? 'text-yellow-600' : 'text-gray-400'}`} />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{addon.label}</p>
-                          {includedInPremium && (
-                            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-600 border-orange-200">
-                              Inclus dans Premium
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">{addon.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={isEnabled}
-                        onCheckedChange={() => toggleAddonLocal(addon.value)}
-                        disabled={savingSubscription}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Seats info */}
-          {subscription && (
-            <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <Users className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="font-medium text-blue-900 dark:text-blue-100">
-                  {subscription.current_seats} / {subscription.max_seats} sièges utilisés
-                </p>
-                <p className="text-sm text-blue-600">
-                  {subscription.max_seats - subscription.current_seats} sièges disponibles
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Save Button */}
-          {hasChanges() && (
-            <div className="flex justify-end pt-4 border-t">
-              <Button 
-                onClick={saveSubscriptionChanges}
-                disabled={savingSubscription}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {savingSubscription ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer les modifications
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Card><CardHeader><CardTitle>Abonnement</CardTitle></CardHeader><CardContent>
+        <p>{subscription?.plan_display_name || 'Consultez les demandes d’abonnement pour ce workspace.'}</p>
+        <a href="/admin/subscription-requests" className="underline">Examiner les demandes et autorisations d’activation</a>
+      </CardContent></Card>
 
       {/* Membres & Accès */}
       <Card>

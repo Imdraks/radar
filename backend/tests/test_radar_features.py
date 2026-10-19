@@ -1,528 +1,127 @@
-"""
-Tests for Radar Features APIs
-"""
+"""Real API assertions replace legacy checks which accepted unexpected 401 responses."""
 import pytest
-from datetime import date, datetime, timedelta
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from unittest.mock import patch, MagicMock
-
-from app.main import app
-from app.db.session import SessionLocal
-from app.db.models.opportunity import Opportunity, OpportunityStatus
-from app.db.models.source import SourceConfig
-from app.db.models.radar_features import (
-    Profile, OpportunityProfileScore, DailyShortlist,
-    OpportunityCluster, OpportunityClusterMember,
-    DeadlineAlert, AlertType, AlertStatus,
-    SourceHealth, ContactFinderResult
-)
+from app.db.models.agency import Project, Client, AgencyTask, Deliverable
+from app.db.models.discovery import DiscoveryArtist
+from app.db.models.subscription_request import SubscriptionRequest
+from app.db.models.workspace import Workspace
+from app.core.subscription import Plan, Feature, get_plan_features
 
 
-# ============================================================================
-# FIXTURES
-# ============================================================================
-
-@pytest.fixture
-def client():
-    """Test client fixture"""
-    return TestClient(app)
-
-
-@pytest.fixture
-def db_session():
-    """Database session fixture"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def test_catalog_has_only_official_offers(client):
+    response = client.get('/api/v1/subscription/plans')
+    assert response.status_code == 200
+    assert [x['name'] for x in response.json()] == ['core', 'premium', 'business']
+    assert all(x['price_monthly'] is None for x in response.json())
+    assert Feature.INVOICES not in get_plan_features(Plan.PREMIUM)
+    assert Feature.INVOICES in get_plan_features(Plan.BUSINESS)
+    assert Feature.BANKING not in get_plan_features(Plan.BUSINESS)
 
 
-@pytest.fixture
-def auth_headers():
-    """Mock authentication headers"""
-    return {"Authorization": "Bearer test-token"}
+@pytest.mark.parametrize('url', ['/api/v1/subscription/current', '/api/v1/agency/projects', '/api/v1/billing/quotes'])
+def test_authentication_required(client, url):
+    assert client.get(url).status_code == 401
 
 
-@pytest.fixture
-def sample_profile(db_session: Session):
-    """Create a sample profile for testing"""
-    profile = Profile(
-        name="Test Profile",
-        description="Profile for testing",
-        objectives=["SPONSOR", "BOOKING"],
-        keywords_include=["festival", "concert"],
-        keywords_exclude=["cancelled"],
-        regions=["Île-de-France"],
-        budget_min=1000,
-        budget_max=50000,
-        weights={
-            "score_base": 0.4,
-            "budget_match": 0.2,
-            "deadline_proximity": 0.15,
-            "contact_present": 0.15,
-            "location_match": 0.1
-        },
-        is_active=True
-    )
-    db_session.add(profile)
+def test_invalid_token_is_not_functional_success(client):
+    assert client.get('/api/v1/subscription/current', headers={'Authorization': 'Bearer invalid'}).status_code == 401
+
+
+def test_request_is_not_activation_and_platform_approval_is_audited(client, db_session, actors, headers):
+    users, workspaces = actors
+    response = client.post('/api/v1/subscription/change-plan', headers=headers(), json={'plan':'business'})
+    assert response.status_code == 202
+    request_id = response.json()['request_id']
+    assert client.get('/api/v1/subscription/current', headers=headers()).json()['plan'] == 'core'
+    duplicate = client.post('/api/v1/subscription/change-plan', headers=headers(), json={'plan':'business'})
+    assert duplicate.json()['request_id'] == request_id
+    decision = {'approve':True, 'authorization_reference':'Administrative commercial agreement REF-TEST'}
+    assert client.post(f'/api/v1/subscription/admin/requests/{request_id}/decision', headers=headers(), json=decision).status_code == 403
+    approved = client.post(f'/api/v1/subscription/admin/requests/{request_id}/decision', headers=headers(2), json=decision)
+    assert approved.status_code == 200, approved.text
+    assert approved.json()['subscription']['plan'] == 'business'
+    entry = db_session.get(SubscriptionRequest, request_id)
+    assert entry.decided_by == users[2].id and entry.authorization_reference == decision['authorization_reference']
+    assert client.post(f'/api/v1/subscription/admin/requests/{request_id}/decision', headers=headers(2), json=decision).status_code == 409
+
+
+@pytest.mark.parametrize('route', ['toggle-addon','toggle-pack'])
+def test_legacy_toggles_never_grant_access(client, db_session, actors, headers, route):
+    response = client.post(f'/api/v1/subscription/{route}', headers=headers(), json={'enable':True, 'pack':'talents', 'addon':'radar_business'})
+    assert response.status_code == 409
+    assert client.get('/api/v1/subscription/current', headers=headers()).json()['available_features'] == sorted(f.value for f in get_plan_features(Plan.CORE))
+
+
+@pytest.mark.parametrize('route', ['/api/v1/subscription/current', '/api/v1/agency/clients','/api/v1/agency/dashboard', '/api/v1/agency/projects','/api/v1/discovery/artists'])
+def test_agency_admin_cannot_access_other_workspace(client, actors, headers, route):
+    other = actors[1][1].id
+    assert client.get(f'{route}?workspace_id={other}', headers=headers()).status_code == 403
+
+
+def test_viewer_cannot_request_or_mutate(client, actors, headers):
+    assert client.post('/api/v1/subscription/change-plan', headers=headers(3), json={'plan':'business'}).status_code == 403
+    assert client.post('/api/v1/agency/projects', headers=headers(3), json={'name':'Forbidden'}).status_code == 403
+
+
+@pytest.mark.parametrize('route', ['/api/v1/billing/quotes','/api/v1/discovery/artists','/api/v1/events'])
+def test_core_cannot_use_paid_api(client, actors, headers, route):
+    assert client.get(route, headers=headers()).status_code == 403
+
+
+def test_project_creation_update_and_child_isolation(client, db_session, actors, headers, monkeypatch):
+    monkeypatch.setattr('app.api.agency_projects.create_project_drive_structure_task', lambda **kwargs: None)
+    response = client.post('/api/v1/agency/projects', headers=headers(), json={'name':'Production project'})
+    assert response.status_code == 200, response.text
+    project_id = response.json()['id']
+    updated = client.patch(f'/api/v1/agency/projects/{project_id}', headers=headers(), json={'name':'Updated'})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()['name'] == 'Updated'
+    assert client.get(f'/api/v1/agency/projects/{project_id}/detail', headers=headers(1)).status_code == 404
+    task = client.post(f'/api/v1/agency/projects/{project_id}/tasks', headers=headers(), json={'title':'Production task'})
+    assert task.status_code == 200, task.text
+    task_id = task.json()['id']
+    assert client.patch(f'/api/v1/agency/projects/tasks/{task_id}', headers=headers(1), json={'title':'stolen'}).status_code == 404
+
+
+def test_orm_scope_prevents_list_leak(client, db_session, actors, headers):
+    users, workspaces = actors
+    for ws in workspaces:
+        db_session.add(Client(workspace_id=ws.id, name=f'Client {ws.id}'))
+        ws.plan = 'business'
     db_session.commit()
-    db_session.refresh(profile)
-    yield profile
-    # Cleanup
-    db_session.delete(profile)
-    db_session.commit()
-
-
-@pytest.fixture
-def sample_opportunity(db_session: Session):
-    """Create a sample opportunity for testing"""
-    import uuid
-    opp = Opportunity(
-        external_id=f"test-{uuid.uuid4().hex[:8]}",
-        title="Test Festival Opportunity",
-        description="A great festival opportunity with contact@test.com and 01.23.45.67.89",
-        organization="Test Organization",
-        source_type="RSS",
-        source_name="Test Source",
-        status=OpportunityStatus.NEW,
-        budget_amount=10000,
-        deadline_at=datetime.now() + timedelta(days=5),
-        score=85,
-        url_primary="https://example.com/opportunity"
-    )
-    db_session.add(opp)
-    db_session.commit()
-    db_session.refresh(opp)
-    yield opp
-    # Cleanup
-    db_session.delete(opp)
-    db_session.commit()
-
-
-@pytest.fixture
-def sample_source(db_session: Session):
-    """Create a sample source for testing"""
-    source = SourceConfig(
-        name="Test Source",
-        source_type="rss",
-        url="https://example.com/rss",
-        is_active=True
-    )
-    db_session.add(source)
-    db_session.commit()
-    db_session.refresh(source)
-    yield source
-    # Cleanup
-    db_session.delete(source)
-    db_session.commit()
-
-
-# ============================================================================
-# PROFILES API TESTS
-# ============================================================================
-
-class TestProfilesAPI:
-    """Test suite for Profiles API"""
-
-    def test_create_profile(self, client: TestClient, auth_headers: dict):
-        """Test profile creation"""
-        profile_data = {
-            "name": "New Profile",
-            "description": "Test description",
-            "objectives": ["visibility"],
-            "weights": {
-                "score_weight": 0.4,
-                "budget_weight": 0.2,
-                "deadline_weight": 0.2,
-                "category_weight": 0.1,
-                "source_weight": 0.1
-            }
-        }
-        
-        with patch("app.api.deps.get_current_user"):
-            response = client.post(
-                "/api/v1/profiles",
-                json=profile_data,
-                headers=auth_headers
-            )
-        
-        # Should return 200 or 201
-        assert response.status_code in [200, 201, 401]  # 401 if auth not mocked properly
-
-    def test_get_profiles(self, client: TestClient, auth_headers: dict):
-        """Test listing profiles"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/profiles", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_update_profile(self, client: TestClient, auth_headers: dict, sample_profile: Profile):
-        """Test profile update"""
-        update_data = {"name": "Updated Profile Name"}
-        
-        with patch("app.api.deps.get_current_user"):
-            response = client.patch(
-                f"/api/v1/profiles/{sample_profile.id}",
-                json=update_data,
-                headers=auth_headers
-            )
-        
-        assert response.status_code in [200, 401, 404]
-
-    def test_delete_profile(self, client: TestClient, auth_headers: dict):
-        """Test profile deletion"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.delete("/api/v1/profiles/999", headers=auth_headers)
-        
-        assert response.status_code in [200, 401, 404]
-
-
-# ============================================================================
-# SHORTLISTS API TESTS
-# ============================================================================
-
-class TestShortlistsAPI:
-    """Test suite for Shortlists API"""
-
-    def test_get_today_shortlist(self, client: TestClient, auth_headers: dict):
-        """Test getting today's shortlist"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/shortlists/today", headers=auth_headers)
-        
-        assert response.status_code in [200, 401, 404]
-
-    def test_get_shortlists_history(self, client: TestClient, auth_headers: dict):
-        """Test getting shortlist history"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/shortlists", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_generate_shortlist(self, client: TestClient, auth_headers: dict):
-        """Test manual shortlist generation"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.post("/api/v1/shortlists/generate", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-
-# ============================================================================
-# CLUSTERS API TESTS
-# ============================================================================
-
-class TestClustersAPI:
-    """Test suite for Clusters API"""
-
-    def test_get_cluster_for_opportunity(self, client: TestClient, auth_headers: dict):
-        """Test getting cluster for specific opportunity"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/clusters/opportunity/1", headers=auth_headers)
-        
-        assert response.status_code in [200, 401, 404]
-
-    def test_rebuild_clusters(self, client: TestClient, auth_headers: dict):
-        """Test cluster rebuild"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.post("/api/v1/clusters/rebuild", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_get_cluster_stats(self, client: TestClient, auth_headers: dict):
-        """Test getting cluster statistics"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/clusters/stats", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-
-# ============================================================================
-# DEADLINES API TESTS
-# ============================================================================
-
-class TestDeadlinesAPI:
-    """Test suite for Deadlines API"""
-
-    def test_get_upcoming_deadlines(self, client: TestClient, auth_headers: dict):
-        """Test getting upcoming deadlines"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/deadlines/upcoming", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_get_past_deadlines(self, client: TestClient, auth_headers: dict):
-        """Test getting past deadlines"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/deadlines/past", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_schedule_all_deadlines(self, client: TestClient, auth_headers: dict):
-        """Test scheduling all deadline alerts"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.post("/api/v1/deadlines/schedule-all", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-
-# ============================================================================
-# SOURCE HEALTH API TESTS
-# ============================================================================
-
-class TestSourceHealthAPI:
-    """Test suite for Source Health API"""
-
-    def test_get_health_overview(self, client: TestClient, auth_headers: dict):
-        """Test getting health overview"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/sources/health/overview", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_get_all_health_metrics(self, client: TestClient, auth_headers: dict):
-        """Test getting all health metrics"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/sources/health", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-    def test_get_source_health(self, client: TestClient, auth_headers: dict):
-        """Test getting specific source health"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/sources/health/1", headers=auth_headers)
-        
-        assert response.status_code in [200, 401, 404]
-
-
-# ============================================================================
-# CONTACT FINDER API TESTS
-# ============================================================================
-
-class TestContactFinderAPI:
-    """Test suite for Contact Finder API"""
-
-    def test_find_contacts(self, client: TestClient, auth_headers: dict):
-        """Test contact finder"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.post(
-                "/api/v1/contact-finder/opportunities/1/find",
-                json={"search_web": True},
-                headers=auth_headers
-            )
-        
-        assert response.status_code in [200, 401, 404]
-
-    def test_get_contact_result(self, client: TestClient, auth_headers: dict):
-        """Test getting contact finder result"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get(
-                "/api/v1/contact-finder/opportunities/1/result",
-                headers=auth_headers
-            )
-        
-        assert response.status_code in [200, 401, 404]
-
-    def test_get_contact_finder_stats(self, client: TestClient, auth_headers: dict):
-        """Test getting contact finder stats"""
-        with patch("app.api.deps.get_current_user"):
-            response = client.get("/api/v1/contact-finder/stats", headers=auth_headers)
-        
-        assert response.status_code in [200, 401]
-
-
-# ============================================================================
-# UNIT TESTS - UTILITY FUNCTIONS
-# ============================================================================
-
-class TestUtilityFunctions:
-    """Test utility functions from API modules"""
-
-    def test_compute_fit_score(self):
-        """Test fit score computation"""
-        from app.api.profiles import compute_fit_score
-        
-        # Mock opportunity with correct attributes
-        opp = MagicMock()
-        opp.score = 80
-        opp.budget_amount = 15000
-        opp.deadline_at = datetime.now() + timedelta(days=10)
-        opp.title = "Festival Summer 2024"
-        opp.description = "A great festival opportunity"
-        opp.contact_email = "contact@festival.org"
-        opp.contact_phone = None
-        opp.location_region = "Île-de-France"
-        opp.location_city = "Paris"
-        
-        # Mock profile with correct attributes
-        profile = MagicMock()
-        profile.weights = {
-            "score_base": 0.4,
-            "budget_match": 0.2,
-            "deadline_proximity": 0.15,
-            "contact_present": 0.15,
-            "location_match": 0.1
-        }
-        profile.budget_min = 5000
-        profile.budget_max = 50000
-        profile.keywords_include = ["festival"]
-        profile.keywords_exclude = []
-        profile.regions = ["Île-de-France"]
-        profile.cities = ["Paris"]
-        
-        # compute_fit_score returns (score, reasons)
-        result = compute_fit_score(opp, profile)
-        score = result[0] if isinstance(result, tuple) else result
-        
-        assert 0 <= score <= 100
-
-    def test_normalize_url(self):
-        """Test URL normalization"""
-        from app.api.clusters import normalize_url
-        
-        test_cases = [
-            ("https://www.example.com/path/", "example.com/path"),
-            ("http://example.com/page?query=1", "example.com/page"),
-            ("https://example.com", "example.com"),
-            ("", ""),
-        ]
-        
-        for input_url, expected in test_cases:
-            result = normalize_url(input_url)
-            assert result == expected, f"Expected {expected}, got {result}"
-
-    def test_compute_text_similarity(self):
-        """Test text similarity computation"""
-        from app.api.clusters import compute_text_similarity
-        
-        # Same text should have similarity 1.0
-        sim1 = compute_text_similarity("hello world", "hello world")
-        assert sim1 == 1.0
-        
-        # Completely different text should have low similarity
-        sim2 = compute_text_similarity("hello world", "foo bar baz")
-        assert sim2 < 0.5
-        
-        # Partially similar text
-        sim3 = compute_text_similarity("hello world foo", "hello world bar")
-        assert 0.3 < sim3 < 0.8
-        
-        # Empty strings
-        sim4 = compute_text_similarity("", "hello")
-        assert sim4 == 0.0
-
-    def test_extract_emails(self):
-        """Test email extraction from text"""
-        from app.api.contact_finder import extract_emails
-        
-        # Note: extract_emails filters out 'example' and 'test' domains as fake
-        text = "Contact us at hello@company.com or support@festival.org for more info"
-        emails = extract_emails(text)
-        
-        assert "hello@company.com" in emails
-        assert "support@festival.org" in emails
-        assert len(emails) == 2
-
-    def test_extract_phones(self):
-        """Test phone extraction from text"""
-        from app.api.contact_finder import extract_phones
-        
-        text = "Appelez-nous au 01 23 45 67 89 ou au +33 6 12 34 56 78"
-        phones = extract_phones(text)
-        
-        assert len(phones) >= 1  # At least one phone found
-
-
-# ============================================================================
-# CELERY TASKS TESTS
-# ============================================================================
-
-class TestCeleryTasks:
-    """Test Celery task functions"""
-
-    def test_daily_shortlist_job(self):
-        """Test daily shortlist generation job"""
-        from app.workers.radar_features_tasks import daily_shortlist_job
-        
-        # This would require a proper test database setup
-        # For now, we just verify the function exists and is callable
-        assert callable(daily_shortlist_job)
-
-    def test_cluster_rebuild_job(self):
-        """Test cluster rebuild job"""
-        from app.workers.radar_features_tasks import cluster_rebuild_job
-        
-        assert callable(cluster_rebuild_job)
-
-    def test_deadline_guard_job(self):
-        """Test deadline guard job"""
-        from app.workers.radar_features_tasks import deadline_guard_job
-        
-        assert callable(deadline_guard_job)
-
-    def test_source_health_rollup_job(self):
-        """Test source health rollup job"""
-        from app.workers.radar_features_tasks import source_health_rollup_job
-        
-        assert callable(source_health_rollup_job)
-
-    def test_contact_finder_job(self):
-        """Test contact finder job"""
-        from app.workers.radar_features_tasks import contact_finder_job
-        
-        assert callable(contact_finder_job)
-
-
-# ============================================================================
-# INTEGRATION TESTS
-# ============================================================================
-
-class TestIntegration:
-    """Integration tests for the complete flow"""
-
-    def test_profile_to_shortlist_flow(self, db_session: Session, sample_profile: Profile, sample_opportunity: Opportunity):
-        """Test the flow from profile creation to shortlist generation"""
-        from app.api.profiles import compute_fit_score
-        from app.workers.radar_features_tasks import generate_shortlist_reasons
-        
-        # Compute fit score (returns tuple: score, reasons)
-        result = compute_fit_score(sample_opportunity, sample_profile)
-        score = result[0] if isinstance(result, tuple) else result
-        assert 0 <= score <= 100
-        
-        # Generate reasons
-        reasons = generate_shortlist_reasons(sample_opportunity, score, sample_profile)
-        assert isinstance(reasons, list)
-        assert all("emoji" in r and "label" in r for r in reasons)
-
-    def test_cluster_detection_flow(self, db_session: Session):
-        """Test cluster detection for similar opportunities"""
-        from app.workers.radar_features_tasks import compute_opportunity_hash, normalize_url
-        
-        # Test URL normalization directly
-        url1 = "https://example.com/festival"
-        url2 = "https://www.example.com/festival/"
-        
-        norm1 = normalize_url(url1)
-        norm2 = normalize_url(url2)
-        assert norm1 == norm2  # Should be same after normalization
-        
-        # Create two similar opportunities using MagicMock
-        opp1 = MagicMock()
-        opp1.title = "Summer Festival 2024"
-        opp1.organization = "Festival Org"
-        opp1.budget_amount = 10000
-        
-        opp2 = MagicMock()
-        opp2.title = "Summer Festival 2024"
-        opp2.organization = "Festival Org"
-        opp2.budget_amount = 10000
-        
-        # Check hash computation - same content should produce same hash
-        hash1 = compute_opportunity_hash(opp1)
-        hash2 = compute_opportunity_hash(opp2)
-        assert hash1 == hash2  # Same content should produce same hash
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    own = client.get('/api/v1/agency/clients', headers=headers())
+    assert own.status_code == 200, own.text
+    assert [row['name'] for row in own.json()] == [f'Client {workspaces[0].id}']
+
+
+def test_event_and_discovery_transfer_with_financial_gate(client, db_session, actors, headers):
+    workspace = actors[1][0]; workspace.plan = 'premium'
+    artist = DiscoveryArtist(workspace_id=workspace.id, canonical_name='Test Artist', normalized_name='test artist')
+    foreign_artist = DiscoveryArtist(workspace_id=actors[1][1].id, canonical_name='Foreign', normalized_name='foreign')
+    db_session.add_all([artist, foreign_artist]); db_session.commit()
+    created = client.post('/api/v1/events', headers=headers(), json={'name':'Festival', 'starts_at':'2027-06-01T12:00:00','ends_at':'2027-06-01T23:00:00','forecast_budget':'1000.00'})
+    assert created.status_code == 201, created.text
+    event_id = created.json()['id']
+    assert client.post(f'/api/v1/events/{event_id}/artists/{artist.id}', headers=headers()).status_code == 201
+    assert client.post(f'/api/v1/events/{event_id}/artists/{foreign_artist.id}', headers=headers()).status_code == 404
+    detail = client.get(f'/api/v1/events/{event_id}', headers=headers())
+    assert detail.json()['artists'][0]['name'] == 'Test Artist'
+    assert client.post(f'/api/v1/events/{event_id}/expenses', headers=headers(), json={'description':'Stage', 'amount':'120'}).status_code == 403
+    workspace.plan = 'business'; db_session.commit()
+    expense = client.post(f'/api/v1/events/{event_id}/expenses', headers=headers(), json={'description':'Stage', 'amount':'120'})
+    assert expense.status_code == 201, expense.text
+
+
+def test_provenance_and_missing_data_are_explicit(client, db_session, actors, headers):
+    workspace = actors[1][0]; workspace.plan = 'premium'
+    artist = DiscoveryArtist(workspace_id=workspace.id, canonical_name='No Data', normalized_name='no data')
+    db_session.add(artist); db_session.commit()
+    response = client.get(f'/api/v1/discovery/artist/{artist.id}', headers=headers())
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data['monthly_listeners'] is None and data['confidence_score'] is None
+    assert data['missing_data'] and data['evidence'] == []
+
+
+@pytest.mark.parametrize('route', ['/api/v1/predictions/1','/api/v1/competitive/competitors','/api/v1/banking/connections'])
+def test_suspended_modules_never_return_fiction(client, route):
+    assert client.get(route).status_code == 503

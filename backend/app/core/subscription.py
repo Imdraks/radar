@@ -1,13 +1,4 @@
-"""
-Subscription Plans & Packs Configuration
-=========================================
-
-This module defines the complete subscription system for Radar:
-- Plans: MINI, STANDARD, PREMIUM
-- Packs: Core, Clients, Leads, Talents, Intelligence
-- Add-ons: Radar Business
-- Feature mapping for navigation gating
-"""
+"""Official product catalog and entitlements. Legacy packs are read-only compatibility identifiers."""
 from enum import Enum
 from typing import Dict, List, Set, Optional
 from dataclasses import dataclass, field
@@ -18,9 +9,9 @@ from dataclasses import dataclass, field
 # ============================================================================
 
 class Plan(str, Enum):
-    MINI = "mini"
-    STANDARD = "standard"
+    CORE = "core"
     PREMIUM = "premium"
+    BUSINESS = "business"
 
 
 # ============================================================================
@@ -68,6 +59,8 @@ class Feature(str, Enum):
     DISCOVERY = "discovery"
     COMPARISON = "comparison"
     MAP = "map"
+    EVENTS = "events"
+    SPOTIFY_SEARCH = "spotify_search"
     
     # Intelligence
     ANALYTICS = "analytics"
@@ -148,96 +141,29 @@ class PlanConfig:
     name: str
     display_name: str
     description: str
-    price_monthly: int  # in euros
+    price_monthly: Optional[int]  # Unpublished until commercial validation
     included_packs: List[Pack]
     included_addons: List[Addon]
     max_seats: int
     features_bullets: List[str]
 
 
+# Prices are deliberately unpublished until commercial validation.
 PLAN_CONFIGS: Dict[Plan, PlanConfig] = {
-    Plan.MINI: PlanConfig(
-        name="mini",
-        display_name="Mini",
-        description="L'essentiel pour piloter ton agence.",
-        price_monthly=29,
-        included_packs=[Pack.CORE, Pack.CLIENTS],
-        included_addons=[],
-        max_seats=3,
-        features_bullets=[
-            "Cockpit + Pipeline + Projets + Production",
-            "Gestion clients et dossiers",
-            "Daily Picks pour ne rien oublier",
-        ],
-    ),
-    Plan.STANDARD: PlanConfig(
-        name="standard",
-        display_name="Standard",
-        description="Le plan que 80% des agences choisissent.",
-        price_monthly=79,
-        included_packs=[Pack.CORE, Pack.CLIENTS, Pack.LEADS, Pack.TALENTS],
-        included_addons=[],
-        max_seats=10,
-        features_bullets=[
-            "Tout Mini inclus",
-            "Leads + Kanban + Scoring",
-            "Artistes, Profils, Découverte, Comparaison",
-        ],
-    ),
-    Plan.PREMIUM: PlanConfig(
-        name="premium",
-        display_name="Premium",
-        description="Radar complet. Zéro limite.",
-        price_monthly=149,
-        included_packs=[Pack.CORE, Pack.CLIENTS, Pack.LEADS, Pack.TALENTS, Pack.INTELLIGENCE],
-        included_addons=[Addon.RADAR_BUSINESS],
-        max_seats=999,  # Unlimited
-        features_bullets=[
-            "Tout Standard inclus",
-            "Analytics, Veille Concur., Prédictions IA",
-            "Radar Business inclus (devis + factures)",
-        ],
-    ),
+    Plan.CORE: PlanConfig("core", "Radar Core", "Organisation et production", None,
+                          [Pack.CORE], [], 3,
+                          ["Projets et tâches", "Planning et calendrier", "Fichiers et livrables"]),
+    Plan.PREMIUM: PlanConfig("premium", "Radar Premium", "Production, événements et intelligence artistique", None,
+                             [Pack.CORE, Pack.TALENTS, Pack.INTELLIGENCE], [], 10,
+                             ["Toutes les fonctions Core", "Discovery et sélections artistiques", "Gestion événementielle"]),
+    Plan.BUSINESS: PlanConfig("business", "Radar Business", "Gestion commerciale avancée", None,
+                              list(Pack), [], 999,
+                              ["Toutes les fonctions Premium", "Clients et prospects", "Devis, factures et suivi des paiements"]),
 }
-
-
-# ============================================================================
-# ADDON CONFIGURATION
-# ============================================================================
-
-@dataclass
-class AddonConfig:
-    """Configuration for an add-on"""
-    name: str
-    display_name: str
-    description: str
-    price_monthly: int
-    features: List[str]
-    included_in_plans: List[Plan]  # Plans where it's included for free
-
-
-ADDON_CONFIGS: Dict[Addon, AddonConfig] = {
-    Addon.RADAR_BUSINESS: AddonConfig(
-        name="radar_business",
-        display_name="Radar Business",
-        description="Devis + Factures conformes 2026. Intégré à tes clients et projets.",
-        price_monthly=49,
-        features=[
-            "Création et envoi de devis",
-            "Facturation conforme 2026",
-            "Historique commercial enrichi",
-        ],
-        included_in_plans=[Plan.PREMIUM],
-    ),
-}
-
-
-# ============================================================================
-# SEAT PRICING
-# ============================================================================
-
-EXTRA_SEAT_PRICE = 15  # €/month per additional seat
-
+# Keep legacy identifiers readable; they are no longer purchasable offers.
+ADDON_CONFIGS = {}  # defined below for backwards imports
+EXTRA_SEAT_PRICE = None
+DISABLED_FEATURES = {Feature.BANKING, Feature.COMPETITOR_WATCH, Feature.AI_PREDICTIONS}
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -253,53 +179,35 @@ def get_plan_addons(plan: Plan) -> List[Addon]:
     return PLAN_CONFIGS[plan].included_addons
 
 
-def get_plan_features(plan: Plan, addons: List[Addon] = None) -> Set[Feature]:
-    """Get all features available for a plan + addons"""
+def resolve_plan(value: str, enabled_packs=None, addons=None) -> Plan:
+    """Read legacy records without dropping their contracted business access."""
+    if value in {"mini", "standard"}:
+        if set(enabled_packs or []) & {"clients", "leads"} or "radar_business" in (addons or []):
+            return Plan.BUSINESS
+        return Plan.CORE if value == "mini" else Plan.PREMIUM
+    try:
+        return Plan(value)
+    except (ValueError, TypeError):
+        return Plan.CORE  # Unknown plans never grant paid access.
+
+
+def get_plan_features(plan: Plan, addons=None) -> Set[Feature]:
+    """Authoritative entitlements. Packs/addons cannot bypass a plan."""
     features = set()
-    
-    # Features from included packs
     for pack in PLAN_CONFIGS[plan].included_packs:
         features.update(PACK_FEATURES.get(pack, set()))
-    
-    # Features from included addons (free in plan)
-    for addon in PLAN_CONFIGS[plan].included_addons:
-        features.update(ADDON_FEATURES.get(addon, set()))
-    
-    # Features from purchased addons
-    if addons:
-        for addon in addons:
-            if isinstance(addon, str):
-                addon = Addon(addon)
-            features.update(ADDON_FEATURES.get(addon, set()))
-    
-    return features
+    if plan in {Plan.PREMIUM, Plan.BUSINESS}:
+        features.update({Feature.EVENTS, Feature.SPOTIFY_SEARCH})
+    if plan == Plan.BUSINESS:
+        features.update(ADDON_FEATURES[Addon.RADAR_BUSINESS])
+    return features - DISABLED_FEATURES
 
 
-def get_workspace_features(enabled_packs: List[str], addons: List[str] = None) -> Set[Feature]:
-    """Get all features available based on workspace's enabled_packs and addons.
-    
-    This function uses the actual packs/addons stored in the workspace,
-    not the default plan configuration. This allows for custom pack configurations.
-    """
-    features = set()
-    
-    # Features from enabled packs
-    for pack_str in (enabled_packs or []):
-        try:
-            pack = Pack(pack_str)
-            features.update(PACK_FEATURES.get(pack, set()))
-        except ValueError:
-            pass  # Unknown pack, skip
-    
-    # Features from addons
-    for addon_str in (addons or []):
-        try:
-            addon = Addon(addon_str)
-            features.update(ADDON_FEATURES.get(addon, set()))
-        except ValueError:
-            pass  # Unknown addon, skip
-    
-    return features
+def effective_features(workspace) -> Set[Feature]:
+    from datetime import datetime
+    if workspace.plan_expires_at and workspace.plan_expires_at <= datetime.utcnow():
+        return get_plan_features(Plan.CORE)
+    return get_plan_features(resolve_plan(workspace.plan, workspace.enabled_packs, workspace.addons))
 
 
 def get_pack_from_feature(feature: Feature) -> Optional[Pack]:
@@ -334,25 +242,12 @@ def is_feature_available(
 
 
 def get_upgrade_message(feature: Feature, current_plan: Plan) -> str:
-    """Get upgrade message for a locked feature"""
-    pack = get_pack_from_feature(feature)
-    addon = get_addon_from_feature(feature)
-    
-    if addon:
-        addon_config = ADDON_CONFIGS[addon]
-        if current_plan in addon_config.included_in_plans:
-            return "Disponible avec votre plan"
-        return f"Disponible avec l'add-on {addon_config.display_name}"
-    
-    if pack:
-        # Find minimum plan that includes this pack
-        for plan in [Plan.MINI, Plan.STANDARD, Plan.PREMIUM]:
-            if pack in PLAN_CONFIGS[plan].included_packs:
-                if plan.value > current_plan.value:
-                    return f"Disponible avec le plan {PLAN_CONFIGS[plan].display_name}"
-                break
-    
-    return "Passez à un plan supérieur"
+    if feature in DISABLED_FEATURES:
+        return "Fonctionnalité suspendue en attente de validation"
+    for plan in Plan:
+        if feature in get_plan_features(plan):
+            return f"Disponible avec {PLAN_CONFIGS[plan].display_name}"
+    return "Contactez votre administrateur"
 
 
 # ============================================================================
@@ -416,35 +311,23 @@ class NavItem:
 
 
 NAV_SECTIONS = {
-    "main": [
-        NavItem("Aujourd'hui", "/today", "CalendarDays", Feature.COCKPIT),
-        NavItem("Cockpit", "/cockpit", "LayoutDashboard", Feature.COCKPIT),
-        NavItem("Inbox", "/inbox", "Inbox", Feature.COCKPIT),
-    ],
-    "business": [
-        NavItem("Pipeline", "/pipeline", "TrendingUp", Feature.PIPELINE),
-        NavItem("Clients", "/clients", "Users", Feature.CLIENTS),
-        NavItem("Leads", "/leads", "Target", Feature.LEADS),
-    ],
-    "production": [
-        NavItem("Projets", "/projects", "FolderKanban", Feature.PROJECTS),
-        NavItem("Production", "/production", "Clapperboard", Feature.PRODUCTION),
-        NavItem("Assets", "/assets", "Image", Feature.ASSETS),
-        NavItem("Calendrier", "/calendar", "Calendar", Feature.CALENDAR),
-    ],
-    "talents": [
-        NavItem("Artistes", "/artists", "Music", Feature.ARTISTS),
-        NavItem("Découverte", "/discovery", "Sparkles", Feature.DISCOVERY),
-        NavItem("Profils", "/profiles", "UserCircle", Feature.PROFILES),
-        NavItem("Comparaison", "/comparison", "GitCompare", Feature.COMPARISON),
-    ],
-    "intelligence": [
-        NavItem("Analytics", "/analytics", "BarChart3", Feature.ANALYTICS),
-        NavItem("Veille", "/competitor-watch", "Eye", Feature.COMPETITOR_WATCH),
-        NavItem("Prédictions", "/predictions", "Brain", Feature.AI_PREDICTIONS),
-    ],
-    "admin": [
-        NavItem("Sources", "/sources", "Database", Feature.SOURCES, admin_only=True),
-        NavItem("Source Health", "/source-health", "Activity", Feature.SOURCE_HEALTH, admin_only=True),
-    ],
+    "Accueil": [NavItem("Vue d'ensemble", "/today", "Home", Feature.COCKPIT),
+                NavItem("Activités et notifications", "/inbox", "Inbox", Feature.COCKPIT)],
+    "Organisation": [NavItem("Projets", "/projects", "FolderOpen", Feature.PROJECTS),
+                     NavItem("Tâches et production", "/production", "Clapperboard", Feature.PRODUCTION),
+                     NavItem("Calendrier", "/agency-calendar", "Calendar", Feature.CALENDAR),
+                     NavItem("Fichiers", "/assets", "Image", Feature.ASSETS)],
+    "Événementiel": [NavItem("Événements", "/events", "CalendarDays", Feature.EVENTS),
+                      NavItem("Discovery", "/discovery", "Search", Feature.DISCOVERY),
+                      NavItem("Sélections artistiques", "/comparison", "GitCompare", Feature.COMPARISON)],
+    "Business": [NavItem("Clients et prospects", "/clients", "Users", Feature.CLIENTS),
+                 NavItem("Pipeline commercial", "/pipeline", "TrendingUp", Feature.PIPELINE),
+                 NavItem("Devis", "/devis", "Receipt", Feature.QUOTES),
+                 NavItem("Factures et paiements", "/factures", "FileCheck", Feature.INVOICES)],
+    "Administration": [NavItem("Équipe et intégrations", "/workspace/settings", "Users", admin_only=True),
+                        NavItem("Abonnement", "/settings/subscription", "CreditCard"),
+                        NavItem("Paramètres", "/settings", "Settings")],
 }
+# The commercial pipeline belongs to Business; Core remains production focused.
+PACK_FEATURES[Pack.CORE].discard(Feature.PIPELINE)
+PACK_FEATURES[Pack.LEADS].add(Feature.PIPELINE)

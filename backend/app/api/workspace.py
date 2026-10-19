@@ -38,7 +38,7 @@ async def list_workspaces(
     Regular users see owned + member workspaces.
     """
     # Admins see all workspaces
-    if current_user.role == 'admin':
+    if current_user.is_superuser:
         all_workspaces = db.query(Workspace).all()
     else:
         # Get owned workspaces
@@ -155,7 +155,7 @@ async def get_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check access - admins can access all workspaces
-    if not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
+    if not current_user.is_superuser and not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get members
@@ -225,7 +225,7 @@ async def update_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check admin access
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Update fields
@@ -283,7 +283,7 @@ async def delete_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Allow owner or global admin to delete
-    if workspace.owner_user_id != current_user.id and current_user.role != 'admin':
+    if workspace.owner_user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Only owner or admin can delete workspace")
     
     # Use raw SQL to cascade-delete all related data safely
@@ -391,7 +391,7 @@ async def add_member(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check admin access
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Find user by email
@@ -437,6 +437,7 @@ async def add_member(
     if user.id == workspace.owner_user_id:
         raise HTTPException(status_code=400, detail="Cannot add owner as member")
     
+    ensure_seat_available(db, workspace_id, user.id)
     member = WorkspaceMember(
         workspace_id=workspace_id,
         user_id=user.id,
@@ -473,7 +474,7 @@ async def update_member(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     member = db.query(WorkspaceMember).filter(
@@ -514,7 +515,7 @@ async def remove_member(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     member = db.query(WorkspaceMember).filter(
@@ -603,7 +604,7 @@ async def setup_drive_structure(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -648,7 +649,7 @@ async def get_drive_status(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
+    if not current_user.is_superuser and not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
         raise HTTPException(status_code=403, detail="Access denied")
     
     status = {
@@ -677,9 +678,6 @@ async def get_drive_status(
 
 def _user_has_workspace_access(db: Session, user_id: int, workspace_id: int, user_role: str = None) -> bool:
     """Check if user has any access to workspace. Global admins have access to all."""
-    # Global admins have access to everything
-    if user_role == 'admin':
-        return True
     
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not workspace:
@@ -870,7 +868,7 @@ async def migrate_all_drive_structures(
     Safe to run multiple times (idempotent).
     """
     # Check admin access
-    if current_user.role != 'admin' and not current_user.is_superuser:
+    if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -898,7 +896,7 @@ async def migrate_all_projects_drive_structures(
     This queues background tasks to ensure Drive folders exist for all projects.
     """
     # Check admin access
-    if current_user.role != 'admin' and not current_user.is_superuser:
+    if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -971,6 +969,14 @@ async def ensure_workspace_drive_structure(
 # AUTO-ASSIGN WORKSPACE ON LOGIN
 # ============================================================================
 
+def ensure_seat_available(db, workspace_id, user_id):
+    workspace = db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    members = {row.user_id for row in db.query(WorkspaceMember).filter_by(workspace_id=workspace_id).all()}
+    members.add(workspace.owner_user_id)
+    if user_id not in members and len(members) >= workspace.max_seats:
+        raise HTTPException(status_code=409, detail="Limite de sièges atteinte ; contactez l’administration")
+
+
 def auto_assign_user_to_workspaces(db: Session, user: User) -> List[int]:
     """
     Check if user's email matches any workspace invites.
@@ -994,6 +1000,10 @@ def auto_assign_user_to_workspaces(db: Session, user: User) -> List[int]:
         ).first()
         
         if not existing_member:
+            try:
+                ensure_seat_available(db, invite.workspace_id, user.id)
+            except HTTPException:
+                continue  # Keep the invite pending; do not grant a seat or block login.
             # Add as member
             member = WorkspaceMember(
                 workspace_id=invite.workspace_id,

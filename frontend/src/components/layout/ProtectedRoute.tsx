@@ -37,16 +37,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   useEffect(() => {
     if (!mounted || isLoading || !isAuthenticated || !user) return;
     
-    const adminPages = ['/admin', '/workspaces', '/users', '/settings', '/sources', '/source-health', '/profiles', '/scoring', '/predictions'];
-    const isAdminPage = adminPages.some(p => pathname === p || pathname.startsWith(p + '/'));
-    const isAdmin = user.role === 'admin';
-    
-    // Admin trying to access non-admin pages → redirect to admin dashboard
-    if (isAdmin && !isAdminPage) {
-      router.push("/admin");
-      return;
-    }
-    
+    const isAdmin = user.is_superuser === true;
+
     // Non-admin trying to access admin-only pages → redirect to today
     const adminOnlyPages = ['/admin', '/workspaces', '/users'];
     const isAdminOnlyPage = adminOnlyPages.some(p => pathname === p || pathname.startsWith(p + '/'));

@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -126,7 +127,7 @@ export default function InvoicesPage() {
       if (search) params.append('search', search);
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       
-      const res = await fetch(`/api/v1/billing/invoices?${params}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -143,7 +144,7 @@ export default function InvoicesPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -172,7 +173,7 @@ export default function InvoicesPage() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + newInvoice.due_days);
       
-      const res = await fetch('/api/v1/billing/invoices', {
+      const res = await workspaceFetch('/api/v1/billing/invoices', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +207,7 @@ export default function InvoicesPage() {
   const updateStatus = async (invoiceId: number, status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,7 +233,7 @@ export default function InvoicesPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${selectedInvoice.id}/payment`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${selectedInvoice.id}/payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -264,7 +265,7 @@ export default function InvoicesPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

@@ -3,7 +3,8 @@ Security utilities - Password hashing, JWT tokens
 """
 from datetime import datetime, timedelta
 from typing import Optional, Union
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 from passlib.context import CryptContext
 from .config import settings
 
@@ -70,7 +71,8 @@ def decode_token(token: str) -> Optional[dict]:
         payload = jwt.decode(
             token,
             settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm]
+            algorithms=[settings.jwt_algorithm],
+            options={"require": ["exp", "sub", "type"]}
         )
         return payload
     except JWTError:

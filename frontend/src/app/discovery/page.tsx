@@ -189,7 +189,7 @@ function EmptyFeed({ feedType }: { feedType: string }) {
           ? "Analysez des artistes pour construire votre feed personnalisé de recommandations basées sur vos recherches."
           : "Le feed trending se remplit automatiquement avec les artistes en forte croissance de votre historique."}
       </p>
-      <Link href="/artist">
+      <Link href="#artist-search">
         <Button className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-md">
           <Search className="h-4 w-4 mr-2" />
           Analyser un artiste
@@ -374,7 +374,7 @@ function DiscoveryV3Page() {
   const handleAddToComparison = (artistId: number) => {
     window.open(`/comparison?add=${artistId}`, "_blank");
     toast.success("Ouverture de la comparaison", {
-      description: "Artiste ajouté à la comparaison",
+      description: "Choisissez une sélection pour enregistrer cet artiste",
     });
   };
 
@@ -672,7 +672,7 @@ function DiscoveryV3Page() {
                 Accès rapide
               </h4>
               <div className="space-y-2">
-                <Link href="/artist" className="block">
+                <Link href="#artist-search" className="block">
                   <Button variant="outline" size="sm" className="w-full justify-start gap-2">
                     <Search className="h-4 w-4" />
                     Historique des analyses

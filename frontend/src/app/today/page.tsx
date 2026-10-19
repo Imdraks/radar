@@ -1,5 +1,5 @@
-﻿'use client';
-
+"use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
@@ -86,8 +86,8 @@ interface DashboardData {
   business_count: number;
   active_projects: number;
   pending_validations: number;
-  hot_leads: number;
-  monthly_revenue: number;
+  hot_leads: number | null;
+  monthly_revenue: number | null;
 }
 
 export default function TodayPage() {
@@ -113,7 +113,7 @@ function TodayContent() {
       const token = localStorage.getItem('access_token');
       
       // Fetch dashboard data
-      const dashboardRes = await fetch('/api/v1/agency/dashboard', {
+      const dashboardRes = await workspaceFetch('/api/v1/agency/dashboard', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -124,7 +124,7 @@ function TodayContent() {
       // Fetch user's workspaces first
       let userWorkspaces: UserWorkspace[] = [];
       try {
-        const wsRes = await fetch('/api/v1/workspaces', {
+        const wsRes = await workspaceFetch('/api/v1/workspaces', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (wsRes.ok) {
@@ -149,7 +149,7 @@ function TodayContent() {
       try {
         const workspaceId = localStorage.getItem('current_workspace_id');
         if (workspaceId && userWorkspaces.some(ws => ws.id.toString() === workspaceId)) {
-          const inboxRes = await fetch(`/api/v1/inbox?workspace_id=${workspaceId}&limit=5`, {
+          const inboxRes = await workspaceFetch(`/api/v1/inbox?workspace_id=${workspaceId}&limit=5`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
           if (inboxRes.ok) {
@@ -482,7 +482,7 @@ function TodayContent() {
                 <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{data.hot_leads}</p>
+                <p className="text-2xl font-bold">{data.hot_leads ?? "Radar Business"}</p>
                 <p className="text-xs text-gray-500">Leads chauds</p>
               </div>
             </div>
@@ -494,7 +494,7 @@ function TodayContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
+                  {data.monthly_revenue == null ? 'Radar Business' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
                 </p>
                 <p className="text-xs text-gray-500">Ce mois</p>
               </div>

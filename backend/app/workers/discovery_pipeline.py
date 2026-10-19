@@ -139,7 +139,7 @@ def _resolve_spotify_id_by_name(name: str) -> Optional[Dict[str, Any]]:
 # MAIN PIPELINE TASK
 # ============================================================================
 
-@celery_app.task(bind=True, name="discovery.enrichment_pipeline")
+@celery_app.task(bind=True, name="discovery.enrichment_pipeline", acks_late=True, reject_on_worker_lost=True, max_retries=3)
 def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
     """
     Main enrichment pipeline task.
@@ -161,6 +161,9 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
             logger.error(f"Job {job_id} not found")
             return {"status": "ERROR", "message": "Job not found"}
         
+        if job.status in {"DONE", "PARTIAL"}:
+            return {"status": job.status, "artist_id": str(job.artist_id), "job_id": job_id}
+
         # Update job with celery task id
         job.celery_task_id = self.request.id
         job.mark_running("MATCH")
@@ -223,7 +226,7 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
             error_message = str(e)
             
             # Categorize error
-            if "429" in str(e) or "rate" in str(e).lower():
+            if "429" in str(e) or "rate limit" in str(e).lower():
                 error_code = "RATE_LIMITED"
                 error_message = "Limite atteinte, réessayez plus tard"
             elif "timeout" in str(e).lower():
@@ -236,6 +239,14 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
                 error_code = "PARSER_CHANGED"
                 error_message = "Page modifiée"
             
+            db.rollback()
+            job = db.query(DiscoveryEnrichmentJob).filter(DiscoveryEnrichmentJob.id == job_id).one()
+            if error_code in {"RATE_LIMITED", "TIMEOUT"} and self.request.retries < self.max_retries:
+                job.status = "QUEUED"
+                job.error_code = error_code
+                job.error_message = error_message
+                db.commit()
+                raise self.retry(exc=e, countdown=min(300, 30 * 2 ** self.request.retries))
             job.mark_failed(error_code, error_message)
             db.commit()
             raise
@@ -556,18 +567,11 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         db.commit()
         return False
     
-    # Estimate followers from Deezer fans if no Spotify followers
-    spotify_data.setdefault("followers_total", spotify_data.get("deezer_fans", 0))
+    # Deezer fans and Spotify listeners/followers are distinct measurements.
+    # Keep missing values missing; do not manufacture cross-provider metrics.
     spotify_data.setdefault("genres", [])
-    spotify_data.setdefault("popularity", 0)
     spotify_data.setdefault("top_tracks", [])
-    
-    # Estimate monthly listeners from deezer fans if we don't have Spotify ML
-    if not spotify_data.get("monthly_listeners") and spotify_data.get("deezer_fans"):
-        # Deezer fans ≈ Spotify followers, rough ML estimate: fans * 1.5
-        spotify_data["monthly_listeners"] = int(spotify_data["deezer_fans"] * 1.5)
-        spotify_data["monthly_listeners_estimated"] = True
-    
+
     # Store snapshot
     snapshot = DiscoverySnapshot(
         artist_id=artist.id,
@@ -1205,8 +1209,10 @@ def detect_patterns(historical: List, velocity: float, acceleration: float) -> L
     return patterns
 
 
-def estimate_fees(monthly_listeners: int, total_social: int, velocity: float) -> Tuple[int, int]:
-    """Estimate booking fees."""
+def estimate_fees(monthly_listeners: int, total_social: int, velocity: float) -> Tuple[Optional[int], Optional[int]]:
+    """Indicative range only when observations support an estimate."""
+    if not monthly_listeners and not total_social:
+        return None, None
     if monthly_listeners < 5000:
         base_min, base_max = 300, 800
     elif monthly_listeners < 20000:
@@ -1243,7 +1249,8 @@ def refresh_artist(artist_id: str, workspace_id: int, requested_by: int = None) 
     db = get_db()
     try:
         artist = db.query(DiscoveryArtist).filter(
-            DiscoveryArtist.id == artist_id
+            DiscoveryArtist.id == artist_id,
+            DiscoveryArtist.workspace_id == workspace_id
         ).first()
         
         if not artist:

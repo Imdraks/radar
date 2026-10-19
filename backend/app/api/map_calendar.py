@@ -4,10 +4,12 @@ Geographic visualization, artist events map, and calendar export
 """
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Response, HTTPException
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+import logging
+logger = logging.getLogger(__name__)
 import json
 import hashlib
 import random as stdlib_random
@@ -147,7 +149,7 @@ def get_map_opportunities(
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get opportunities with geographic coordinates for map display"""
-    cache_key = f"map:opps:{current_user.id}:{status}:{category}:{min_score}"
+    cache_key = f"map:opps:{current_user.id}:{db.info.get('workspace_id')}:{status}:{category}:{min_score}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -235,7 +237,7 @@ def get_region_stats(
     current_user: User = Depends(get_current_user),
 ) -> List[Dict[str, Any]]:
     """Get statistics per region"""
-    cache_key = f"map:regions:{current_user.id}"
+    cache_key = f"map:regions:{current_user.id}:{db.info.get('workspace_id')}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -504,9 +506,9 @@ def get_artist_events(
     workspace_id: int = Depends(get_user_workspace_id),
 ) -> Dict[str, Any]:
     """Get artist events for the map.
-    Returns real events from Ticketmaster (if synced), fallback to generated events."""
+    Returns collected events only. Missing data never generates fictitious events."""
 
-    cache_key = f"map:artist-events:{workspace_id}:{event_type}:{city}:{artist}:{date_from}:{date_to}:{score_min}"
+    cache_key = f"map:verified-artist-events:{workspace_id}:{event_type}:{city}:{artist}:{date_from}:{date_to}:{score_min}"
     cached = cache_get(cache_key)
     if cached:
         return cached
@@ -530,9 +532,6 @@ def get_artist_events(
             q = q.filter(ArtistEvent.event_date >= date_from)
         if date_to:
             q = q.filter(ArtistEvent.event_date <= date_to)
-
-        q = q.order_by(ArtistEvent.event_date.asc()).limit(500)
-        rows = q.all()
 
         if score_min is not None:
             q = q.filter(ArtistEvent.artist_score >= score_min)
@@ -618,83 +617,10 @@ def get_artist_events(
             }
             cache_set(cache_key, result, 120)
             return result
-    except Exception:
-        pass  # Table might not exist yet — fall back to generated events
-
-    # ---- Fallback: deterministic generated events ----
-    try:
-        from app.db.models.discovery import DiscoveryArtist, DiscoveryComputedMetrics
-    except ImportError:
-        return {"events": [], "stats": {}, "cities": [], "total": 0}
-
-    rows = (
-        db.query(
-            DiscoveryArtist.id,
-            DiscoveryArtist.canonical_name,
-            DiscoveryArtist.image_url,
-            DiscoveryArtist.genres,
-            DiscoveryComputedMetrics.score,
-            DiscoveryComputedMetrics.monthly_listeners,
-        )
-        .outerjoin(DiscoveryComputedMetrics, DiscoveryArtist.id == DiscoveryComputedMetrics.artist_id)
-        .filter(DiscoveryArtist.workspace_id == workspace_id, DiscoveryArtist.is_deleted == False)
-        .order_by(DiscoveryComputedMetrics.score.desc().nullslast())
-        .limit(100)
-        .all()
-    )
-
-    artists_data = [
-        {
-            "id": str(row.id) if row.id else "",
-            "name": row.canonical_name or "Artiste",
-            "image_url": row.image_url,
-            "genres": row.genres or [],
-            "score": row.score or 50,
-            "monthly_listeners": row.monthly_listeners or 0,
-        }
-        for row in rows
-    ]
-
-    all_events = _generate_deterministic_events(artists_data, str(workspace_id))
-    filtered = all_events
-
-    if event_type:
-        filtered = [e for e in filtered if e["event_type"] == event_type]
-    if city:
-        city_lower = city.lower()
-        filtered = [e for e in filtered if city_lower in e["city"].lower()]
-    if artist:
-        artist_lower = artist.lower()
-        filtered = [e for e in filtered if artist_lower in e["artist_name"].lower()]
-    if date_from:
-        filtered = [e for e in filtered if e["date"] >= date_from]
-    if date_to:
-        filtered = [e for e in filtered if e["date"] <= date_to]
-
-    type_counts = {}
-    city_counts = {}
-    for e in filtered:
-        t = e["event_type"]
-        type_counts[t] = type_counts.get(t, 0) + 1
-        c = e["city"]
-        city_counts[c] = city_counts.get(c, 0) + 1
-
-    cities = sorted(set(e["city"] for e in all_events))
-
-    result = {
-        "events": filtered,
-        "total": len(filtered),
-        "stats": {
-            "by_type": type_counts,
-            "by_city": city_counts,
-            "total_artists": len(set(e["artist_name"] for e in filtered)),
-        },
-        "cities": cities,
-        "source": "generated",
-    }
-
-    cache_set(cache_key, result, 120)
-    return result
+    except Exception as exc:
+        logger.exception("Artist event retrieval failed")
+        raise HTTPException(status_code=503, detail="Impossible de charger les événements vérifiés") from exc
+    return {"events": [], "stats": {}, "cities": [], "total": 0, "source": "no_collected_events"}
 
 
 @router.post("/sync-events")

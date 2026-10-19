@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -210,7 +211,7 @@ function InboxContent() {
           return;
         }
         
-        const res = await fetch('/api/v1/workspaces', {
+        const res = await workspaceFetch('/api/v1/workspaces', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         
@@ -244,7 +245,7 @@ function InboxContent() {
       try {
         const token = localStorage.getItem('access_token');
         // Fetch clients (endpoint is /agency/clients)
-        const clientsRes = await fetch('/api/v1/agency/clients?limit=100', {
+        const clientsRes = await workspaceFetch('/api/v1/agency/clients?limit=100', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (clientsRes.ok) {
@@ -252,7 +253,7 @@ function InboxContent() {
           setClients(clientsData.map((c: any) => c.name));
         }
         // Fetch projects (endpoint is /agency/projects)
-        const projectsRes = await fetch('/api/v1/agency/projects?limit=100', {
+        const projectsRes = await workspaceFetch('/api/v1/agency/projects?limit=100', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (projectsRes.ok) {
@@ -330,7 +331,7 @@ function InboxContent() {
   const createClient = async (name: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/agency/clients', {
+      const res = await workspaceFetch('/api/v1/agency/clients', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -354,7 +355,7 @@ function InboxContent() {
   const createProject = async (name: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/agency/projects', {
+      const res = await workspaceFetch('/api/v1/agency/projects', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -421,7 +422,7 @@ function InboxContent() {
         params.set('type_filter', typeFilter);
       }
       
-      const res = await fetch(`/api/v1/inbox?${params}`, {
+      const res = await workspaceFetch(`/api/v1/inbox?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -449,7 +450,7 @@ function InboxContent() {
     setIsCapturing(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/inbox?workspace_id=${workspaceId}`, {
+      const res = await workspaceFetch(`/api/v1/inbox?workspace_id=${workspaceId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -490,7 +491,7 @@ function InboxContent() {
     setIsTriaging(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/inbox/${triageItem.id}/triage`, {
+      const res = await workspaceFetch(`/api/v1/inbox/${triageItem.id}/triage`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -519,7 +520,7 @@ function InboxContent() {
   const handleMarkDone = async (item: InboxItem) => {
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/inbox/${item.id}/done`, {
+      await workspaceFetch(`/api/v1/inbox/${item.id}/done`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -533,7 +534,7 @@ function InboxContent() {
   const handleArchive = async (item: InboxItem) => {
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/inbox/${item.id}/archive`, {
+      await workspaceFetch(`/api/v1/inbox/${item.id}/archive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -549,7 +550,7 @@ function InboxContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/inbox/${item.id}`, {
+      await workspaceFetch(`/api/v1/inbox/${item.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

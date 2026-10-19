@@ -1,13 +1,13 @@
 """
 Billing models for quotes (devis) and invoices (factures)
-Part of Radar Business add-on
+Part of the Radar Business subscription
 """
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum as PyEnum
 from sqlalchemy import (
     Column, String, Text, Boolean, DateTime, Date, Enum, ForeignKey,
-    Integer, Numeric, JSON
+    Integer, Numeric, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 
@@ -97,12 +97,13 @@ class BillingClient(Base):
 class Quote(Base):
     """Devis (Quote)"""
     __tablename__ = "quotes"
+    __table_args__ = (UniqueConstraint("workspace_id", "reference", name="uq_quotes_workspace_reference"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     workspace_id = Column(Integer, ForeignKey('workspaces.id'), nullable=False, index=True)
     
     # Reference number (auto-generated)
-    reference = Column(String(50), nullable=False, unique=True, index=True)
+    reference = Column(String(50), nullable=False, index=True)
     
     # Client
     client_id = Column(Integer, ForeignKey('billing_clients.id'), nullable=True)
@@ -190,12 +191,13 @@ class QuoteItem(Base):
 class Invoice(Base):
     """Facture (Invoice)"""
     __tablename__ = "invoices"
+    __table_args__ = (UniqueConstraint("workspace_id", "reference", name="uq_invoices_workspace_reference"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     workspace_id = Column(Integer, ForeignKey('workspaces.id'), nullable=False, index=True)
     
     # Reference number (auto-generated)
-    reference = Column(String(50), nullable=False, unique=True, index=True)
+    reference = Column(String(50), nullable=False, index=True)
     
     # Client
     client_id = Column(Integer, ForeignKey('billing_clients.id'), nullable=True)
@@ -283,3 +285,12 @@ class InvoiceItem(Base):
     
     # Relationship
     invoice = relationship("Invoice", back_populates="items")
+
+
+class BillingCounter(Base):
+    """Transactional numbering per organization; deleted drafts do not reuse numbers."""
+    __tablename__ = "billing_counters"
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), primary_key=True)
+    year = Column(Integer, primary_key=True)
+    kind = Column(String(10), primary_key=True)
+    last_number = Column(Integer, nullable=False)

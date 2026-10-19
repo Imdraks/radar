@@ -1,5 +1,6 @@
 "use client";
 
+import { useSubscriptionStore } from "./subscriptionStore";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "@/lib/types";
@@ -90,6 +91,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        useSubscriptionStore.getState().reset();
+        localStorage.removeItem("radar-subscription");
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("current_workspace_id");

@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -93,10 +94,10 @@ function CalendarContent() {
       });
       
       const [eventsRes, projectsRes] = await Promise.all([
-        fetch(`/api/v1/agency/calendar?${params}`, {
+        workspaceFetch(`/api/v1/agency/calendar?${params}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/projects', {
+        workspaceFetch('/api/v1/agency/projects', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -123,7 +124,7 @@ function CalendarContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/calendar', {
+      const response = await workspaceFetch('/api/v1/agency/calendar', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -152,7 +153,7 @@ function CalendarContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/calendar/${eventId}`, {
+      await workspaceFetch(`/api/v1/agency/calendar/${eventId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

@@ -129,6 +129,10 @@ class ArtistDetailResponse(BaseModel):
     city: Optional[str] = None
     genres: List[str] = []
     
+    evidence: List[dict] = []
+    metric_classification: dict = {}
+    prediction_validation: str = "not_calibrated"
+    missing_data: List[str] = []
     # Latest metrics
     score: int = 0
     timing_bucket: Optional[str] = None
@@ -601,11 +605,33 @@ async def get_artist_detail(
         ArtistAnalysis.artist_name == artist.canonical_name,
     ).order_by(desc(ArtistAnalysis.created_at)).first()
     
+    snapshots = db.query(DiscoverySnapshot).filter(DiscoverySnapshot.artist_id == artist.id).order_by(
+        desc(DiscoverySnapshot.fetched_at)).limit(20).all()
+    latest_by_source = {}
+    for snapshot in snapshots:
+        latest_by_source.setdefault(snapshot.source, snapshot)
+    estimated_listeners = any((snap.raw_payload or {}).get("monthly_listeners_estimated") for snap in latest_by_source.values())
+    evidence = [{"source": snap.source, "collected_at": snap.fetched_at,
+                 "status": snap.status, "error_code": snap.error_code,
+                 "contains_deezer_data": bool((snap.raw_payload or {}).get("deezer_fans")),
+                 "expires_at": snap.ttl_expires_at} for snap in latest_by_source.values()]
+    missing = []
+    if not metrics or not metrics.monthly_listeners or estimated_listeners:
+        missing.append("monthly_listeners")
+    if not metrics or not metrics.spotify_followers:
+        missing.append("spotify_followers")
+    if not metrics or not metrics.fee_estimate_min:
+        missing.append("booking_fee_estimate")
     # Check if stale
     stale_threshold = datetime.utcnow() - timedelta(hours=24)
     is_stale = bool(artist.last_enriched_at and artist.last_enriched_at < stale_threshold)
     
     return ArtistDetailResponse(
+        evidence=evidence,
+        missing_data=missing,
+        metric_classification={"score": "heuristic", "fee": "estimate", "growth": "projection",
+                               "monthly_listeners": "estimate" if estimated_listeners else "collected_or_missing",
+                               "confidence": "not_calibrated"},
         id=artist.id,
         name=artist.canonical_name,
         normalized_name=artist.normalized_name,
@@ -619,7 +645,7 @@ async def get_artist_detail(
         score=metrics.score if metrics else 0,
         timing_bucket=metrics.timing_bucket if metrics else None,
         recommendation=metrics.recommendation if metrics else None,
-        monthly_listeners=metrics.monthly_listeners if metrics else None,
+        monthly_listeners=metrics.monthly_listeners if metrics and not estimated_listeners else None,
         followers=metrics.spotify_followers or metrics.total_social_followers or None if metrics else None,
         velocity=metrics.velocity if metrics else None,
         acceleration=metrics.acceleration if metrics else None,
@@ -641,7 +667,7 @@ async def get_artist_detail(
         predicted_listeners_30d=analysis.predicted_listeners_30d if analysis else None,
         predicted_listeners_90d=analysis.predicted_listeners_90d if analysis else None,
         predicted_listeners_180d=analysis.predicted_listeners_180d if analysis else None,
-        confidence_score=analysis.confidence_score if analysis else None,
+        confidence_score=None,  # No calibrated certainty percentage available.
         
         # SWOT
         strengths=analysis.strengths if analysis else None,
@@ -650,7 +676,7 @@ async def get_artist_detail(
         threats=analysis.threats if analysis else None,
         
         # Booking Intelligence
-        optimal_fee=analysis.optimal_fee if analysis else None,
+        optimal_fee=None,  # Only the indicative min/max range is presented.
         negotiation_power=analysis.negotiation_power if analysis else None,
         best_booking_window=analysis.best_booking_window if analysis else None,
         event_type_fit=analysis.event_type_fit if analysis else None,

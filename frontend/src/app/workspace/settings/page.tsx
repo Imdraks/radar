@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
@@ -139,7 +140,7 @@ export default function WorkspaceSettingsPage() {
   const fetchWorkspace = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/workspace/current', {
+      const res = await workspaceFetch('/api/v1/workspace/current', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -168,7 +169,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspace/${workspace.id}`, {
+      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -200,7 +201,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspace/${workspace.id}/members`, {
+      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -233,7 +234,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
+      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -252,7 +253,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
+      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -276,7 +277,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspace/${workspace.id}/setup-drive`, {
+      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/setup-drive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });

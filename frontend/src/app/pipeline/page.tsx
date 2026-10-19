@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import {
@@ -116,10 +117,10 @@ function PipelineContent() {
     try {
       const token = localStorage.getItem('access_token');
       const [pipelineRes, clientsRes] = await Promise.all([
-        fetch('/api/v1/agency/pipeline', {
+        workspaceFetch('/api/v1/agency/pipeline', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/clients', {
+        workspaceFetch('/api/v1/agency/clients', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -157,7 +158,7 @@ function PipelineContent() {
 
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/deals/${draggedDeal.id}/status?status=${newStatus}`, {
+      await workspaceFetch(`/api/v1/agency/deals/${draggedDeal.id}/status?status=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -176,7 +177,7 @@ function PipelineContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/deals', {
+      const response = await workspaceFetch('/api/v1/agency/deals', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -225,7 +226,7 @@ function PipelineContent() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/deals/${selectedDeal.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/deals/${selectedDeal.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -255,7 +256,7 @@ function PipelineContent() {
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/deals/${deal.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/deals/${deal.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

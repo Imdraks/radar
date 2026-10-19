@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -46,7 +47,7 @@ export default function ContactPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-      const res = await fetch(`${apiUrl}/api/v1/contact`, {
+      const res = await workspaceFetch(`${apiUrl}/api/v1/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

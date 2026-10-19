@@ -272,7 +272,7 @@ class InvoiceUpdate(BaseModel):
 
 class InvoicePaymentUpdate(BaseModel):
     """Update payment info"""
-    amount_paid: Decimal
+    amount_paid: Decimal = Field(ge=0)
     payment_method: Optional[PaymentMethod] = None
     paid_date: Optional[date] = None
 

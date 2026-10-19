@@ -553,8 +553,8 @@ class DashboardV2Response(BaseModel):
     # Quick stats
     active_projects: int = 0
     pending_validations: int = 0
-    hot_leads: int = 0
-    monthly_revenue: float = 0
+    hot_leads: Optional[int] = None
+    monthly_revenue: Optional[float] = None
 
 
 # ============================================================================

@@ -66,8 +66,8 @@ def is_banking_enabled(workspace_id: int, db: Session) -> bool:
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not workspace:
         return False
-    addons = workspace.addons or []
-    return "radar_business" in addons
+    from app.core.subscription import Feature, effective_features
+    return Feature.BANKING in effective_features(workspace)
 
 
 # ============================================================================

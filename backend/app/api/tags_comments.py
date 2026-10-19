@@ -26,7 +26,7 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 # Association table for opportunity-tags many-to-many
 # Use extend_existing to avoid conflicts if already defined elsewhere
 opportunity_tags = Table(
-    'opportunity_tags',
+    'custom_opportunity_tags',
     Base.metadata,
     Column('opportunity_id', Integer, ForeignKey('opportunities.id', ondelete='CASCADE'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True),
