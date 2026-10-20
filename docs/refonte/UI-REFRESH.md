@@ -5,6 +5,7 @@ La mise à jour conserve les routes, les données et les contrôles d’accès e
 ## Changements
 
 - Navigation commune : icônes, sections plus lisibles, sélection active sur les sous-pages, contexte de navigation dans l’en-tête, identité du workspace et compte utilisateur. Les entrées proviennent toujours de la navigation renvoyée par le backend.
+- Barre latérale affinée : panneau de 280 px, fond légèrement violet, sections séparées, icônes encadrées sur la page active et repère violet. Le menu défile indépendamment du compte et de l’abonnement fixés en bas ; les sections vides ne sont pas affichées. Le même dessin est utilisé dans le tiroir mobile.
 - Mobile : tiroir réutilisant le composant Radix existant pour le focus, Échap et le retour au bouton d’ouverture ; accès rapides avec icônes et état actif. Le tiroir se ferme au passage en affichage desktop.
 - Composants communs : boutons, cartes, champs et couleurs harmonisés ; suppression du chargement Google Fonts redondant avec `next/font`. Les champs natifs des formulaires de l’application bénéficient d’un fond et d’un focus explicites.
 - Accueil : suppression du double espacement, en-tête responsive, salut utilisant le nom réel de l’utilisateur et indicateurs placés avant les détails. Les chiffres continuent de provenir de l’API.
@@ -24,6 +25,7 @@ Ces essais navigateur utilisent des API simulées et explicitement identifiées 
 Dans le terminal du Codespace, sur la branche `refactor/radar-product-security` :
 
 ```sh
+git switch refactor/radar-product-security
 git pull --ff-only
 ```
 

@@ -1307,11 +1307,21 @@
     color: hsl(var(--foreground));
   }
   .radar-nav-link {
-    @apply flex min-h-[38px] items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply relative flex min-h-[42px] items-center gap-2.5 rounded-xl border border-transparent px-2 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
   .radar-nav-link svg { flex-shrink: 0; }
   .radar-nav-active {
-    @apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
+    @apply border-primary/15 bg-card text-primary shadow-sm hover:bg-card hover:text-primary;
+  }
+  .radar-nav-active::before {
+    content: '';
+    @apply absolute -left-[1px] top-3 bottom-3 w-[3px] rounded-full bg-primary;
+  }
+  .radar-sidebar {
+    background: linear-gradient(180deg, hsl(var(--primary) / 0.045), transparent 300px), hsl(var(--background));
+  }
+  .radar-nav-section + .radar-nav-section {
+    @apply border-t border-border/70 pt-4;
   }
   .radar-content > div > h1,
   .radar-page-title {

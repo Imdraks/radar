@@ -39,29 +39,29 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     return () => desktop.removeEventListener('change', closeOnDesktop);
   }, []);
 
-  const sidebar = <div className="flex h-full flex-col">
-    <Link href="/today" onClick={() => setOpen(false)} className="flex items-center gap-3 px-6 py-6 text-foreground hover:no-underline">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm"><Radar size={24} strokeWidth={1.7} /></span>
-      <span className="text-[23px] font-semibold tracking-tight">radar<span className="text-primary">.</span></span>
+  const sidebar = <div className="radar-sidebar flex h-full flex-col">
+    <Link href="/today" onClick={() => setOpen(false)} className="flex shrink-0 items-center gap-3 px-6 py-6 text-foreground hover:no-underline">
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20"><Radar size={26} strokeWidth={1.7} /></span>
+      <span><span className="block text-[24px] font-semibold leading-tight tracking-tight">radar<span className="text-primary">.</span></span><span className="mt-0.5 block text-[11px] text-muted-foreground">Votre espace agence</span></span>
     </Link>
-    <div className="mx-4 mb-5 flex items-center gap-3 rounded-xl border bg-background/70 px-3 py-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground"><Building2 size={17} /></span>
+    <div className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary"><Building2 size={17} /></span>
       <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Espace de travail</p><p className="truncate text-sm font-medium text-foreground" title={subscription?.workspace_name}>{subscription?.workspace_name || 'Votre agence'}</p></div>
     </div>
-    <nav aria-label="Navigation principale" className="flex-1 space-y-5 overflow-y-auto px-3 pb-5 scrollbar-thin">
-      {Object.entries(navigation || {}).map(([section, items]) => <div key={section}>
+    <nav aria-label="Navigation principale" className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-5 scrollbar-thin">
+      {Object.entries(navigation || {}).filter(([, items]) => items.length > 0).map(([section, items]) => <div key={section} className="radar-nav-section">
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">{section}</p>
         <div className="space-y-1">{items.map(item => <Link key={item.path} href={item.path} onClick={() => setOpen(false)} aria-current={activeItem?.path === item.path ? 'page' : undefined}
           className={`radar-nav-link ${activeItem?.path === item.path ? 'radar-nav-active' : ''}`}>
-          <NavigationIcon name={item.icon} /><span className="flex-1">{item.label}</span>
-          {activeItem?.path === item.path && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />}
+          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${activeItem?.path === item.path ? 'bg-primary/10 text-primary' : ''}`}><NavigationIcon name={item.icon} /></span><span className="min-w-0 flex-1">{item.label}</span>
+          {activeItem?.path === item.path && <ChevronRight size={14} className="shrink-0 text-primary" aria-hidden="true" />}
         </Link>)}</div>
       </div>)}
       {user?.is_superuser && <Link className="radar-nav-link" href="/admin"><ShieldCheck size={18} />Administration plateforme</Link>}
     </nav>
-    <div className="border-t p-4">
-      {subscription && <Link href="/settings/subscription" onClick={() => setOpen(false)} className="mb-4 flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-sm font-medium text-primary hover:no-underline"><span>{subscription.plan_display_name}</span><ChevronRight size={15} /></Link>}
-      <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground">{initials}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-foreground">{user?.full_name || 'Mon compte'}</p><p className="truncate text-xs text-muted-foreground">{user?.email}</p></div>
+    <div className="shrink-0 border-t bg-card/60 p-4">
+      {subscription && <Link href="/settings/subscription" onClick={() => setOpen(false)} className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-primary hover:bg-primary/10 hover:no-underline"><span><span className="block text-[10px] text-muted-foreground">Votre abonnement</span><span className="text-xs font-semibold">{subscription.plan_display_name}</span></span><ChevronRight size={15} /></Link>}
+      <div className="flex items-center gap-3 rounded-xl border bg-card px-2.5 py-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xs font-semibold text-primary">{initials}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-foreground">{user?.full_name || 'Mon compte'}</p><p className="truncate text-[10px] text-muted-foreground" title={user?.email}>{user?.email}</p></div>
         <Button variant="ghost" size="icon" aria-label="Déconnexion" title="Déconnexion" onClick={() => { useSubscriptionStore.getState().reset(); logout(); }}><LogOut size={17} /></Button>
       </div>
     </div>
@@ -69,8 +69,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   return <div className="radar-app min-h-screen bg-background text-foreground">
     <a href="#radar-main" className="sr-only z-[100] rounded-lg bg-primary p-3 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Aller au contenu</a>
-    <aside data-onboarding="sidebar" className="fixed inset-y-0 left-0 z-40 hidden w-[264px] border-r bg-card lg:block">{sidebar}</aside>
-    <div className="min-w-0 lg:pl-[264px]">
+    <aside data-onboarding="sidebar" className="fixed inset-y-0 left-0 z-40 hidden w-[280px] border-r lg:block">{sidebar}</aside>
+    <div className="min-w-0 lg:pl-[280px]">
       <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between gap-2 border-b bg-card/95 px-4 backdrop-blur-md sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Sheet open={open} onOpenChange={setOpen}>
