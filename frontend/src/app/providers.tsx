@@ -17,7 +17,11 @@ const ReactQueryDevtools = dynamic(
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const userId = useAuthStore(s => s.user?.id);
-  const workspaceId = useSubscriptionStore(s => s.subscription?.workspace_id);
+  const loadedWorkspaceId = useSubscriptionStore(s => s.subscription?.workspace_id);
+  // Subscription refresh clears its payload temporarily; preserve the selected
+  // workspace identity so the application is not remounted in a loading loop.
+  const selectedWorkspaceId = typeof window !== "undefined" ? Number(localStorage.getItem('current_workspace_id')) || undefined : undefined;
+  const workspaceId = loadedWorkspaceId ?? selectedWorkspaceId;
   const queryClient = useMemo(
     () =>
       new QueryClient({
@@ -40,7 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider key={`${userId ?? "anonymous"}:${workspaceId ?? "none"}`} client={queryClient}>
       <ThemeProvider
         attribute="class"
         defaultTheme="light"

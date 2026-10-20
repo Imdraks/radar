@@ -9,8 +9,8 @@ async def main():
     async with async_playwright() as p:
         browser=await p.chromium.launch(headless=True,args=['--no-sandbox'])
         for width,height in [(1440,1000),(768,1024),(390,844)]:
-            context=await browser.new_context(viewport={'width':width,'height':height})
-            await context.add_init_script("localStorage.setItem('access_token','ui-test-only');localStorage.setItem('current_workspace_id','1')")
+            context=await browser.new_context(viewport={'width':width,'height':height},locale='fr-FR')
+            await context.add_init_script("localStorage.setItem('access_token','ui-test-only');localStorage.setItem('current_workspace_id','1');localStorage.setItem('opportunities-radar-welcome-shown-v2','true')")
             async def route_request(route):
                 path=route.request.url.split('?',1)[0]
                 if path.endswith('/auth/me'):
@@ -27,17 +27,21 @@ async def main():
                     data=[]
                 await route.fulfill(status=200,content_type='application/json',body=json.dumps(data))
             await context.route('**/api/**',route_request)
+            await context.route('https://www.googletagmanager.com/**',lambda route:route.abort())
             page=await context.new_page()
             errors=[]
             page.on('pageerror',lambda e:errors.append(str(e)))
             await page.goto(os.environ.get('RADAR_UI_BASE_URL','http://localhost:3000')+'/settings/subscription')
             await page.get_by_role('heading',name='Abonnement',exact=True).wait_for()
             await page.get_by_role('heading',name='Radar Core',exact=True).wait_for()
+            await page.get_by_role('heading',name='Radar Premium',exact=True).wait_for()
+            await page.get_by_role('heading',name='Radar Business',exact=True).wait_for()
+            await page.wait_for_load_state('networkidle',timeout=10000)
             assert await page.get_by_role('heading',name='Radar Premium',exact=True).is_visible()
             assert await page.get_by_role('heading',name='Radar Business',exact=True).is_visible()
             if width<1024:
                 await page.get_by_role('button',name='Ouvrir le menu',exact=True).click()
-                assert await page.get_by_role('navigation',name='Navigation principale').is_visible()
+                await page.get_by_role('navigation',name='Navigation principale').wait_for(state='visible')
                 await page.get_by_role('button',name='Fermer le menu',exact=True).last.click()
             assert await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
             await page.screenshot(path=f'/tmp/radar-ui-{width}.png',full_page=True)

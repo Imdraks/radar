@@ -14,3 +14,5 @@ Audit complémentaire : [API et contrats](API-AUDIT.md).
 Parcours navigateur : [validation locale et patch](LOCAL-DEBUG.md).
 
 Collecte artistique : [auditeurs Spotify sans clé API](SPOTIFY-AUDIENCE.md).
+
+Réseaux sociaux : [compteurs Instagram, TikTok et YouTube](SOCIAL-AUDIENCE.md).

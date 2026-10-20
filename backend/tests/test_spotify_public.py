@@ -155,7 +155,7 @@ def test_discovery_snapshot_preserves_published_provenance(monkeypatch,db_sessio
     monkeypatch.setattr(scraper,'scrape_spotify_artist',lambda artist_id:observed)
     monkeypatch.setattr('app.enrichment.providers.deezer.search_deezer_artist',lambda name:None)
     assert step_spotify(db_session,job) is True
-    snapshot=db_session.query(DiscoverySnapshot).filter(DiscoverySnapshot.parser_version=='v5.0-public-http').one()
+    snapshot=db_session.query(DiscoverySnapshot).filter(DiscoverySnapshot.parser_version=='v5.1-public-links').one()
     assert snapshot.raw_payload['monthly_listeners']==count
     assert snapshot.raw_payload['source_url']==observed['source_url']
     assert snapshot.raw_payload['collected_at']==observed['collected_at']

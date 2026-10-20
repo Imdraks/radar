@@ -270,6 +270,7 @@ DELETE,/api/v1/deadlines/{alert_id},True,cancel_deadline_alert_api_v1_deadlines_
 DELETE,/api/v1/discovery/artist/{artist_id},True,delete_artist_api_v1_discovery_artist__artist_id__delete
 GET,/api/v1/discovery/artist/{artist_id},True,get_artist_detail_api_v1_discovery_artist__artist_id__get
 POST,/api/v1/discovery/artist/{artist_id}/refresh,True,refresh_artist_api_v1_discovery_artist__artist_id__refresh_post
+PATCH,/api/v1/discovery/artist/{artist_id}/social-profiles,True,update_social_profiles_api_v1_discovery_artist__artist_id__social_profiles_patch
 GET,/api/v1/discovery/artists,True,list_all_artists_api_v1_discovery_artists_get
 GET,/api/v1/discovery/feed/{feed_type},True,get_discovery_feed_api_v1_discovery_feed__feed_type__get
 GET,/api/v1/discovery/job/{job_id},True,get_job_status_api_v1_discovery_job__job_id__get

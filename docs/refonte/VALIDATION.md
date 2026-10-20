@@ -56,3 +56,10 @@ Suite backend : 69 tests passent sur PostgreSQL jetable (995 avertissements de d
 ## Collecte Spotify publique — 20 octobre 2026
 
 92 tests backend réussis, dont 23 cas supplémentaires couvrant collecte/identité, erreurs HTTP, cache, absence d’estimation, persistance et restitution de provenance. Quatre artistes vérifiés par requêtes réelles non authentifiées : voir SPOTIFY-AUDIENCE.md. Typage TypeScript, build Next.js et compilation Python réussis. Aucun nouveau schéma ni migration pour ce collecteur.
+
+
+## Compteurs sociaux — 20 octobre 2026
+
+142 tests backend réussis sur PostgreSQL jetable. Typage TypeScript, build Next.js et compilation Python réussis. `social_ui_smoke.py` valide l’affichage des arrondis, la configuration YouTube manquante, la sauvegarde des profils et le rafraîchissement réel des observations dans le navigateur (statuts DONE et PARTIAL) à 1440 et 390 pixels, avec API explicitement simulées. Contrôle de régression du catalogue, de la navigation et de l’erreur événement à 1440, 768 et 390 pixels réussi. Les tests attendent l’initialisation asynchrone du catalogue avant les interactions et désactivent le tutoriel de bienvenue dans leurs fixtures pour tester ce parcours précis.
+
+Les collectes réelles Instagram et TikTok, leurs limites de précision et le blocage de validation réelle YouTube sont détaillés dans SOCIAL-AUDIENCE.md. YouTube : fixtures validées, clé API gratuite à configurer, aucune collecte réelle annoncée comme réussie. Aucun changement de données de production ni migration nouvelle.

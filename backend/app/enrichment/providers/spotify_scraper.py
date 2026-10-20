@@ -18,7 +18,7 @@ from app.core.cache import cache_get, cache_set
 logger = logging.getLogger(__name__)
 PUBLIC_CACHE_TTL = 12 * 3600
 MAX_PAGE_BYTES = 2_000_000
-PARSER_VERSION = "spotify-public-state-v1"
+PARSER_VERSION = "spotify-public-state-v2"
 
 
 def parse_spotify_artist_page(content: str, spotify_id: str) -> Optional[Dict[str, Any]]:
@@ -43,10 +43,18 @@ def parse_spotify_artist_page(content: str, spotify_id: str) -> Optional[Dict[st
             return None
         name = artist.get("profile", {}).get("name")
         image = soup.find("meta", property="og:image")
+        from app.enrichment.providers.social_public import normalize_profile, PLATFORMS
+        social_profiles = {}
+        for link in artist.get("profile", {}).get("externalLinks", {}).get("items", []):
+            for platform in PLATFORMS:
+                profile_url = normalize_profile(platform, link.get("url"))
+                if profile_url:
+                    social_profiles.setdefault(platform, profile_url)
         return {
             "spotify_artist_id": spotify_id,
             "name": name,
             "image_url": image.get("content") if image else None,
+            "social_profiles": social_profiles,
             "monthly_listeners": listeners,
             "monthly_listeners_source": "spotify_public",
             "monthly_listeners_estimated": False,
@@ -68,7 +76,7 @@ def scrape_spotify_artist(spotify_id: str) -> Optional[Dict[str, Any]]:
     """
     if not isinstance(spotify_id, str) or not re.fullmatch(r"[A-Za-z0-9]{22}", spotify_id):
         return None
-    key = f"spotify-public-page:v1:{spotify_id}"
+    key = f"spotify-public-page:v2:{spotify_id}"
     cached = cache_get(key)
     if cached:
         return None if cached.get("unavailable") else cached

@@ -82,6 +82,9 @@ interface ArtistDetail {
   summary?: string;
   evidence?: { source: string; collected_at: string; status: string; error_code?: string; source_url?: string; precision?: string; monthly_listeners_source?: string; contains_deezer_data?: boolean }[];
   missing_data?: string[];
+  social_profiles?: Record<string, string | null>;
+  social_observations?: Record<string, { value: number | null; display_value?: string; precision?: string; status: string; error_code?: string; source_url?: string; collected_at?: string | null }>;
+
   booking_range?: { min: number; max: number };
   last_enriched_at?: string;
   created_at: string;
@@ -226,6 +229,7 @@ export default function DiscoveryArtistDetailPage() {
   const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
   const [enrichStep, setEnrichStep] = useState<string | null>(null);
   const [enrichProgress, setEnrichProgress] = useState(0);
+  const [savingProfiles, setSavingProfiles] = useState(false);
 
   const { data: artist, isLoading, error } = useQuery<ArtistDetail>({
     queryKey: ["discovery-artist", artistId],
@@ -246,10 +250,11 @@ export default function DiscoveryArtistDetailPage() {
         setEnrichStatus(job.status);
         setEnrichStep(job.current_step);
         setEnrichProgress(job.progress);
-        if (job.status === "COMPLETED" || job.status === "FAILED") {
+        if (["DONE", "PARTIAL", "ERROR", "COMPLETED", "FAILED"].includes(job.status)) {
           clearInterval(interval);
-          if (job.status === "COMPLETED") {
-            toast.success("Enrichissement terminé !");
+          if (["DONE", "PARTIAL", "COMPLETED"].includes(job.status)) {
+            if (job.status === "PARTIAL") toast.info("Enrichissement partiel : certaines sources sont indisponibles.");
+            else toast.success("Enrichissement terminé !");
             queryClient.invalidateQueries({ queryKey: ["discovery-artist", artistId] });
           } else {
             toast.error(job.error_message || "Erreur lors de l'enrichissement");
@@ -345,7 +350,7 @@ export default function DiscoveryArtistDetailPage() {
                     </div>
                   )}
 
-                  <div className="flex items-start gap-6">
+                  <div className="flex flex-col sm:flex-row items-start gap-6">
                     {/* Artist image */}
                     <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
                       {artist.image_url ? (
@@ -363,7 +368,7 @@ export default function DiscoveryArtistDetailPage() {
                     </div>
 
                     {/* Artist info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="w-full sm:w-auto flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold truncate">{artist.name}</h1>
                         {artist.ai_tier && getTierInfo(artist.ai_tier) && (
@@ -454,10 +459,35 @@ export default function DiscoveryArtistDetailPage() {
                     {artist.evidence?.length ? artist.evidence.map(e => <p key={e.source}>{e.source_url ? <a href={e.source_url} target="_blank" rel="noopener noreferrer" className="underline">{e.monthly_listeners_source === 'spotify_public' ? 'Page publique Spotify' : e.source}</a> : e.source}{e.contains_deezer_data ? ' / Deezer' : ''} · {new Date(e.collected_at).toLocaleString('fr-FR')} · {e.status}{e.error_code ? ` (${e.error_code})` : ''}</p>) : <p>Provenance de collecte indisponible.</p>}
                     {!!artist.missing_data?.length && <p>Données manquantes : {artist.missing_data.join(', ')}</p>}
                     <p>Les projections et fourchettes de cachet sont des estimations. Leur précision prédictive n’est pas encore validée.</p>
+                    <div className="space-y-2 border-t pt-3">
+                      <p className="font-medium">Abonnés des réseaux sociaux</p>
+                      {Object.entries(artist.social_observations || {}).map(([platform, data]) => <div key={platform} className="text-sm">
+                        <span className="capitalize">{platform}</span>{' : '}
+                        {data.value == null ? (data.error_code === 'YOUTUBE_API_KEY_REQUIRED' ? 'Connexion YouTube à configurer par l’administrateur' : 'Indisponible') : <>
+                          {data.precision?.startsWith('rounded') ? '≈ ' : ''}{data.display_value || formatNumber(data.value)} abonnés
+                          <span className="text-xs text-muted-foreground"> · {data.precision?.startsWith('rounded') ? 'Arrondi publié' : data.precision === 'third_party_unspecified' ? 'Source tierce, précision inconnue' : 'Chiffre publié, précision non garantie'}</span>
+                        </>}
+                        {data.source_url && <a className="underline ml-2" href={data.source_url} target="_blank" rel="noopener noreferrer">Source</a>}
+                        {data.collected_at && <span className="block text-xs text-muted-foreground">Collecté le {new Date(data.collected_at).toLocaleString('fr-FR')}</span>}
+                      </div>)}
+                      <form className="space-y-2" onSubmit={async event => {
+                        event.preventDefault(); const values = new FormData(event.currentTarget); setSavingProfiles(true);
+                        try {
+                          await api.patch(`/discovery/artist/${artistId}/social-profiles`, Object.fromEntries(['instagram', 'tiktok', 'youtube'].map(platform => [`${platform}_url`, values.get(platform) || null])));
+                          await queryClient.invalidateQueries({ queryKey: ['discovery-artist', artistId] });
+                          toast.success('Profils enregistrés. Cliquez sur Enrichir pour actualiser les abonnés.');
+                        } catch { toast.error('Enregistrement impossible. Vérifiez les URL des profils et vos droits.'); }
+                        finally { setSavingProfiles(false); }
+                      }}>
+                        <p className="text-xs text-muted-foreground">Associez les profils de cet artiste. Les pseudonymes ne sont pas déduits de son nom.</p>
+                        {['instagram', 'tiktok', 'youtube'].map(platform => <label key={platform} className="block text-xs capitalize">{platform}<input type="url" name={platform} defaultValue={artist.social_profiles?.[platform] || ''} maxLength={500} placeholder={`https://www.${platform}.com/…`} className="block w-full border rounded px-2 py-1 bg-background" /></label>)}
+                        <button disabled={savingProfiles} className="underline disabled:opacity-50">{savingProfiles ? 'Enregistrement…' : 'Enregistrer les profils'}</button>
+                      </form>
+                    </div>
                     <Link href={`/events?artist=${artist.id}`} className="underline">Ajouter à un événement</Link>
                   </div>
                   {/* Action buttons */}
-                  <div className="flex items-center gap-3 mt-5 pt-4 border-t">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-5 pt-4 border-t">
                     <Button
                       onClick={handleEnrich}
                       disabled={!!enrichJobId}
@@ -545,17 +575,17 @@ export default function DiscoveryArtistDetailPage() {
                   },
                   artist.instagram_followers != null && artist.instagram_followers > 0 && {
                     icon: <Users className="h-5 w-5 text-pink-500" />,
-                    value: formatNumber(artist.instagram_followers),
+                    value: `${artist.social_observations?.instagram?.precision?.startsWith("rounded") ? "≈ " : ""}${formatNumber(artist.instagram_followers)}`,
                     label: "Instagram",
                   },
                   artist.tiktok_followers != null && artist.tiktok_followers > 0 && {
                     icon: <Users className="h-5 w-5 text-gray-800 dark:text-gray-200" />,
-                    value: formatNumber(artist.tiktok_followers),
+                    value: `${artist.social_observations?.tiktok?.precision?.startsWith("rounded") ? "≈ " : ""}${formatNumber(artist.tiktok_followers)}`,
                     label: "TikTok",
                   },
                   artist.youtube_subscribers != null && artist.youtube_subscribers > 0 && {
                     icon: <Users className="h-5 w-5 text-red-500" />,
-                    value: formatNumber(artist.youtube_subscribers),
+                    value: `${artist.social_observations?.youtube?.precision?.startsWith("rounded") ? "≈ " : ""}${formatNumber(artist.youtube_subscribers)}`,
                     label: "YouTube",
                   },
                   artist.velocity != null && {
