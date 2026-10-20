@@ -511,10 +511,11 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         DiscoverySnapshot.artist_id == artist.id,
         DiscoverySnapshot.source == "SPOTIFY",
         DiscoverySnapshot.status == "OK",
+        DiscoverySnapshot.parser_version == "v5.0-public-http",
         DiscoverySnapshot.ttl_expires_at > datetime.utcnow(),
     ).first()
     
-    if existing_snapshot:
+    if existing_snapshot and (existing_snapshot.raw_payload or {}).get("monthly_listeners") is not None:
         logger.info(f"Using cached Spotify snapshot for {artist.id}")
         return True
     
@@ -526,9 +527,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
             from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
             sp_scraped = scrape_spotify_artist(artist.spotify_artist_id)
             if sp_scraped:
-                spotify_data["monthly_listeners"] = sp_scraped.get("monthly_listeners", 0)
-                spotify_data["name"] = sp_scraped.get("name")
-                spotify_data["image_url"] = sp_scraped.get("image_url")
+                spotify_data.update(sp_scraped)
                 logger.info(f"Spotify scrape OK for {artist.id}: ml={sp_scraped.get('monthly_listeners')}")
         except Exception as e:
             logger.warning(f"Spotify scrape failed for {artist.id}: {e}")
@@ -552,7 +551,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         logger.warning(f"Deezer fetch failed for {artist.id}: {e}")
     
     # If we got nothing from either source
-    if not spotify_data.get("monthly_listeners") and not spotify_data.get("deezer_fans"):
+    if spotify_data.get("monthly_listeners") is None and not spotify_data.get("deezer_fans"):
         snapshot = DiscoverySnapshot(
             artist_id=artist.id,
             source="SPOTIFY",
@@ -561,7 +560,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
             error_message="No data from Spotify scraping or Deezer",
             raw_payload=spotify_data or None,
             ttl_expires_at=datetime.utcnow() + timedelta(hours=1),
-            parser_version="v4.0-scrape",
+            parser_version="v5.0-public-http",
         )
         db.add(snapshot)
         db.commit()
@@ -579,7 +578,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         status="OK",
         raw_payload=spotify_data,
         ttl_expires_at=datetime.utcnow() + timedelta(hours=TTL_SPOTIFY_HOURS),
-        parser_version="v4.0-scrape",
+        parser_version="v5.0-public-http",
     )
     db.add(snapshot)
     

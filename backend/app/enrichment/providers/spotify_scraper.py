@@ -1,112 +1,103 @@
+"""Collect public Spotify artist statistics without an API key or a browser.
+
+Only the requested artist's embedded entity is accepted. Rounded SEO descriptions
+are never promoted to exact observations. No private endpoints or session tokens.
 """
-Spotify Web Scraper Provider
-Scrapes public Spotify artist pages using Playwright to get:
-- Monthly listeners (real number from the page)
-- Artist name, image, verified status
-- Genres (from meta tags)
-No API key needed — uses open.spotify.com public pages.
-"""
+import base64
+import binascii
+import json
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
+import httpx
+from bs4 import BeautifulSoup
+from app.core.cache import cache_get, cache_set
+
 logger = logging.getLogger(__name__)
+PUBLIC_CACHE_TTL = 12 * 3600
+MAX_PAGE_BYTES = 2_000_000
+PARSER_VERSION = "spotify-public-state-v1"
 
 
-def _parse_listener_count(raw: str) -> int:
-    """Parse listener count strings like '6.1M', '500K', '1,234,567'."""
-    raw = raw.strip().replace(",", "").replace(" ", "")
-    multiplier = 1
-    if raw.upper().endswith("B"):
-        multiplier = 1_000_000_000
-        raw = raw[:-1]
-    elif raw.upper().endswith("M"):
-        multiplier = 1_000_000
-        raw = raw[:-1]
-    elif raw.upper().endswith("K"):
-        multiplier = 1_000
-        raw = raw[:-1]
+def parse_spotify_artist_page(content: str, spotify_id: str) -> Optional[Dict[str, Any]]:
+    """Parse only the exact artist entity, never recommended artists or rounded SEO."""
+    if not re.fullmatch(r"[A-Za-z0-9]{22}", spotify_id) or len(content) > MAX_PAGE_BYTES:
+        return None
+    soup = BeautifulSoup(content, "html.parser")
+    state_tag = soup.find("script", id="initialState")
+    if state_tag is None:
+        return None
     try:
-        return int(float(raw) * multiplier)
-    except (ValueError, TypeError):
-        return 0
+        encoded = state_tag.get_text().strip()
+        # Current public pages encode the state as base64 JSON.
+        state = json.loads(base64.b64decode(encoded, validate=True))
+        uri = f"spotify:artist:{spotify_id}"
+        artist = state["entities"]["items"][uri]
+        if artist.get("uri") != uri:
+            return None
+        listeners = artist.get("stats", {}).get("monthlyListeners")
+        # bool is an int subclass; floats/strings/negative values are not exact counts.
+        if type(listeners) is not int or listeners < 0:
+            return None
+        name = artist.get("profile", {}).get("name")
+        image = soup.find("meta", property="og:image")
+        return {
+            "spotify_artist_id": spotify_id,
+            "name": name,
+            "image_url": image.get("content") if image else None,
+            "monthly_listeners": listeners,
+            "monthly_listeners_source": "spotify_public",
+            "monthly_listeners_estimated": False,
+            "source_url": f"https://open.spotify.com/artist/{spotify_id}",
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "metric_window_days": 28,
+            "precision": "integer_published_by_source",
+            "parser_version": PARSER_VERSION,
+        }
+    except (ValueError, TypeError, KeyError, AttributeError, binascii.Error):
+        return None
 
 
 def scrape_spotify_artist(spotify_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch public HTML with bounded time/size and cache observations for 12 hours.
+
+    Failures and changes of page structure remain unavailable, never estimated.
+    Access denial/rate limiting stops here: no proxy rotation or private API fallback.
     """
-    Scrape a Spotify public artist page for monthly listeners + metadata.
-    Uses Playwright (sync) with headless Chromium.
-    
-    Returns dict with: name, monthly_listeners, image_url, description
-    or None on failure.
-    """
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        logger.error("Playwright not installed")
+    if not isinstance(spotify_id, str) or not re.fullmatch(r"[A-Za-z0-9]{22}", spotify_id):
         return None
-
-    url = f"https://open.spotify.com/artist/{spotify_id}"
-    logger.info(f"Scraping Spotify artist page: {url}")
-
+    key = f"spotify-public-page:v1:{spotify_id}"
+    cached = cache_get(key)
+    if cached:
+        return None if cached.get("unavailable") else cached
+    if cache_get("spotify-public-page:cooldown"):
+        return None
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                locale="en-US",
-            )
-            page = context.new_page()
-            page.goto(url, timeout=20000, wait_until="load")
-            # Wait for JS to render the page content
-            page.wait_for_timeout(5000)
-
-            # Extract from rendered DOM (body text)
-            body_text = ""
-            try:
-                body_text = page.inner_text("body")
-            except Exception:
-                pass
-
-            content = page.content()
-            browser.close()
-
-        result: Dict[str, Any] = {"spotify_artist_id": spotify_id}
-
-        # 1. Extract name from <title> tag: "Niska | Spotify"
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(content, "lxml")
-        title_tag = soup.find("title")
-        if title_tag:
-            name = title_tag.text.split("|")[0].strip()
-            if name and name not in ("Spotify", "Spotify – Web Player"):
-                result["name"] = name
-
-        # 2. Extract monthly listeners from rendered body text
-        # Pattern: "6,123,786 monthly listeners"
-        if body_text:
-            ml_match = re.search(
-                r"([\d,]+)\s*monthly\s*listener",
-                body_text,
-                re.IGNORECASE,
-            )
-            if ml_match:
-                raw = ml_match.group(1).replace(",", "")
-                try:
-                    result["monthly_listeners"] = int(raw)
-                except ValueError:
-                    pass
-
-        # 3. Try og:image if still available
-        og_image = soup.find("meta", property="og:image")
-        if og_image:
-            result["image_url"] = og_image.get("content", "")
-
-        logger.info(f"Scraped Spotify {spotify_id}: name={result.get('name')}, ml={result.get('monthly_listeners')}")
-        return result if result.get("name") or result.get("monthly_listeners") else None
-
-    except Exception as e:
-        logger.error(f"Spotify scraping failed for {spotify_id}: {e}")
+        with httpx.Client(timeout=httpx.Timeout(15, connect=5), follow_redirects=False) as client:
+            with client.stream("GET", f"https://open.spotify.com/artist/{spotify_id}", headers={
+                "User-Agent": "Radar/1.0 (+https://radarapp.fr)",
+                "Accept-Language": "en-US", "Accept": "text/html",
+            }) as response:
+                if response.status_code != 200:
+                    logger.warning("Spotify public page unavailable (%s) for %s", response.status_code, spotify_id)
+                    if response.status_code == 429:
+                        cache_set("spotify-public-page:cooldown", True, ttl=900)
+                    cache_set(key, {"unavailable": True}, ttl=900)
+                    return None
+                if "text/html" not in response.headers.get("content-type", "").lower():
+                    return None
+                content = bytearray()
+                for chunk in response.iter_bytes(chunk_size=65536):
+                    content.extend(chunk)
+                    if len(content) > MAX_PAGE_BYTES:
+                        return None
+                result = parse_spotify_artist_page(content.decode("utf-8", errors="replace"), spotify_id)
+        cache_set(key, result or {"unavailable": True}, ttl=PUBLIC_CACHE_TTL if result else 900)
+        return result
+    except httpx.HTTPError:
+        logger.warning("Spotify public page request failed for %s", spotify_id, exc_info=True)
         return None
 
 

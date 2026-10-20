@@ -12,3 +12,5 @@ Cette branche sécurise l’attribution des abonnements, centralise Core/Premium
 Audit complémentaire : [API et contrats](API-AUDIT.md).
 
 Parcours navigateur : [validation locale et patch](LOCAL-DEBUG.md).
+
+Collecte artistique : [auditeurs Spotify sans clé API](SPOTIFY-AUDIENCE.md).

@@ -611,12 +611,20 @@ async def get_artist_detail(
     for snapshot in snapshots:
         latest_by_source.setdefault(snapshot.source, snapshot)
     estimated_listeners = any((snap.raw_payload or {}).get("monthly_listeners_estimated") for snap in latest_by_source.values())
-    evidence = [{"source": snap.source, "collected_at": snap.fetched_at,
+    evidence = [{"source": snap.source, "collected_at": (snap.raw_payload or {}).get("collected_at") or snap.fetched_at,
+                 "recorded_at": snap.fetched_at,
                  "status": snap.status, "error_code": snap.error_code,
+                 "source_url": (snap.raw_payload or {}).get("source_url"),
+                 "monthly_listeners_source": (snap.raw_payload or {}).get("monthly_listeners_source"),
+                 "precision": (snap.raw_payload or {}).get("precision"),
                  "contains_deezer_data": bool((snap.raw_payload or {}).get("deezer_fans")),
                  "expires_at": snap.ttl_expires_at} for snap in latest_by_source.values()]
     missing = []
-    if not metrics or not metrics.monthly_listeners or estimated_listeners:
+    has_public_listener_observation = any(
+        (snap.raw_payload or {}).get("monthly_listeners_source") == "spotify_public"
+        and (snap.raw_payload or {}).get("monthly_listeners") is not None
+        for snap in latest_by_source.values())
+    if not metrics or (not metrics.monthly_listeners and not has_public_listener_observation) or estimated_listeners:
         missing.append("monthly_listeners")
     if not metrics or not metrics.spotify_followers:
         missing.append("spotify_followers")

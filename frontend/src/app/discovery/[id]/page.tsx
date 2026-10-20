@@ -80,7 +80,7 @@ interface ArtistDetail {
   patterns: string[];
   signals: string[];
   summary?: string;
-  evidence?: { source: string; collected_at: string; status: string; error_code?: string; contains_deezer_data?: boolean }[];
+  evidence?: { source: string; collected_at: string; status: string; error_code?: string; source_url?: string; precision?: string; monthly_listeners_source?: string; contains_deezer_data?: boolean }[];
   missing_data?: string[];
   booking_range?: { min: number; max: number };
   last_enriched_at?: string;
@@ -451,7 +451,7 @@ export default function DiscoveryArtistDetailPage() {
 
                   <div className="mt-4 text-sm space-y-2">
                     <p>Sources et dates de collecte</p>
-                    {artist.evidence?.length ? artist.evidence.map(e => <p key={e.source}>{e.source}{e.contains_deezer_data ? ' / Deezer' : ''} · {new Date(e.collected_at).toLocaleString('fr-FR')} · {e.status}{e.error_code ? ` (${e.error_code})` : ''}</p>) : <p>Provenance de collecte indisponible.</p>}
+                    {artist.evidence?.length ? artist.evidence.map(e => <p key={e.source}>{e.source_url ? <a href={e.source_url} target="_blank" rel="noopener noreferrer" className="underline">{e.monthly_listeners_source === 'spotify_public' ? 'Page publique Spotify' : e.source}</a> : e.source}{e.contains_deezer_data ? ' / Deezer' : ''} · {new Date(e.collected_at).toLocaleString('fr-FR')} · {e.status}{e.error_code ? ` (${e.error_code})` : ''}</p>) : <p>Provenance de collecte indisponible.</p>}
                     {!!artist.missing_data?.length && <p>Données manquantes : {artist.missing_data.join(', ')}</p>}
                     <p>Les projections et fourchettes de cachet sont des estimations. Leur précision prédictive n’est pas encore validée.</p>
                     <Link href={`/events?artist=${artist.id}`} className="underline">Ajouter à un événement</Link>

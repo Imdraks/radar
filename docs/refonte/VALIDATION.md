@@ -51,3 +51,8 @@ La CI GitHub elle-même n’a pas encore été observée au moment de la validat
 ## Complément du 20 octobre 2026
 
 Suite backend : 69 tests passent sur PostgreSQL jetable (995 avertissements de dépréciation/configuration de test avant nettoyage de ces conventions). Correctifs et nouvelles limites : API-AUDIT.md. Vérification des parcours locaux avec le vrai backend : LOCAL-DEBUG.md. La CI précédente a été inspectée : frontend réussi ; backend échouait sur une f-string de fixture incompatible avec Python 3.11, corrigée ; migration-history échouait sur le blocage historique connu. Le nouveau résultat distant doit être vérifié après publication.
+
+
+## Collecte Spotify publique — 20 octobre 2026
+
+92 tests backend réussis, dont 23 cas supplémentaires couvrant collecte/identité, erreurs HTTP, cache, absence d’estimation, persistance et restitution de provenance. Quatre artistes vérifiés par requêtes réelles non authentifiées : voir SPOTIFY-AUDIENCE.md. Typage TypeScript, build Next.js et compilation Python réussis. Aucun nouveau schéma ni migration pour ce collecteur.
