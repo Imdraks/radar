@@ -21,7 +21,7 @@ function Events() {
     <p>Chaque événement est relié à un projet de production pour ses tâches, fichiers, contrats et livrables.</p>
     <Link href="/map" className="underline">Consulter les événements artistiques sur la carte</Link>
     {message && <p role="status">{message}</p>}
-    <form className="border rounded-xl p-4 space-y-3" onSubmit={async e => {
+    <form className="border rounded-2xl bg-card p-5 sm:p-6 space-y-4 shadow-sm" onSubmit={async e => {
       e.preventDefault(); const form = e.currentTarget; const values = new FormData(form); setPending(true);
       try {
         const event = (await api.post('/events', { name: values.get('name'), venue: values.get('venue'), starts_at: values.get('start'), ends_at: values.get('end'), forecast_budget: values.get('budget') || null })).data;
@@ -38,9 +38,9 @@ function Events() {
       <label className="block">Lieu<input name="venue" maxLength={500} className="border rounded p-2 block w-full text-black" /></label>
       <div className="flex flex-wrap gap-4"><label>Début (UTC)<input required type="datetime-local" name="start" className="border rounded p-2 block text-black" /></label><label>Fin (UTC)<input required type="datetime-local" name="end" className="border rounded p-2 block text-black" /></label></div>
       <label className="block">Budget prévisionnel (€)<input type="number" min="0" step="0.01" name="budget" className="border rounded p-2 block text-black" /></label>
-      <button disabled={pending} className="bg-purple-700 text-white px-4 py-2 rounded disabled:opacity-50">{pending ? 'Création…' : 'Créer l’événement'}</button>
+      <button disabled={pending} className="bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2.5 rounded-xl font-medium disabled:opacity-50">{pending ? 'Création…' : 'Créer l’événement'}</button>
     </form>
-    {isLoading ? <p role="status">Chargement…</p> : isError ? <p role="alert">Impossible de charger les événements.</p> : !events?.length ? <p>Aucun événement enregistré.</p> : <div className="grid md:grid-cols-2 gap-4">{events.map(event => <article key={event.id} className="border rounded-xl p-4 space-y-2">
+    {isLoading ? <p role="status">Chargement…</p> : isError ? <p role="alert">Impossible de charger les événements.</p> : !events?.length ? <p>Aucun événement enregistré.</p> : <div className="grid md:grid-cols-2 gap-4">{events.map(event => <article key={event.id} className="border rounded-2xl bg-card p-5 space-y-3 shadow-sm">
       <h2 className="font-semibold">{event.name}</h2><p>{event.venue || 'Lieu à définir'} · {new Date(event.starts_at + 'Z').toLocaleString('fr-FR')}</p>
       {event.forecast_budget != null && <p>Budget prévisionnel : {event.forecast_budget} €</p>}
       <Link className="block underline" href={`/projects/${event.project_id}`}>Production, documents et tâches</Link>

@@ -15,11 +15,11 @@
 
 /* ============================================
    RADAR DESIGN SYSTEM - Complete CSS Reset
-   Primary Color: #0000FF (Pure Blue)
+   Primary Color: Violet
    Theme: Light/White
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* Inter is loaded once by next/font in the root layout. */
 
 /* Force light mode on landing pages */
 .light,
@@ -43,8 +43,8 @@
 @layer base {
   :root {
     /* Core Colors */
-    --background: 0 0% 98%;
-    --foreground: 224 71% 4%;
+    --background: 240 20% 98%;
+    --foreground: 230 22% 17%;
     
     /* Cards & Surfaces */
     --card: 0 0% 100%;
@@ -54,8 +54,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
     
-    /* Primary - Pure Blue #0000FF */
-    --primary: 240 100% 50%;
+    /* Primary - Pure Blue #7c3aed */
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
     
     /* Secondary */
@@ -87,12 +87,12 @@
     --info-foreground: 0 0% 100%;
     
     /* Borders */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 240 100% 50%;
+    --border: 240 10% 91%;
+    --input: 240 10% 86%;
+    --ring: 262 83% 58%;
     
     /* Radius */
-    --radius: 0.625rem;
+    --radius: 0.75rem;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -202,12 +202,12 @@
   }
 
   a {
-    color: hsl(240 100% 50%);
+    color: inherit;
     text-decoration: none;
   }
 
   a:hover {
-    text-decoration: underline;
+    text-decoration: none;
   }
 }
 
@@ -223,8 +223,8 @@
   }
 
   .btn-primary {
-    @apply bg-[#0000FF] text-white hover:bg-[#0000CC] active:bg-[#0000AA];
-    @apply focus:ring-[#0000FF]/50 shadow-md shadow-blue-500/20;
+    @apply bg-[#7c3aed] text-white hover:bg-[#6d28d9] active:bg-[#5b21b6];
+    @apply focus:ring-[#7c3aed]/50 shadow-md shadow-blue-500/20;
   }
 
   .btn-secondary {
@@ -233,8 +233,8 @@
   }
 
   .btn-outline {
-    @apply bg-transparent border-2 border-[#0000FF] text-[#0000FF];
-    @apply hover:bg-[#0000FF] hover:text-white;
+    @apply bg-transparent border-2 border-[#7c3aed] text-[#7c3aed];
+    @apply hover:bg-[#7c3aed] hover:text-white;
   }
 
   .btn-ghost {
@@ -276,7 +276,7 @@
   .input {
     @apply w-full h-10 px-3 rounded-lg border border-gray-300 bg-white;
     @apply text-gray-900 placeholder-gray-400;
-    @apply focus:outline-none focus:ring-2 focus:ring-[#0000FF]/20 focus:border-[#0000FF];
+    @apply focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed];
     @apply transition-all duration-200;
   }
 
@@ -294,7 +294,7 @@
   }
 
   .badge-primary {
-    @apply bg-blue-100 text-[#0000FF];
+    @apply bg-blue-100 text-[#7c3aed];
   }
 
   .badge-success {
@@ -314,7 +314,7 @@
   }
 
   .badge-new {
-    @apply bg-blue-100 text-[#0000FF] uppercase tracking-wide font-bold text-[10px];
+    @apply bg-blue-100 text-[#7c3aed] uppercase tracking-wide font-bold text-[10px];
   }
 
   /* Tables */
@@ -353,11 +353,11 @@
   }
 
   .sidebar-item.active {
-    @apply bg-[#0000FF] text-white shadow-md shadow-blue-500/25;
+    @apply bg-[#7c3aed] text-white shadow-md shadow-blue-500/25;
   }
 
   .sidebar-item.active:hover {
-    @apply bg-[#0000DD];
+    @apply bg-[#6d28d9];
   }
 
   /* Header */
@@ -439,7 +439,7 @@
 
   /* Avatars */
   .avatar {
-    @apply rounded-full bg-gradient-to-br from-[#0000FF] to-blue-400;
+    @apply rounded-full bg-gradient-to-br from-[#7c3aed] to-blue-400;
     @apply flex items-center justify-center text-white font-semibold;
   }
 
@@ -453,7 +453,7 @@
   }
 
   .progress-bar {
-    @apply h-full bg-[#0000FF] rounded-full transition-all duration-300;
+    @apply h-full bg-[#7c3aed] rounded-full transition-all duration-300;
   }
 
   /* Alerts */
@@ -500,7 +500,7 @@
   }
 
   .spinner {
-    @apply w-5 h-5 border-2 border-gray-300 border-t-[#0000FF] rounded-full animate-spin;
+    @apply w-5 h-5 border-2 border-gray-300 border-t-[#7c3aed] rounded-full animate-spin;
   }
 
   /* Dividers */
@@ -529,14 +529,14 @@
   }
 
   .tab.active {
-    @apply text-[#0000FF] border-[#0000FF];
+    @apply text-[#7c3aed] border-[#7c3aed];
   }
 
   /* Search */
   .search-input {
     @apply w-full h-10 pl-10 pr-4 rounded-lg border border-gray-300 bg-white;
     @apply text-gray-900 placeholder-gray-400;
-    @apply focus:outline-none focus:ring-2 focus:ring-[#0000FF]/20 focus:border-[#0000FF];
+    @apply focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed];
   }
 
   /* Notifications */
@@ -568,11 +568,11 @@
    ============================================ */
 @layer utilities {
   /* Text colors */
-  .text-primary { color: #0000FF; }
+  .text-primary { color: hsl(var(--primary)); }
   .text-muted { @apply text-gray-500; }
   
   /* Background colors */
-  .bg-primary { background-color: #0000FF; }
+  .bg-primary { background-color: hsl(var(--primary)); }
   
   /* Hover effects */
   .hover-lift {
@@ -585,7 +585,7 @@
 
   /* Focus ring */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-[#0000FF]/50 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/50 focus:ring-offset-2;
   }
 
   /* Truncate multiline */
@@ -634,7 +634,7 @@
 
   /* Gradient text */
   .text-gradient {
-    @apply bg-gradient-to-r from-[#0000FF] to-blue-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#7c3aed] to-blue-400 bg-clip-text text-transparent;
   }
 }
 
@@ -1135,7 +1135,7 @@
   .gradient-border {
     position: relative;
     background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
-                linear-gradient(135deg, #0000FF, #00BFFF) border-box;
+                linear-gradient(135deg, #7c3aed, #00BFFF) border-box;
     border: 2px solid transparent;
   }
   
@@ -1299,3 +1299,34 @@
   }
 }
 
+
+
+/* Shared agency workspace: quiet surfaces, readable hierarchy, keyboard focus. */
+@layer components {
+  .radar-app {
+    color: hsl(var(--foreground));
+  }
+  .radar-nav-link {
+    @apply flex min-h-[38px] items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  .radar-nav-link svg { flex-shrink: 0; }
+  .radar-nav-active {
+    @apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
+  }
+  .radar-content > div > h1,
+  .radar-page-title {
+    @apply tracking-tight;
+  }
+  .radar-eyebrow {
+    @apply text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground;
+  }
+  .radar-content :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]):not([type=file]), select, textarea) {
+    @apply rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground/70;
+  }
+  .radar-content :where(input, select, textarea):focus-visible {
+    @apply outline-none ring-2 ring-primary/20 border-primary;
+  }
+  .radar-content :where(button, a, input, select, textarea):focus-visible {
+    outline-offset: 3px;
+  }
+}

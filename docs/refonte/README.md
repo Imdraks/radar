@@ -18,3 +18,5 @@ Collecte artistique : [auditeurs Spotify sans clé API](SPOTIFY-AUDIENCE.md).
 Réseaux sociaux : [compteurs Instagram, TikTok et YouTube](SOCIAL-AUDIENCE.md).
 
 Préversion privée : [démarrer Radar dans GitHub Codespaces](CODESPACES.md).
+
+Interface : [thème clair, navigation et parcours modernisés](UI-REFRESH.md).

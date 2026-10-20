@@ -1,5 +1,6 @@
 "use client";
 import { workspaceFetch } from "@/lib/workspace-fetch";
+import { useAuthStore } from "@/store/auth";
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
@@ -101,6 +102,7 @@ export default function TodayPage() {
 }
 
 function TodayContent() {
+  const user = useAuthStore(state => state.user);
   const [data, setData] = useState<DashboardData | null>(null);
   const [inboxItems, setInboxItems] = useState<InboxItemPreview[]>([]);
   const [workspaces, setWorkspaces] = useState<UserWorkspace[]>([]);
@@ -180,7 +182,7 @@ function TodayContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -203,20 +205,20 @@ function TodayContent() {
   const allEmpty = hasNoTodos && hasNoUrgencies && hasNoBusiness && inboxItems.length === 0;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <p className="radar-eyebrow mb-2">Vue d’ensemble</p>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {greeting}
+            {greeting}{user?.full_name ? `, ${user.full_name.split(' ')[0]}` : ''}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {format(now, "EEEE d MMMM yyyy", { locale: fr })}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/inbox">
-            <Button variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm"><Link href="/inbox">
               <Inbox className="h-4 w-4 mr-2" />
               Inbox
               {inboxItems.length > 0 && (
@@ -224,9 +226,8 @@ function TodayContent() {
                   {inboxItems.length}
                 </Badge>
               )}
-            </Button>
-          </Link>
-          <Button onClick={fetchDashboard} variant="ghost" size="sm">
+            </Link></Button>
+          <Button onClick={fetchDashboard} variant="outline" size="icon" aria-label="Actualiser l’activité" title="Actualiser l’activité">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -246,30 +247,79 @@ function TodayContent() {
         </div>
       )}
 
+      {/* Quick Stats */}
+      {data && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+                <FolderOpen className="h-5 w-5 text-primary dark:text-primary" />
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{data.active_projects}</p>
+                <p className="text-xs text-gray-500">Projets actifs</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                <FileCheck className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{data.pending_validations}</p>
+                <p className="text-xs text-gray-500">Validations</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{data.hot_leads ?? "Radar Business"}</p>
+                <p className="text-xs text-gray-500">Leads chauds</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">
+                  {data.monthly_revenue == null ? 'Radar Business' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
+                </p>
+                <p className="text-xs text-gray-500">Ce mois</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+
       {/* Empty State */}
       {allEmpty && (
-        <Card className="border-dashed">
+        <Card className="border-primary/15 bg-gradient-to-br from-card to-primary/[0.03]">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Sparkles className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+            <Sparkles className="h-12 w-12 text-primary/60 mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Tout est clair !
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
               Aucune action urgente pour le moment. C'est le bon moment pour capturer de nouvelles idées ou avancer sur vos projets.
             </p>
-            <div className="flex gap-3">
-              <Link href="/inbox">
-                <Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild><Link href="/inbox">
                   <Plus className="h-4 w-4 mr-2" />
                   Capturer une idée
-                </Button>
-              </Link>
-              <Link href="/projects">
-                <Button variant="outline">
+                </Link></Button>
+              <Button asChild variant="outline"><Link href="/projects">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   Voir les projets
-                </Button>
-              </Link>
+                </Link></Button>
             </div>
           </CardContent>
         </Card>
@@ -283,7 +333,7 @@ function TodayContent() {
           <Card className="lg:col-span-1">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">À faire aujourd'hui</CardTitle>
               </div>
               <CardDescription>
@@ -330,7 +380,7 @@ function TodayContent() {
                 ))
               )}
               {(data?.todos_count || 0) > 5 && (
-                <Link href="/production" className="block text-center text-sm text-blue-600 hover:underline py-2">
+                <Link href="/production" className="block text-center text-sm text-primary hover:underline py-2">
                   Voir les {data?.todos_count} actions
                 </Link>
               )}
@@ -407,11 +457,9 @@ function TodayContent() {
                 <div className="text-center py-8 text-gray-400">
                   <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">Pas de deals actifs</p>
-                  <Link href="/pipeline">
-                    <Button variant="link" size="sm" className="mt-2">
+                  <Button asChild variant="link" size="sm" className="mt-2"><Link href="/pipeline">
                       Créer un deal
-                    </Button>
-                  </Link>
+                    </Link></Button>
                 </div>
               ) : (
                 data?.business.slice(0, 5).map((item) => (
@@ -442,63 +490,11 @@ function TodayContent() {
                 ))
               )}
               {(data?.business_count || 0) > 5 && (
-                <Link href="/pipeline" className="block text-center text-sm text-blue-600 hover:underline py-2">
+                <Link href="/pipeline" className="block text-center text-sm text-primary hover:underline py-2">
                   Voir le pipeline
                 </Link>
               )}
             </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Quick Stats */}
-      {data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <FolderOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{data.active_projects}</p>
-                <p className="text-xs text-gray-500">Projets actifs</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                <FileCheck className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{data.pending_validations}</p>
-                <p className="text-xs text-gray-500">Validations</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-                <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{data.hot_leads ?? "Radar Business"}</p>
-                <p className="text-xs text-gray-500">Leads chauds</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {data.monthly_revenue == null ? 'Radar Business' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
-                </p>
-                <p className="text-xs text-gray-500">Ce mois</p>
-              </div>
-            </div>
           </Card>
         </div>
       )}
@@ -512,11 +508,9 @@ function TodayContent() {
                 <Inbox className="h-5 w-5 text-purple-600" />
                 <CardTitle className="text-lg">Inbox</CardTitle>
               </div>
-              <Link href="/inbox">
-                <Button variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm"><Link href="/inbox">
                   Voir tout <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </Link>
+                </Link></Button>
             </div>
           </CardHeader>
           <CardContent>
