@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -164,7 +165,7 @@ export default function QuoteDetailPage() {
   const fetchQuote = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -197,7 +198,7 @@ export default function QuoteDetailPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -220,7 +221,7 @@ export default function QuoteDetailPage() {
       const token = localStorage.getItem('access_token');
       
       // 1. Sauvegarder les infos du devis
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -269,7 +270,7 @@ export default function QuoteDetailPage() {
       
       // Supprimer les items
       for (const item of itemsToDelete) {
-        await fetch(`/api/v1/billing/quotes/${quoteId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/items/${item.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -277,7 +278,7 @@ export default function QuoteDetailPage() {
       
       // Ajouter les nouveaux items
       for (const item of itemsToAdd) {
-        await fetch(`/api/v1/billing/quotes/${quoteId}/items`, {
+        await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/items`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -295,7 +296,7 @@ export default function QuoteDetailPage() {
       
       // Modifier les items existants
       for (const item of itemsToUpdate) {
-        await fetch(`/api/v1/billing/quotes/${quoteId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/items/${item.id}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -396,7 +397,7 @@ export default function QuoteDetailPage() {
   const updateStatus = async (status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -429,7 +430,7 @@ export default function QuoteDetailPage() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + convertForm.due_days);
       
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}/convert`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/convert`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -466,7 +467,7 @@ export default function QuoteDetailPage() {
     setGeneratingPdf(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}/pdf`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/pdf`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -511,7 +512,7 @@ export default function QuoteDetailPage() {
     setSavingToDrive(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}/pdf/drive`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/pdf/drive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });

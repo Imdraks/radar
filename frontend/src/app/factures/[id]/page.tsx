@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -179,7 +180,7 @@ export default function InvoiceDetailPage() {
   const fetchInvoice = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -212,7 +213,7 @@ export default function InvoiceDetailPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -235,7 +236,7 @@ export default function InvoiceDetailPage() {
       const token = localStorage.getItem('access_token');
       
       // 1. Sauvegarder les infos de la facture
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -284,7 +285,7 @@ export default function InvoiceDetailPage() {
       
       // Supprimer les items
       for (const item of itemsToDelete) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -292,7 +293,7 @@ export default function InvoiceDetailPage() {
       
       // Ajouter les nouveaux items
       for (const item of itemsToAdd) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -310,7 +311,7 @@ export default function InvoiceDetailPage() {
       
       // Modifier les items existants
       for (const item of itemsToUpdate) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -405,7 +406,7 @@ export default function InvoiceDetailPage() {
   const updateStatus = async (status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -434,7 +435,7 @@ export default function InvoiceDetailPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/payment`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -494,7 +495,7 @@ export default function InvoiceDetailPage() {
     setGeneratingPdf(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/pdf`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/pdf`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -522,7 +523,7 @@ export default function InvoiceDetailPage() {
     setSavingToDrive(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/pdf/drive`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/pdf/drive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });

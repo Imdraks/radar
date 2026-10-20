@@ -38,6 +38,8 @@ def is_safe_url(url: str) -> bool:
         
         # Block known dangerous hosts
         blocked_hosts = {"localhost", "127.0.0.1", "::1", "0.0.0.0", ""}
+        if parsed.username or parsed.password or parsed.port not in (None, 80, 443):
+            return False
         if hostname in blocked_hosts:
             return False
         
@@ -46,7 +48,7 @@ def is_safe_url(url: str) -> bool:
             resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
             for family, _, _, _, sockaddr in resolved:
                 ip = ip_address(sockaddr[0])
-                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+                if not ip.is_global:
                     return False
         except (socket.gaierror, ValueError):
             return False
@@ -97,7 +99,7 @@ def extract_phones(text: str) -> List[str]:
     return list(set(phones))
 
 
-def search_official_website(url: str, allowed_domains: List[str]) -> dict:
+def search_official_website(url: str, allowed_domains: List[str], max_pages: int = 5) -> dict:
     """
     Search official website for contact info.
     Returns dict with contact info and evidence.
@@ -149,16 +151,27 @@ def search_official_website(url: str, allowed_domains: List[str]) -> dict:
             "User-Agent": "Mozilla/5.0 (compatible; RadarBot/1.0; +https://radarapp.fr/bot)"
         }
         
-        with httpx.Client(timeout=10.0, follow_redirects=True) as client:
-            for check_url in urls_to_check[:5]:  # Limit to 5 pages
+        with httpx.Client(timeout=10.0, follow_redirects=False) as client:
+            for check_url in urls_to_check[:max_pages]:  # Limit to 5 pages
                 result["searched_urls"].append(check_url)
                 result["pages_crawled"] += 1
                 
                 try:
-                    response = client.get(check_url, headers=headers)
-                    
-                    if response.status_code == 200:
-                        text = response.text
+                    if not is_safe_url(check_url):
+                        continue
+                    # Redirects are deliberately not followed: Location may target internal services.
+                    with client.stream("GET", check_url, headers=headers) as response:
+                        if response.status_code != 200:
+                            continue
+                        payload = bytearray()
+                        for chunk in response.iter_bytes(chunk_size=65536):
+                            payload.extend(chunk)
+                            if len(payload) > 2_000_000:
+                                break
+                        if len(payload) > 2_000_000:
+                            continue
+                        text = payload.decode(response.encoding or "utf-8", errors="replace")
+                    if text:
                         
                         # Extract emails
                         emails = extract_emails(text)
@@ -201,7 +214,7 @@ def search_official_website(url: str, allowed_domains: List[str]) -> dict:
 
 @router.post("/opportunities/{opportunity_id}/find", response_model=ContactFinderResponse)
 def find_contact(
-    opportunity_id: UUID,
+    opportunity_id: int,
     data: ContactFinderRequest = ContactFinderRequest(),
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
@@ -228,7 +241,7 @@ def find_contact(
     if opportunity.contact_email or opportunity.contact_phone:
         # Return existing contact info
         return ContactFinderResponse(
-            id=UUID(int=0),  # Placeholder
+            id=0,  # Existing opportunity contact, no search-result row
             opportunity_id=opportunity_id,
             status="already_found",
             contact_email=opportunity.contact_email,
@@ -250,7 +263,7 @@ def find_contact(
     
     search_result = search_official_website(
         opportunity.url_primary,
-        allowed_domains
+        allowed_domains, max_pages=data.max_pages
     )
     
     duration_ms = int((time.time() - start_time) * 1000)
@@ -325,7 +338,7 @@ def find_contact(
 
 @router.get("/opportunities/{opportunity_id}/result", response_model=Optional[ContactFinderResponse])
 def get_contact_finder_result(
-    opportunity_id: UUID,
+    opportunity_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):

@@ -302,6 +302,9 @@ class CollectionRun(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
+    # Legacy runs remain unassigned until their ownership is reconciled.
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=True, index=True)
+
     # Request context
     objective = Column(Enum(ObjectiveType), nullable=False)
     entities_requested = Column(JSON, default=list)  # [{name, type}]

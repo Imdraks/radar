@@ -139,7 +139,7 @@ def _resolve_spotify_id_by_name(name: str) -> Optional[Dict[str, Any]]:
 # MAIN PIPELINE TASK
 # ============================================================================
 
-@celery_app.task(bind=True, name="discovery.enrichment_pipeline")
+@celery_app.task(bind=True, name="discovery.enrichment_pipeline", acks_late=True, reject_on_worker_lost=True, max_retries=3)
 def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
     """
     Main enrichment pipeline task.
@@ -161,6 +161,9 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
             logger.error(f"Job {job_id} not found")
             return {"status": "ERROR", "message": "Job not found"}
         
+        if job.status in {"DONE", "PARTIAL"}:
+            return {"status": job.status, "artist_id": str(job.artist_id), "job_id": job_id}
+
         # Update job with celery task id
         job.celery_task_id = self.request.id
         job.mark_running("MATCH")
@@ -223,7 +226,7 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
             error_message = str(e)
             
             # Categorize error
-            if "429" in str(e) or "rate" in str(e).lower():
+            if "429" in str(e) or "rate limit" in str(e).lower():
                 error_code = "RATE_LIMITED"
                 error_message = "Limite atteinte, réessayez plus tard"
             elif "timeout" in str(e).lower():
@@ -236,6 +239,14 @@ def run_enrichment_pipeline(self, job_id: str) -> Dict[str, Any]:
                 error_code = "PARSER_CHANGED"
                 error_message = "Page modifiée"
             
+            db.rollback()
+            job = db.query(DiscoveryEnrichmentJob).filter(DiscoveryEnrichmentJob.id == job_id).one()
+            if error_code in {"RATE_LIMITED", "TIMEOUT"} and self.request.retries < self.max_retries:
+                job.status = "QUEUED"
+                job.error_code = error_code
+                job.error_message = error_message
+                db.commit()
+                raise self.retry(exc=e, countdown=min(300, 30 * 2 ** self.request.retries))
             job.mark_failed(error_code, error_message)
             db.commit()
             raise
@@ -500,10 +511,11 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         DiscoverySnapshot.artist_id == artist.id,
         DiscoverySnapshot.source == "SPOTIFY",
         DiscoverySnapshot.status == "OK",
+        DiscoverySnapshot.parser_version == "v5.1-public-links",
         DiscoverySnapshot.ttl_expires_at > datetime.utcnow(),
     ).first()
     
-    if existing_snapshot:
+    if existing_snapshot and (existing_snapshot.raw_payload or {}).get("monthly_listeners") is not None:
         logger.info(f"Using cached Spotify snapshot for {artist.id}")
         return True
     
@@ -515,9 +527,10 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
             from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
             sp_scraped = scrape_spotify_artist(artist.spotify_artist_id)
             if sp_scraped:
-                spotify_data["monthly_listeners"] = sp_scraped.get("monthly_listeners", 0)
-                spotify_data["name"] = sp_scraped.get("name")
-                spotify_data["image_url"] = sp_scraped.get("image_url")
+                spotify_data.update(sp_scraped)
+                for platform, url in sp_scraped.get("social_profiles", {}).items():
+                    if platform in {"instagram", "tiktok", "youtube"} and not getattr(artist, f"{platform}_url"):
+                        setattr(artist, f"{platform}_url", url)
                 logger.info(f"Spotify scrape OK for {artist.id}: ml={sp_scraped.get('monthly_listeners')}")
         except Exception as e:
             logger.warning(f"Spotify scrape failed for {artist.id}: {e}")
@@ -541,7 +554,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         logger.warning(f"Deezer fetch failed for {artist.id}: {e}")
     
     # If we got nothing from either source
-    if not spotify_data.get("monthly_listeners") and not spotify_data.get("deezer_fans"):
+    if spotify_data.get("monthly_listeners") is None and not spotify_data.get("deezer_fans"):
         snapshot = DiscoverySnapshot(
             artist_id=artist.id,
             source="SPOTIFY",
@@ -550,24 +563,17 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
             error_message="No data from Spotify scraping or Deezer",
             raw_payload=spotify_data or None,
             ttl_expires_at=datetime.utcnow() + timedelta(hours=1),
-            parser_version="v4.0-scrape",
+            parser_version="v5.1-public-links",
         )
         db.add(snapshot)
         db.commit()
         return False
     
-    # Estimate followers from Deezer fans if no Spotify followers
-    spotify_data.setdefault("followers_total", spotify_data.get("deezer_fans", 0))
+    # Deezer fans and Spotify listeners/followers are distinct measurements.
+    # Keep missing values missing; do not manufacture cross-provider metrics.
     spotify_data.setdefault("genres", [])
-    spotify_data.setdefault("popularity", 0)
     spotify_data.setdefault("top_tracks", [])
-    
-    # Estimate monthly listeners from deezer fans if we don't have Spotify ML
-    if not spotify_data.get("monthly_listeners") and spotify_data.get("deezer_fans"):
-        # Deezer fans ≈ Spotify followers, rough ML estimate: fans * 1.5
-        spotify_data["monthly_listeners"] = int(spotify_data["deezer_fans"] * 1.5)
-        spotify_data["monthly_listeners_estimated"] = True
-    
+
     # Store snapshot
     snapshot = DiscoverySnapshot(
         artist_id=artist.id,
@@ -575,7 +581,7 @@ def step_spotify(db: Session, job: DiscoveryEnrichmentJob) -> bool:
         status="OK",
         raw_payload=spotify_data,
         ttl_expires_at=datetime.utcnow() + timedelta(hours=TTL_SPOTIFY_HOURS),
-        parser_version="v4.0-scrape",
+        parser_version="v5.1-public-links",
     )
     db.add(snapshot)
     
@@ -631,6 +637,30 @@ def _estimate_monthly_listeners(popularity: int, followers: int) -> int:
 # STEP 4: COMPUTE METRICS
 # ============================================================================
 
+def step_social(db: Session, artist: DiscoveryArtist, viberate_snapshot=None) -> Dict[str, Any]:
+    """Collect associated profiles, retaining labelled third-party observations if available."""
+    from app.enrichment.providers.social_public import fetch_social_counter, METRICS
+    observations = {}
+    legacy = (viberate_snapshot.raw_payload if viberate_snapshot else None) or {}
+    nested = legacy.get("social_stats") if isinstance(legacy.get("social_stats"), dict) else {}
+    for platform, metric in METRICS.items():
+        record = fetch_social_counter(platform, getattr(artist, f"{platform}_url"))
+        old_value = legacy.get(metric)
+        if old_value is None:
+            old_value = nested.get(metric)
+        if record["value"] is None and type(old_value) is int and old_value >= 0 and artist.viberate_url:
+            record = {**record, "value":old_value, "display_value":str(old_value),
+                      "source_url":artist.viberate_url if artist.viberate_url.startswith(("https://www.viberate.com/","https://viberate.com/")) else None, "precision":"third_party_unspecified", "status":"collected",
+                      "primary_error_code":record["error_code"], "error_code":None,
+                      "collected_at":viberate_snapshot.fetched_at.isoformat()}
+        observations[platform] = record
+    has_any = any(record["status"] == "collected" for record in observations.values())
+    db.add(DiscoverySnapshot(artist_id=artist.id, source="SOCIAL", status="OK" if has_any else "PARTIAL",
+                            raw_payload={"observations":observations}, parser_version="social-public-v1",
+                            ttl_expires_at=datetime.utcnow()+timedelta(hours=12 if has_any else 1)))
+    return observations
+
+
 def step_compute(db: Session, job: DiscoveryEnrichmentJob, viberate_ok: bool, spotify_ok: bool) -> None:
     """
     Step 4: Compute metrics from snapshots.
@@ -676,25 +706,13 @@ def step_compute(db: Session, job: DiscoveryEnrichmentJob, viberate_ok: bool, sp
     spotify_followers = spot_data.get("followers_total", 0) or 0
     deezer_fans = spot_data.get("deezer_fans", 0) or 0
     
-    # Social stats: prefer Viberate scrape, fallback to 0
-    instagram_followers = vib_data.get("instagram_followers", 0) or 0
-    tiktok_followers = vib_data.get("tiktok_followers", 0) or 0
-    youtube_subscribers = vib_data.get("youtube_subscribers", 0) or 0
-    
-    # If Viberate had nested social_stats format
-    if not instagram_followers and isinstance(vib_data.get("social_stats"), dict):
-        ss = vib_data["social_stats"]
-        instagram_followers = ss.get("instagram_followers", 0) or 0
-        tiktok_followers = ss.get("tiktok_followers", 0) or 0
-        youtube_subscribers = ss.get("youtube_subscribers", 0) or 0
-        spotify_followers = spotify_followers or (ss.get("spotify_followers", 0) or 0)
-    
-    # Use deezer_fans as spotify_followers proxy if we have nothing
-    if not spotify_followers and deezer_fans:
-        spotify_followers = deezer_fans
-    
-    total_social = instagram_followers + tiktok_followers + youtube_subscribers + spotify_followers
-    
+    # Public social counters, with explicit precision and unavailable states.
+    social = step_social(db, artist, viberate_snapshot)
+    instagram_followers = social["instagram"]["value"]
+    tiktok_followers = social["tiktok"]["value"]
+    youtube_subscribers = social["youtube"]["value"]
+    total_social = sum(value or 0 for value in (instagram_followers, tiktok_followers, youtube_subscribers, spotify_followers))
+
     # Calculate score using existing engine logic
     score, timing, recommendation, drivers, penalties = calculate_discovery_score(
         monthly_listeners=monthly_listeners,
@@ -768,9 +786,9 @@ def step_compute(db: Session, job: DiscoveryEnrichmentJob, viberate_ok: bool, sp
         snapshot_date=datetime.utcnow(),
         spotify_monthly_listeners=monthly_listeners or None,
         spotify_followers=spotify_followers or None,
-        tiktok_followers=tiktok_followers or None,
-        youtube_subscribers=youtube_subscribers or None,
-        instagram_followers=instagram_followers or None,
+        tiktok_followers=tiktok_followers,
+        youtube_subscribers=youtube_subscribers,
+        instagram_followers=instagram_followers,
         source_quality_score=80.0 if data_quality == "HIGH" else 50.0,
         sources_used="deezer,spotify,musicbrainz",
     )
@@ -1205,8 +1223,10 @@ def detect_patterns(historical: List, velocity: float, acceleration: float) -> L
     return patterns
 
 
-def estimate_fees(monthly_listeners: int, total_social: int, velocity: float) -> Tuple[int, int]:
-    """Estimate booking fees."""
+def estimate_fees(monthly_listeners: int, total_social: int, velocity: float) -> Tuple[Optional[int], Optional[int]]:
+    """Indicative range only when observations support an estimate."""
+    if not monthly_listeners and not total_social:
+        return None, None
     if monthly_listeners < 5000:
         base_min, base_max = 300, 800
     elif monthly_listeners < 20000:
@@ -1243,7 +1263,8 @@ def refresh_artist(artist_id: str, workspace_id: int, requested_by: int = None) 
     db = get_db()
     try:
         artist = db.query(DiscoveryArtist).filter(
-            DiscoveryArtist.id == artist_id
+            DiscoveryArtist.id == artist_id,
+            DiscoveryArtist.workspace_id == workspace_id
         ).first()
         
         if not artist:

@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -392,7 +393,7 @@ function CompanyInfoSection({
     setSearchError(null);
     try {
       const token = localStorage.getItem("access_token");
-      const res = await fetch(
+      const res = await workspaceFetch(
         `/api/v1/workspaces/siret/search?q=${encodeURIComponent(clean)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );

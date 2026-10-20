@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://radar:radar_password@localhost:5432/opportunities_radar"
     
+    # Optional free-quota YouTube Data API key; never sent to the frontend.
+    youtube_api_key: str = Field(default="", repr=False)
+
     # Redis
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/0"

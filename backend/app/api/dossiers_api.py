@@ -45,8 +45,8 @@ def list_dossiers(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     # Tri
-    sort_by: str = Query("updated_at", regex="^(updated_at|created_at|quality_score)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("updated_at", pattern="^(updated_at|created_at|quality_score)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # Filtres
     state: Optional[List[DossierStateEnum]] = Query(None),
     objective: Optional[List[DossierObjectiveEnum]] = Query(None),

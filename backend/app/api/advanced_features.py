@@ -24,6 +24,10 @@ from app.services.audit_log import AuditService, AuditAction, audit_log_to_dict
 from app.services.export_service import ExportService
 from app.scoring.ml_scoring import MLScoringEngine
 
+def suspend_predictions():
+    raise HTTPException(status_code=503, detail="Prédictions commerciales suspendues : méthode non validée")
+
+
 router = APIRouter(tags=["Advanced Features"])
 
 
@@ -31,7 +35,7 @@ router = APIRouter(tags=["Advanced Features"])
 # RAPPORTS HEBDOMADAIRES
 # ==============================================================
 
-@router.get("/reports/weekly")
+# Retained implementation; /reports/weekly is served by the canonical reports router.
 def get_weekly_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -69,7 +73,7 @@ def get_weekly_report(
     }
 
 
-@router.post("/reports/weekly/send")
+# Retained implementation; sending uses the canonical reports router.
 def send_weekly_report(
     recipients: Optional[List[str]] = None,
     db: Session = Depends(get_db),
@@ -327,7 +331,7 @@ def export_opportunities(
 
 @router.get("/export/opportunities/download")
 def download_opportunities(
-    format: str = Query("xlsx", regex="^(xlsx|csv|pdf)$"),
+    format: str = Query("xlsx", pattern="^(xlsx|csv|pdf)$"),
     status: Optional[str] = None,
     min_score: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -385,7 +389,7 @@ def download_opportunities(
 # ML SCORING
 # ==============================================================
 
-@router.get("/scoring/ml/{opportunity_id}")
+@router.get("/scoring/ml/{opportunity_id}", dependencies=[Depends(suspend_predictions)])
 def get_ml_score(
     opportunity_id: int,
     db: Session = Depends(get_db),
@@ -422,7 +426,7 @@ def get_ml_score(
     }
 
 
-@router.get("/scoring/ml/patterns")
+@router.get("/scoring/ml/patterns", dependencies=[Depends(suspend_predictions)])
 def get_ml_patterns(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -434,7 +438,7 @@ def get_ml_patterns(
     return engine.get_patterns_summary()
 
 
-@router.post("/scoring/ml/batch")
+@router.post("/scoring/ml/batch", dependencies=[Depends(suspend_predictions)])
 def batch_ml_score(
     opportunity_ids: List[int],
     db: Session = Depends(get_db),

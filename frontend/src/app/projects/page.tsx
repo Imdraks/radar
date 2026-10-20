@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -111,13 +112,13 @@ function ProjectsContent() {
       if (filterStatus) params.append('status', filterStatus);
       
       const [projectsRes, clientsRes, dealsRes] = await Promise.all([
-        fetch(`/api/v1/agency/projects?${params}`, {
+        workspaceFetch(`/api/v1/agency/projects?${params}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/clients', {
+        workspaceFetch('/api/v1/agency/clients', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/deals?status=won', {
+        workspaceFetch('/api/v1/agency/deals?status=won', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -147,7 +148,7 @@ function ProjectsContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/projects', {
+      const response = await workspaceFetch('/api/v1/agency/projects', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -193,7 +194,7 @@ function ProjectsContent() {
     if (!selectedProject) return;
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/projects/${selectedProject.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/projects/${selectedProject.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +220,7 @@ function ProjectsContent() {
     if (!confirm(`Supprimer le projet "${project.name}" ?`)) return;
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/projects/${project.id}`, {
+      await workspaceFetch(`/api/v1/agency/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -456,15 +457,14 @@ function ProjectsContent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Client *
+                  Client (facultatif)
                 </label>
                 <select
-                  required
                   value={newProject.client_id}
                   onChange={(e) => setNewProject({ ...newProject, client_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="">Sélectionner un client</option>
+                  <option value="">Production interne</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.name}

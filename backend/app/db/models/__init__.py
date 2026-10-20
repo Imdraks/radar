@@ -166,3 +166,7 @@ from .banking import (
     SyncTrigger,
 )
 
+
+from .subscription_request import SubscriptionRequest
+
+from .production_event import ProductionEvent, EventArtist, EventExpense

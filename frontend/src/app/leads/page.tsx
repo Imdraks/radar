@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -128,10 +129,10 @@ function LeadsContent() {
     queryKey: ["favorites"],
     queryFn: async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         if (!token) return new Set<number>();
         
-        const response = await fetch("/api/v1/favorites", {
+        const response = await workspaceFetch("/api/v1/favorites", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -163,8 +164,8 @@ function LeadsContent() {
     setFavorites(newFavorites);
     
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/v1/favorites/opportunity/${id}`, {
+      const token = localStorage.getItem("access_token");
+      await workspaceFetch(`/api/v1/favorites/opportunity/${id}`, {
         method: isFav ? "DELETE" : "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

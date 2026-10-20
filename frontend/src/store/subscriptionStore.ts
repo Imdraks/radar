@@ -1,471 +1,98 @@
-/**
- * Subscription Store - Plans, Packs & Features
- * =============================================
- * 
- * Global state management for subscription features:
- * - Current plan and enabled packs
- * - Feature availability checking
- * - Navigation gating
- */
-
+/** UI projection of backend rights. Backend authorization remains authoritative. */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export type Plan = 'mini' | 'standard' | 'premium';
+export type Plan = 'core' | 'premium' | 'business';
 export type Pack = 'core' | 'clients' | 'leads' | 'talents' | 'intelligence';
-export type Addon = 'radar_business';
-
-export type Feature =
-  // Core
-  | 'cockpit' | 'pipeline' | 'projects' | 'production' | 'assets' | 'calendar'
-  // Clients
-  | 'clients' | 'dossiers' | 'daily_picks'
-  // Leads
-  | 'leads' | 'kanban_leads' | 'scoring'
-  // Talents
-  | 'artists' | 'profiles' | 'discovery' | 'comparison' | 'map' | 'spotify_search'
-  // Intelligence
+export type Addon = 'radar_business'; // Legacy read compatibility only.
+export type Feature = 'cockpit' | 'pipeline' | 'projects' | 'production' | 'assets' | 'calendar'
+  | 'clients' | 'dossiers' | 'daily_picks' | 'leads' | 'kanban_leads' | 'scoring'
+  | 'artists' | 'profiles' | 'discovery' | 'comparison' | 'map' | 'spotify_search' | 'events'
   | 'analytics' | 'competitor_watch' | 'ai_predictions' | 'market_intelligence'
-  // Radar Business
-  | 'crm_extended' | 'quotes' | 'invoices' | 'banking'
-  // Admin only
-  | 'sources' | 'source_health';
-
-export interface NavItem {
-  label: string;
-  path: string;
-  icon: string;
-  available: boolean;
-  locked: boolean;
-  admin_only: boolean;
-  upgrade_message?: string;
-}
-
-export interface NavigationSections {
-  [section: string]: NavItem[];
-}
-
+  | 'crm_extended' | 'quotes' | 'invoices' | 'banking' | 'sources' | 'source_health';
+export interface NavItem { label: string; path: string; icon: string; available: boolean; locked: boolean; admin_only: boolean; upgrade_message?: string; }
+export interface NavigationSections { [section: string]: NavItem[]; }
 export interface WorkspaceSubscription {
-  workspace_id: number;
-  workspace_name: string;
-  plan: Plan;
-  plan_display_name: string;
-  enabled_packs: Pack[];
-  addons: Addon[];
-  max_seats: number;
-  current_seats: number;
-  available_features: Feature[];
-  plan_expires_at?: string;
+  workspace_id: number; workspace_name: string; plan: Plan; plan_display_name: string;
+  enabled_packs: Pack[]; addons: Addon[]; max_seats: number; current_seats: number;
+  available_features: Feature[]; plan_expires_at?: string;
 }
-
 export interface PlanInfo {
-  name: string;
-  display_name: string;
-  description: string;
-  price_monthly: number;
-  included_packs: string[];
-  included_addons: string[];
-  max_seats: number;
-  features_bullets: string[];
-  is_current: boolean;
-  is_recommended: boolean;
+  name: Plan; display_name: string; description: string; price_monthly: number | null;
+  included_packs: string[]; included_addons: string[]; max_seats: number;
+  features_bullets: string[]; is_current: boolean; is_recommended: boolean;
+  available_features?: Feature[];
 }
-
-export interface AddonInfo {
-  name: string;
-  display_name: string;
-  description: string;
-  price_monthly: number;
-  features: string[];
-  is_active: boolean;
-  included_in_plan: boolean;
-}
-
-// ============================================================================
-// FEATURE → ROUTE MAPPING
-// ============================================================================
-
-export const FEATURE_ROUTES: Record<string, Feature> = {
-  '/cockpit': 'cockpit',
-  '/today': 'cockpit',
-  '/pipeline': 'pipeline',
-  '/projects': 'projects',
-  '/production': 'production',
-  '/assets': 'assets',
-  '/calendar': 'calendar',
-  '/clients': 'clients',
-  '/dossiers': 'dossiers',
-  '/leads': 'leads',
-  '/opportunities': 'leads',
-  '/artists': 'artists',
-  '/profiles': 'profiles',
-  '/discovery': 'discovery',
-  '/comparison': 'comparison',
-  '/map': 'map',
-  '/analytics': 'analytics',
-  '/competitor-watch': 'competitor_watch',
-  '/predictions': 'ai_predictions',
-  '/quotes': 'quotes',
-  '/invoices': 'invoices',
-  '/transactions': 'banking',
-  '/sources': 'sources',
-  '/source-health': 'source_health',
-};
-
-// Admin-only features (hidden from non-admins)
+export interface AddonInfo { name: string; display_name: string; description: string; price_monthly: number | null; features: string[]; is_active: boolean; included_in_plan: boolean; }
 export const ADMIN_ONLY_FEATURES: Feature[] = ['sources', 'source_health'];
-
-// ============================================================================
-// PLAN CONFIGS (for UI display)
-// ============================================================================
-
-export interface PlanConfig {
-  description: string;
-  price: number;
-  maxSeats: number;
-  packs: Pack[];
-  highlights: string[];
-}
-
-export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
-  mini: {
-    description: "L'essentiel pour piloter ton agence.",
-    price: 29,
-    maxSeats: 3,
-    packs: ['core', 'clients'],
-    highlights: [
-      'Cockpit + Pipeline + Projets + Production',
-      'Gestion clients et dossiers',
-      'Daily Picks pour ne rien oublier',
-    ],
-  },
-  standard: {
-    description: 'Le plan que 80% des agences choisissent.',
-    price: 79,
-    maxSeats: 10,
-    packs: ['core', 'clients', 'leads', 'talents'],
-    highlights: [
-      'Tout Mini inclus',
-      'Leads + Kanban + Scoring',
-      'Artistes, Profils, Découverte, Comparaison',
-    ],
-  },
-  premium: {
-    description: 'Radar complet. Zéro limite.',
-    price: 149,
-    maxSeats: 999,
-    packs: ['core', 'clients', 'leads', 'talents', 'intelligence'],
-    highlights: [
-      'Tout Standard inclus',
-      'Analytics, Veille, Prédictions avancées',
-      'Radar Business inclus (devis + factures)',
-    ],
-  },
+export const FEATURE_ROUTES: Record<string, Feature> = {
+  '/today': 'cockpit', '/cockpit': 'cockpit', '/dashboard': 'cockpit', '/inbox': 'cockpit',
+  '/projects': 'projects', '/production': 'production', '/assets': 'assets',
+  '/agency-calendar': 'calendar', '/calendar': 'calendar', '/events': 'events',
+  '/clients': 'clients', '/pipeline': 'pipeline', '/leads': 'leads', '/opportunities': 'leads',
+  '/dossiers': 'dossiers', '/artist': 'artists', '/artists': 'artists', '/discovery': 'discovery',
+  '/spotify-search': 'spotify_search', '/comparison': 'comparison', '/profiles': 'profiles',
+  '/analytics': 'analytics', '/map': 'events', '/shortlist': 'daily_picks', '/scoring': 'scoring',
+  '/devis': 'quotes', '/quotes': 'quotes', '/factures': 'invoices', '/invoices': 'invoices',
+  '/transactions': 'banking', '/competitive': 'competitor_watch', '/predictions': 'ai_predictions',
+  '/sources': 'sources', '/source-health': 'source_health',
 };
-
-// ============================================================================
-// STORE
-// ============================================================================
-
+export function routeFeature(path: string): Feature | undefined {
+  return FEATURE_ROUTES[Object.keys(FEATURE_ROUTES).sort((a,b) => b.length-a.length).find(p => path === p || path.startsWith(p + '/')) || ''];
+}
 interface SubscriptionState {
-  // Current subscription
-  subscription: WorkspaceSubscription | null;
-  isLoading: boolean;
-  error: string | null;
-  
-  // Navigation
-  navigation: NavigationSections | null;
-  
-  // User role
-  isAdmin: boolean;
-  
-  // Actions
+  subscription: WorkspaceSubscription | null; navigation: NavigationSections | null;
+  isLoading: boolean; error: string | null; isAdmin: boolean;
   fetchSubscription: (workspaceId?: number) => Promise<void>;
   fetchNavigation: (workspaceId?: number) => Promise<void>;
-  setAdmin: (isAdmin: boolean) => void;
-  
-  // Feature checking
-  hasFeature: (feature: Feature) => boolean;
-  canAccessRoute: (path: string) => boolean;
-  getUpgradeMessage: (feature: Feature) => string | null;
-  
-  // Plan management (admin only)
-  changePlan: (plan: Plan) => Promise<boolean>;
-  toggleAddon: (addon: Addon, enable: boolean) => Promise<boolean>;
-  togglePack: (pack: Pack, enable: boolean) => Promise<boolean>;
-  
-  // Reset
-  reset: () => void;
+  setAdmin: (value: boolean) => void; hasFeature: (feature: Feature) => boolean;
+  canAccessRoute: (path: string) => boolean; getUpgradeMessage: (feature: Feature) => string | null;
+  changePlan: (plan: Plan) => Promise<boolean>; toggleAddon: (addon: Addon, enable: boolean) => Promise<boolean>;
+  togglePack: (pack: Pack, enable: boolean) => Promise<boolean>; reset: () => void;
 }
-
-const initialState = {
-  subscription: null,
-  isLoading: false,
-  error: null,
-  navigation: null,
-  isAdmin: false,
-};
-
-export const useSubscriptionStore = create<SubscriptionState>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
-      
-      fetchSubscription: async (workspaceId?: number) => {
-        set({ isLoading: true, error: null });
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) {
-            set({ isLoading: false });
-            return;
-          }
-          
-          const url = workspaceId 
-            ? `/api/v1/subscription/current?workspace_id=${workspaceId}`
-            : '/api/v1/subscription/current';
-          
-          const res = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            set({ subscription: data, isLoading: false });
-          } else {
-            set({ error: 'Failed to fetch subscription', isLoading: false });
-          }
-        } catch (err) {
-          set({ error: 'Network error', isLoading: false });
-        }
-      },
-      
-      fetchNavigation: async (workspaceId?: number) => {
-        try {
-          const token = localStorage.getItem('access_token');
-          if (!token) return;
-          
-          const url = workspaceId 
-            ? `/api/v1/subscription/navigation?workspace_id=${workspaceId}`
-            : '/api/v1/subscription/navigation';
-          
-          const res = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            set({ navigation: data.sections });
-          }
-        } catch (err) {
-          console.error('Failed to fetch navigation:', err);
-        }
-      },
-      
-      setAdmin: (isAdmin: boolean) => {
-        set({ isAdmin });
-      },
-      
-      hasFeature: (feature: Feature): boolean => {
-        const { subscription, isAdmin } = get();
-        
-        // Admin-only features
-        if (ADMIN_ONLY_FEATURES.includes(feature)) {
-          return isAdmin;
-        }
-        
-        if (!subscription) return false;
-        return subscription.available_features.includes(feature);
-      },
-      
-      canAccessRoute: (path: string): boolean => {
-        const { hasFeature, isAdmin } = get();
-        
-        // Get feature for route
-        const feature = FEATURE_ROUTES[path];
-        if (!feature) return true; // Unknown routes are allowed
-        
-        // Admin-only routes
-        if (ADMIN_ONLY_FEATURES.includes(feature)) {
-          return isAdmin;
-        }
-        
-        return hasFeature(feature);
-      },
-      
-      getUpgradeMessage: (feature: Feature): string | null => {
-        const { navigation } = get();
-        if (!navigation) return null;
-        
-        // Find the nav item with this feature
-        for (const section of Object.values(navigation)) {
-          for (const item of section) {
-            const itemFeature = FEATURE_ROUTES[item.path];
-            if (itemFeature === feature && item.locked) {
-              return item.upgrade_message || 'Passez à un plan supérieur';
-            }
-          }
-        }
-        
-        return null;
-      },
-      
-      changePlan: async (plan: Plan): Promise<boolean> => {
-        try {
-          const token = localStorage.getItem('access_token');
-          const { subscription } = get();
-          
-          const url = subscription 
-            ? `/api/v1/subscription/change-plan?workspace_id=${subscription.workspace_id}`
-            : '/api/v1/subscription/change-plan';
-          
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ plan }),
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            set({ subscription: data });
-            // Refresh navigation
-            get().fetchNavigation(data.workspace_id);
-            return true;
-          }
-          return false;
-        } catch (err) {
-          console.error('Failed to change plan:', err);
-          return false;
-        }
-      },
-      
-      toggleAddon: async (addon: Addon, enable: boolean): Promise<boolean> => {
-        try {
-          const token = localStorage.getItem('access_token');
-          const { subscription } = get();
-          
-          const url = subscription 
-            ? `/api/v1/subscription/toggle-addon?workspace_id=${subscription.workspace_id}`
-            : '/api/v1/subscription/toggle-addon';
-          
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ addon, enable }),
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            set({ subscription: data });
-            // Refresh navigation
-            get().fetchNavigation(data.workspace_id);
-            return true;
-          }
-          return false;
-        } catch (err) {
-          console.error('Failed to toggle addon:', err);
-          return false;
-        }
-      },
-      
-      togglePack: async (pack: Pack, enable: boolean): Promise<boolean> => {
-        try {
-          const token = localStorage.getItem('access_token');
-          const { subscription } = get();
-          
-          const url = subscription 
-            ? `/api/v1/subscription/toggle-pack?workspace_id=${subscription.workspace_id}`
-            : '/api/v1/subscription/toggle-pack';
-          
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ pack, enable }),
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            set({ subscription: data });
-            // Refresh navigation
-            get().fetchNavigation(data.workspace_id);
-            return true;
-          }
-          return false;
-        } catch (err) {
-          console.error('Failed to toggle pack:', err);
-          return false;
-        }
-      },
-      
-      reset: () => {
-        set(initialState);
-      },
-    }),
-    {
-      name: 'radar-subscription',
-      partialize: (state) => ({
-        subscription: state.subscription,
-        navigation: state.navigation,
-        isAdmin: state.isAdmin,
-      }),
+let fetchGeneration = 0;
+const initialState = { subscription: null, navigation: null, isLoading: false, error: null, isAdmin: false };
+export function selectedWorkspace(): number | undefined {
+  const id = Number(localStorage.getItem('current_workspace_id'));
+  return Number.isSafeInteger(id) && id > 0 ? id : undefined;
+}
+export async function subscriptionFetch(path: string, workspaceId?: number, init?: RequestInit) {
+  const id = workspaceId ?? selectedWorkspace();
+  const response = await fetch(`/api/v1/subscription/${path}${id ? `?workspace_id=${id}` : ''}`, {
+    ...init, headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json', ...init?.headers },
+  });
+  if (!response.ok) throw new Error('Impossible de charger ou de modifier cet abonnement');
+  return response.json();
+}
+export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
+  ...initialState,
+  fetchSubscription: async (workspaceId) => {
+    const generation = ++fetchGeneration;
+    set({ subscription: null, navigation: null, error: null, isLoading: true });
+    if (!localStorage.getItem('access_token')) { set({ isLoading: false }); return; }
+    try {
+      const subscription = await subscriptionFetch('current', workspaceId);
+      const navigation = await subscriptionFetch('navigation', subscription.workspace_id);
+      if (generation === fetchGeneration) set({ subscription, navigation: navigation.sections, isLoading: false });
+    } catch (error) {
+      if (generation === fetchGeneration) set({ subscription: null, navigation: null, isLoading: false, error: String(error) });
     }
-  )
-);
-
-// ============================================================================
-// HOOKS
-// ============================================================================
-
-/**
- * Hook to check if a feature is available
- */
-export function useFeature(feature: Feature): boolean {
-  return useSubscriptionStore((state) => state.hasFeature(feature));
+  },
+  fetchNavigation: async (workspaceId) => { await get().fetchSubscription(workspaceId); },
+  setAdmin: (isAdmin) => set({ isAdmin }),
+  hasFeature: (feature) => ADMIN_ONLY_FEATURES.includes(feature) ? get().isAdmin : !!get().subscription?.available_features.includes(feature),
+  canAccessRoute: (path) => { const feature = routeFeature(path); return !feature || get().hasFeature(feature); },
+  getUpgradeMessage: () => 'Consultez votre abonnement ou contactez votre administrateur.',
+  changePlan: async (plan) => {
+    try { await subscriptionFetch('change-plan', get().subscription?.workspace_id, { method: 'POST', body: JSON.stringify({ plan }) }); return true; }
+    catch (error) { set({ error: String(error) }); return false; }
+  },
+  toggleAddon: async () => false,
+  togglePack: async () => false,
+  reset: () => { ++fetchGeneration; set(initialState); },
+}));
+export const useFeature = (feature: Feature) => useSubscriptionStore(state => state.hasFeature(feature));
+export function useRouteAccess(path: string) {
+  const canAccess = useSubscriptionStore(state => state.canAccessRoute(path));
+  return { canAccess, isLocked: !canAccess, upgradeMessage: canAccess ? null : 'Consultez votre abonnement.' };
 }
-
-/**
- * Hook to check if a route is accessible
- */
-export function useRouteAccess(path: string): { 
-  canAccess: boolean; 
-  isLocked: boolean;
-  upgradeMessage: string | null;
-} {
-  const canAccess = useSubscriptionStore((state) => state.canAccessRoute(path));
-  const feature = FEATURE_ROUTES[path];
-  const upgradeMessage = useSubscriptionStore((state) => 
-    feature ? state.getUpgradeMessage(feature) : null
-  );
-  
-  return {
-    canAccess,
-    isLocked: !canAccess,
-    upgradeMessage,
-  };
-}
-
-/**
- * Hook to get the current plan
- */
-export function usePlan(): Plan | null {
-  return useSubscriptionStore((state) => state.subscription?.plan || null);
-}
-
-/**
- * Hook to check if user is admin
- */
-export function useIsAdmin(): boolean {
-  return useSubscriptionStore((state) => state.isAdmin);
-}
+export const usePlan = () => useSubscriptionStore(state => state.subscription?.plan || null);
+export const useIsAdmin = () => useSubscriptionStore(state => state.isAdmin);

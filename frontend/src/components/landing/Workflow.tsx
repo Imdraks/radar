@@ -35,7 +35,7 @@ const steps = [
     step: "05",
     icon: BarChart3,
     title: "Analyser",
-    description: "Cockpit temps réel, veille concurrentielle, carte événements et prédictions de performance.",
+    description: "Projets, échéances, événements et sélections artistiques dans un espace commun.",
     color: "from-indigo-500 to-purple-500",
   },
 ];

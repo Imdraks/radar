@@ -1,0 +1,78 @@
+name: Product quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: radar_test
+          POSTGRES_PASSWORD: radar_test
+          POSTGRES_DB: radar_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U radar_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTING: 'true'
+      PYTHONPATH: backend
+      RADAR_TEST_DATABASE_URL: postgresql://radar_test:radar_test@localhost:5432/radar_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install pip==26.2.1 && pip install -r backend/requirements.txt
+      - run: python -m compileall -q backend/app backend/alembic
+      - run: pytest backend/tests -q
+      - run: cd backend && alembic heads
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run type-check
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+  migration-history:
+    name: Historical migration chain (known blocker)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: radar_test
+          POSTGRES_PASSWORD: radar_test
+          POSTGRES_DB: radar_history
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U radar_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTING: 'true'
+      DATABASE_URL: postgresql://radar_test:radar_test@localhost:5432/radar_history
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pip==26.2.1 && pip install -r backend/requirements.txt
+      # Deliberately reports the inherited blocker instead of masking it as a success.
+      - run: cd backend && alembic upgrade head

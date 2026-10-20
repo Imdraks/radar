@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -88,7 +89,7 @@ function WorkspacesContent() {
   const fetchWorkspaces = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/workspaces', {
+      const res = await workspaceFetch('/api/v1/workspaces', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -110,7 +111,7 @@ function WorkspacesContent() {
     setCreating(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/workspaces', {
+      const res = await workspaceFetch('/api/v1/workspaces', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,7 +154,7 @@ function WorkspacesContent() {
     setDeleting(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/workspaces/${workspaceToDelete.id}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

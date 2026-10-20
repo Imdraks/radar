@@ -215,37 +215,7 @@ export function ArtistPredictionsPanel({ artistName, onRefresh }: ArtistPredicti
           </CardContent>
         </Card>
 
-        {/* Probabilité de croissance */}
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-sm text-muted-foreground mb-1">Probabilité de croissance</div>
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold">
-                {prediction.growth_probability.toFixed(0)}%
-              </div>
-              {prediction.growth_probability >= 50 ? (
-                <TrendingUp className="h-5 w-5 text-green-500" />
-              ) : (
-                <TrendingDown className="h-5 w-5 text-red-500" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Confiance */}
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-sm text-muted-foreground mb-1">Confiance</div>
-            <div className="flex items-center gap-2">
-              <Badge className={getConfidenceBadgeColor(prediction.confidence_label)}>
-                {prediction.confidence_label}
-              </Badge>
-            </div>
-            <div className="mt-2">
-              <Progress value={prediction.confidence_score} className="h-1.5" />
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-4 pb-3"><p className="text-sm">Confiance non calibrée</p><p className="text-xs text-muted-foreground">Scénarios indicatifs fondés sur l’historique disponible. Aucune probabilité de croissance validée.</p></CardContent></Card>
       </div>
 
       {/* Low confidence warning */}

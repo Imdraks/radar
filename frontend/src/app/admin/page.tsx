@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { 
@@ -58,7 +59,7 @@ function AdminDashboardContent() {
       const token = localStorage.getItem('access_token');
       
       // Fetch workspaces
-      const wsRes = await fetch('/api/v1/workspaces', {
+      const wsRes = await workspaceFetch('/api/v1/workspaces', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (wsRes.ok) {
@@ -68,7 +69,7 @@ function AdminDashboardContent() {
       }
       
       // Fetch users count
-      const usersRes = await fetch('/api/v1/users?limit=1', {
+      const usersRes = await workspaceFetch('/api/v1/users?limit=1', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (usersRes.ok) {

@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -120,7 +121,7 @@ function ClientsContent() {
   const { data: clients = [], isLoading } = useQuery<Client[]>({
     queryKey: ["clients"],
     queryFn: async () => {
-      const res = await fetch(`/api/v1/agency/clients`, {
+      const res = await workspaceFetch(`/api/v1/agency/clients`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch clients");
@@ -142,7 +143,7 @@ function ClientsContent() {
       vat_number?: string | null;
       notes: string | null;
     }) => {
-      const res = await fetch(`/api/v1/agency/clients`, {
+      const res = await workspaceFetch(`/api/v1/agency/clients`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -177,7 +178,7 @@ function ClientsContent() {
         notes: string | null;
       } 
     }) => {
-      const res = await fetch(`/api/v1/agency/clients/${id}`, {
+      const res = await workspaceFetch(`/api/v1/agency/clients/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -198,7 +199,7 @@ function ClientsContent() {
   // Delete client mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/v1/agency/clients/${id}`, {
+      const res = await workspaceFetch(`/api/v1/agency/clients/${id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });

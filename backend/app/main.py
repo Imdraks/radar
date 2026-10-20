@@ -2,7 +2,7 @@
 FastAPI Application - Radar
 Lead intelligence and opportunity tracking platform
 """
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -10,7 +10,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import logging
 import time
 
+from app.db import tenant_scope  # Register request-session ORM isolation
 from app.core.config import settings
+from app.api.deps import require_feature, require_workspace_write, get_current_workspace, get_current_platform_admin
+from app.core.subscription import Feature
+
+
+def suspended_module():
+    from fastapi import HTTPException
+    raise HTTPException(status_code=503, detail="Module suspendu en attente de validation")
 
 # ============================================================================
 # API ROUTERS - V1 (Legacy Opportunity-based)
@@ -114,6 +122,7 @@ from app.api.spotify_search import router as spotify_search_router
 # ARTISTS V2 - "Google des artistes" search-first system
 # ============================================================================
 from app.api.artists import router as artists_v2_router
+from app.api.events import router as events_router
 from app.api.contact import router as public_contact_router
 # Configure logging
 logging.basicConfig(
@@ -254,67 +263,68 @@ app.include_router(health_router, tags=["Health"])
 
 # V1 Routes - Legacy (Integer IDs, Opportunity model)
 app.include_router(auth_router, prefix="/api/v1")
-app.include_router(opportunities_router, prefix="/api/v1")  # Legacy /opportunities
-app.include_router(sources_router, prefix="/api/v1")
-app.include_router(ingestion_router, prefix="/api/v1")
-app.include_router(scoring_router, prefix="/api/v1")
+app.include_router(opportunities_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.LEADS)), Depends(require_workspace_write)], prefix="/api/v1")  # Legacy /opportunities
+# Static /sources/health must precede dynamic /sources/{source_id}.
+app.include_router(source_health_router, dependencies=[Depends(get_current_platform_admin)], prefix="/api/v1", tags=["Source Health"])
+app.include_router(sources_router, dependencies=[Depends(get_current_platform_admin)], prefix="/api/v1")
+app.include_router(ingestion_router, dependencies=[Depends(get_current_platform_admin)], prefix="/api/v1")
+app.include_router(scoring_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.SCORING)), Depends(require_workspace_write)], prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
-app.include_router(dashboard_router, prefix="/api/v1")
-app.include_router(predictions_router, prefix="/api/v1")
-app.include_router(reports_router, prefix="/api/v1")
-app.include_router(artist_history_router, prefix="/api/v1/artist-history", tags=["Artist History"])
-app.include_router(artist_predictions_router, prefix="/api/v1/artist-predictions", tags=["Artist Predictions"])
-app.include_router(enrichment_router, prefix="/api/v1", tags=["Artist Enrichment"])
+app.include_router(dashboard_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1")
+app.include_router(predictions_router, dependencies=[Depends(suspended_module)], prefix="/api/v1")
+app.include_router(reports_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.INVOICES)), Depends(get_current_workspace)], prefix="/api/v1")
+app.include_router(artist_history_router, dependencies=[Depends(require_feature(Feature.ARTISTS)), Depends(require_workspace_write)], prefix="/api/v1/artist-history", tags=["Artist History"])
+app.include_router(artist_predictions_router, dependencies=[Depends(require_feature(Feature.ARTISTS)), Depends(require_workspace_write)], prefix="/api/v1/artist-predictions", tags=["Artist Predictions"])
+app.include_router(enrichment_router, dependencies=[Depends(require_feature(Feature.ARTISTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Artist Enrichment"])
 app.include_router(sso_router, prefix="/api/v1", tags=["SSO Authentication"])
-app.include_router(ai_intelligence_router, prefix="/api/v1", tags=["AI Intelligence"])
-app.include_router(collection_router, prefix="/api/v1", tags=["Collection"])
-app.include_router(collect_router, prefix="/api/v1", tags=["Unified Collection"])
-app.include_router(dossiers_router, prefix="/api/v1/dossiers", tags=["Dossiers"])
+app.include_router(ai_intelligence_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.ARTISTS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["AI Intelligence"])
+app.include_router(collection_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["Collection"])
+app.include_router(collect_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["Unified Collection"])
+app.include_router(dossiers_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1/dossiers", tags=["Dossiers"])
 
 # Auto Radar - Automatic harvesting
-app.include_router(radar_router, prefix="/api/v1/radar", tags=["Auto Radar"])
+app.include_router(radar_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1/radar", tags=["Auto Radar"])
 
 # Activity Logs - Superadmin only
 app.include_router(activity_router, prefix="/api/v1/admin", tags=["Activity Logs"])
 
 # V2 Routes - New architecture (UUIDs, LeadItem model)
-app.include_router(collections_v2_router, prefix="/api/v2", tags=["Collections V2"])
-app.include_router(leads_v2_router, prefix="/api/v2", tags=["Leads V2"])  # /api/v2/leads
-app.include_router(dossiers_v2_router, prefix="/api/v2", tags=["Dossiers V2"])
+app.include_router(collections_v2_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v2", tags=["Collections V2"])
+app.include_router(leads_v2_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.LEADS)), Depends(require_workspace_write)], prefix="/api/v2", tags=["Leads V2"])  # /api/v2/leads
+app.include_router(dossiers_v2_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v2", tags=["Dossiers V2"])
 
 # Radar Features - Advanced functionality
-app.include_router(profiles_router, prefix="/api/v1", tags=["Profiles"])
-app.include_router(shortlists_router, prefix="/api/v1", tags=["Shortlists"])
-app.include_router(clusters_router, prefix="/api/v1", tags=["Clusters"])
-app.include_router(deadlines_router, prefix="/api/v1", tags=["Deadlines"])
-app.include_router(source_health_router, prefix="/api/v1", tags=["Source Health"])
-app.include_router(contact_finder_router, prefix="/api/v1", tags=["Contact Finder"])
-app.include_router(advanced_features_router, prefix="/api/v1", tags=["Advanced Features"])
-app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics Dashboard"])
-app.include_router(competitive_router, prefix="/api/v1", tags=["Competitive Intelligence"])
-app.include_router(market_intelligence_router, prefix="/api/v1", tags=["Market Intelligence"])
-app.include_router(analytics_v2_router, prefix="/api/v1", tags=["Analytics V2"])
-app.include_router(map_router, prefix="/api/v1", tags=["Map"])
-app.include_router(calendar_router, prefix="/api/v1", tags=["Calendar"])
-app.include_router(google_calendar_router, prefix="/api/v1", tags=["Google Calendar"])
-app.include_router(tags_router, prefix="/api/v1", tags=["Tags"])
-app.include_router(comments_router, prefix="/api/v1", tags=["Comments"])
-app.include_router(favorites_router, prefix="/api/v1", tags=["Favorites"])
+app.include_router(profiles_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.PROFILES)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Profiles"])
+app.include_router(shortlists_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["Shortlists"])
+app.include_router(clusters_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Clusters"])
+app.include_router(deadlines_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Deadlines"])
+app.include_router(contact_finder_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["Contact Finder"])
+app.include_router(advanced_features_router, dependencies=[Depends(require_workspace_write), Depends(require_feature(Feature.LEADS)), Depends(get_current_workspace)], prefix="/api/v1", tags=["Advanced Features"])
+app.include_router(analytics_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.INVOICES)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Analytics Dashboard"])
+app.include_router(competitive_router, dependencies=[Depends(suspended_module)], prefix="/api/v1", tags=["Competitive Intelligence"])
+app.include_router(market_intelligence_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.INVOICES)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Market Intelligence"])
+app.include_router(analytics_v2_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.ANALYTICS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Analytics V2"])
+app.include_router(map_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.EVENTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Map"])
+app.include_router(calendar_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Calendar"])
+app.include_router(google_calendar_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Google Calendar"])
+app.include_router(tags_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Tags"])
+app.include_router(comments_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Comments"])
+app.include_router(favorites_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Favorites"])
 
 # ============================================================================
 # AGENCY COCKPIT V2 - Commercial + Production + Assets + Calendar
 # ============================================================================
-app.include_router(agency_router, prefix="/api/v1", tags=["Agency Cockpit"])
-app.include_router(agency_projects_router, prefix="/api/v1", tags=["Agency Projects"])
-app.include_router(agency_tasks_router, prefix="/api/v1", tags=["Agency Tasks & Assets"])
-app.include_router(project_detail_router, prefix="/api/v1", tags=["Project Detail Page"])
+app.include_router(agency_router, dependencies=[Depends(get_current_workspace), Depends(require_workspace_write)], prefix="/api/v1", tags=["Agency Cockpit"])
+app.include_router(agency_projects_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.PROJECTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Agency Projects"])
+app.include_router(agency_tasks_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.PROJECTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Agency Tasks & Assets"])
+app.include_router(project_detail_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.PROJECTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Project Detail Page"])
 
 # ============================================================================
 # V3 - Workspace, Inbox, Google Drive (Daily Hub)
 # ============================================================================
 app.include_router(workspace_router, prefix="/api/v1", tags=["Workspaces"])
-app.include_router(inbox_router, prefix="/api/v1", tags=["Inbox"])
-app.include_router(google_drive_router, prefix="/api/v1", tags=["Google Drive"])
+app.include_router(inbox_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Inbox"])
+app.include_router(google_drive_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Google Drive"])
 
 # ============================================================================
 # SUBSCRIPTION - Plans, Packs & Features
@@ -324,38 +334,39 @@ app.include_router(subscription_router, prefix="/api/v1", tags=["Subscription"])
 # ============================================================================
 # BILLING - Quotes (Devis) & Invoices (Factures) - Radar Business
 # ============================================================================
-app.include_router(billing_router, prefix="/api/v1/billing", tags=["Billing"])
+app.include_router(billing_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.INVOICES)), Depends(require_workspace_write)], prefix="/api/v1/billing", tags=["Billing"])
 
 # ============================================================================
 # BANKING - Connexions bancaires - Radar Business
 # ============================================================================
-app.include_router(banking_router, prefix="/api/v1", tags=["Banking"])
-app.include_router(revolut_router, prefix="/api/v1", tags=["Revolut"])
+app.include_router(banking_router, dependencies=[Depends(suspended_module)], prefix="/api/v1", tags=["Banking"])
+app.include_router(revolut_router, dependencies=[Depends(suspended_module)], prefix="/api/v1", tags=["Revolut"])
 
 # ============================================================================
 # UNIFIED ASSETS API - Single source of truth
 # ============================================================================
-app.include_router(unified_assets_router, prefix="/api/v1", tags=["Assets"])
+app.include_router(unified_assets_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.ASSETS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Assets"])
 
 # ============================================================================
 # DISCOVERY V3 - Artist discovery feed, search, comparison
 # ============================================================================
-app.include_router(discovery_router, prefix="/api/v1", tags=["Discovery V3"])
-app.include_router(comparison_router, prefix="/api/v1", tags=["Comparison V3"])
+app.include_router(discovery_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.DISCOVERY)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Discovery V3"])
+app.include_router(comparison_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.COMPARISON)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Comparison V3"])
 
 # ============================================================================
 # SPOTIFY SEARCH - Dedicated Spotify search engine
 # ============================================================================
-app.include_router(spotify_search_router, prefix="/api/v1", tags=["Spotify Search"])
+app.include_router(spotify_search_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.SPOTIFY_SEARCH)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Spotify Search"])
 
 # ============================================================================
 # ARTISTS V2 - "Google des artistes" search-first endpoints
 # ============================================================================
-app.include_router(artists_v2_router, prefix="/api/v1/artists", tags=["Artists V2"])
+app.include_router(artists_v2_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.ARTISTS)), Depends(require_workspace_write)], prefix="/api/v1/artists", tags=["Artists V2"])
 
 # ============================================================================
 # PUBLIC CONTACT FORM - No auth required
 # ============================================================================
+app.include_router(events_router, prefix="/api/v1", tags=["Events"])
 app.include_router(public_contact_router, prefix="/api/v1", tags=["Public Contact"])
 
 # Progress streaming (SSE)
