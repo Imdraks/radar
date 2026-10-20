@@ -19,6 +19,7 @@ export interface PlanInfo {
   name: Plan; display_name: string; description: string; price_monthly: number | null;
   included_packs: string[]; included_addons: string[]; max_seats: number;
   features_bullets: string[]; is_current: boolean; is_recommended: boolean;
+  available_features?: Feature[];
 }
 export interface AddonInfo { name: string; display_name: string; description: string; price_monthly: number | null; features: string[]; is_active: boolean; included_in_plan: boolean; }
 export const ADMIN_ONLY_FEATURES: Feature[] = ['sources', 'source_health'];
