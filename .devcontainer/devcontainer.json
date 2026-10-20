@@ -1,0 +1,22 @@
+{
+  "name": "Radar — test privé",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/radar",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" }
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Radar — test", "onAutoForward": "openBrowser", "visibility": "private" },
+    "8000": { "onAutoForward": "ignore" },
+    "5432": { "onAutoForward": "ignore" },
+    "6379": { "onAutoForward": "ignore" }
+  },
+  "otherPortsAttributes": { "onAutoForward": "ignore" },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "python .devcontainer/radar.py start",
+  "waitFor": "postCreateCommand",
+  "shutdownAction": "stopCompose"
+}

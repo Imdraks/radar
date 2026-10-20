@@ -7,7 +7,7 @@ Cette branche sécurise l’attribution des abonnements, centralise Core/Premium
 - [Tests, résultats et audits de dépendances](VALIDATION.md)
 - [Activation, intégrations, facturation électronique et exploitation](EXPLOITATION.md)
 
-**43 tests backend passent, typage et build frontend passent.** La réparation de l’historique Alembic a été refusée par la revue automatique et nécessite une autorisation spécifique. Les intégrations externes, la recette métier réelle et les alertes de dépendances restantes ne sont pas déclarées résolues. Aucun déploiement ni changement de données de production n’a été effectué.
+**147 tests backend passent ; typage et build frontend ont passé lors du lot précédent.** La réparation de l’historique Alembic a été refusée par la revue automatique et nécessite une autorisation spécifique. Les limites des intégrations externes et de la recette sont détaillées dans les comptes rendus ci-dessous. Aucun déploiement de production ni changement de données de production n’a été effectué.
 
 Audit complémentaire : [API et contrats](API-AUDIT.md).
 
@@ -16,3 +16,5 @@ Parcours navigateur : [validation locale et patch](LOCAL-DEBUG.md).
 Collecte artistique : [auditeurs Spotify sans clé API](SPOTIFY-AUDIENCE.md).
 
 Réseaux sociaux : [compteurs Instagram, TikTok et YouTube](SOCIAL-AUDIENCE.md).
+
+Préversion privée : [démarrer Radar dans GitHub Codespaces](CODESPACES.md).
