@@ -129,7 +129,7 @@ function LeadsContent() {
     queryKey: ["favorites"],
     queryFn: async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         if (!token) return new Set<number>();
         
         const response = await workspaceFetch("/api/v1/favorites", {
@@ -164,7 +164,7 @@ function LeadsContent() {
     setFavorites(newFavorites);
     
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       await workspaceFetch(`/api/v1/favorites/opportunity/${id}`, {
         method: isFav ? "DELETE" : "POST",
         headers: { Authorization: `Bearer ${token}` },

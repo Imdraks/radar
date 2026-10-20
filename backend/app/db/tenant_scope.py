@@ -14,7 +14,17 @@ def apply_workspace_scope(state):
     from app.db.models.agency import Client, Project, Asset, AgencyTask, Deliverable, Approval, ProjectActivityLog, Deal
     from app.db.models.discovery import DiscoveryArtist, DiscoverySnapshot, DiscoveryComputedMetrics
     from app.db.models.billing import Quote, QuoteItem, Invoice, InvoiceItem
+    from app.db.models.entity import Document, Extract, Contact, Brief, Entity
+    from app.db.models.radar_features import ContactFinderResult
+    from app.api.tags_comments import Comment
+    from app.db.models.opportunity import Opportunity
     related = {
+        Document: Document.entity.has(Entity.workspace_id == workspace_id),
+        Contact: Contact.entity.has(Entity.workspace_id == workspace_id),
+        Brief: Brief.entity.has(Entity.workspace_id == workspace_id),
+        Extract: Extract.document.has(Document.entity.has(Entity.workspace_id == workspace_id)),
+        Comment: Comment.opportunity.has(Opportunity.workspace_id == workspace_id),
+        ContactFinderResult: ContactFinderResult.opportunity.has(Opportunity.workspace_id == workspace_id),
         # Client is the authoritative owner of legacy project rows whose workspace_id may be NULL.
         Project: Project.client.has(Client.workspace_id == workspace_id),
         Asset: Asset.project.has(Project.client.has(Client.workspace_id == workspace_id)),

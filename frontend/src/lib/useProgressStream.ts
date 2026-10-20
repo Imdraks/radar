@@ -55,7 +55,10 @@ export function useProgressStream({
 
     // Build URL
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const url = `${baseUrl}/api/v1/progress/stream?token=${token}&task_ids=${taskIds.join(",")}`;
+    const params = new URLSearchParams({ token, task_ids: taskIds.join(",") });
+    const workspaceId = localStorage.getItem("current_workspace_id");
+    if (workspaceId) params.set("workspace_id", workspaceId);
+    const url = `${baseUrl}/api/v1/progress/stream?${params}`;
 
     try {
       // Close existing connection

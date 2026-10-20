@@ -79,7 +79,7 @@ const eventsMapApi = {
     date_from?: string;
     date_to?: string;
   }): Promise<EventsResponse> => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     const queryParams = new URLSearchParams();
     if (params.event_type && params.event_type !== "all")
       queryParams.append("event_type", params.event_type);
@@ -106,7 +106,7 @@ const eventsMapApi = {
   },
 
   syncEvents: async (): Promise<{ status: string; task_id?: string; message?: string }> => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     const response = await workspaceFetch("/api/v1/map/sync-events", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

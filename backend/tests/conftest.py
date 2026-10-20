@@ -67,7 +67,7 @@ def actors(db_session):
 
 @pytest.fixture
 def headers(actors):
-    return lambda index=0: {"Authorization": f"Bearer {create_access_token({"sub": str(actors[0][index].id)})}"}
+    return lambda index=0: {"Authorization": f"Bearer {create_access_token({'sub': str(actors[0][index].id)})}"}
 
 
 @pytest.fixture

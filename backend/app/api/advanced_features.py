@@ -35,7 +35,7 @@ router = APIRouter(tags=["Advanced Features"])
 # RAPPORTS HEBDOMADAIRES
 # ==============================================================
 
-@router.get("/reports/weekly")
+# Retained implementation; /reports/weekly is served by the canonical reports router.
 def get_weekly_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -73,7 +73,7 @@ def get_weekly_report(
     }
 
 
-@router.post("/reports/weekly/send")
+# Retained implementation; sending uses the canonical reports router.
 def send_weekly_report(
     recipients: Optional[List[str]] = None,
     db: Session = Depends(get_db),
@@ -331,7 +331,7 @@ def export_opportunities(
 
 @router.get("/export/opportunities/download")
 def download_opportunities(
-    format: str = Query("xlsx", regex="^(xlsx|csv|pdf)$"),
+    format: str = Query("xlsx", pattern="^(xlsx|csv|pdf)$"),
     status: Optional[str] = None,
     min_score: Optional[int] = None,
     db: Session = Depends(get_db),

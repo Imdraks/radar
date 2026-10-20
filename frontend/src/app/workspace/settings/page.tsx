@@ -60,16 +60,17 @@ interface WorkspaceMember {
   user_email: string;
   user_name: string;
   role: 'owner' | 'admin' | 'member' | 'viewer';
-  joined_at: string;
+  accepted_at?: string;
+  invited_at?: string;
 }
 
 interface Workspace {
   id: number;
   name: string;
-  slug: string;
+  owner_user_id: number;
   drive_root_folder_id?: string;
-  brief_template_id?: string;
-  report_template_id?: string;
+  brief_template_doc_id?: string;
+  report_template_sheet_id?: string;
   created_at: string;
   members: WorkspaceMember[];
 }
@@ -140,7 +141,9 @@ export default function WorkspaceSettingsPage() {
   const fetchWorkspace = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch('/api/v1/workspace/current', {
+      const workspaceId = localStorage.getItem('current_workspace_id');
+      if (!workspaceId) throw new Error('Aucun workspace sélectionné');
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspaceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -149,8 +152,8 @@ export default function WorkspaceSettingsPage() {
         setWorkspace(data);
         setName(data.name);
         setDriveRootId(data.drive_root_folder_id || '');
-        setBriefTemplateId(data.brief_template_id || '');
-        setReportTemplateId(data.report_template_id || '');
+        setBriefTemplateId(data.brief_template_doc_id || '');
+        setReportTemplateId(data.report_template_sheet_id || '');
       }
     } catch (err) {
       console.error('Error fetching workspace:', err);
@@ -169,7 +172,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspace.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,15 +181,14 @@ export default function WorkspaceSettingsPage() {
         body: JSON.stringify({
           name,
           drive_root_folder_id: driveRootId || null,
-          brief_template_id: briefTemplateId || null,
-          report_template_id: reportTemplateId || null,
+          brief_template_doc_id: briefTemplateId || null,
+          report_template_sheet_id: reportTemplateId || null,
         }),
       });
 
       if (!res.ok) throw new Error('Erreur de sauvegarde');
       
-      const updated = await res.json();
-      setWorkspace(updated);
+      await fetchWorkspace();
       toast.success('Workspace mis à jour !');
     } catch (err) {
       toast.error('Erreur lors de la sauvegarde');
@@ -201,7 +203,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspace.id}/invites`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -218,7 +220,7 @@ export default function WorkspaceSettingsPage() {
         throw new Error(error.detail || 'Erreur d\'invitation');
       }
       
-      toast.success(`Invitation envoyée à ${inviteEmail}`);
+      toast.success(`Adresse ${inviteEmail} autorisée à rejoindre ce workspace`);
       setInviteOpen(false);
       setInviteEmail('');
       fetchWorkspace();
@@ -234,7 +236,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspace.id}/members/${memberId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -253,7 +255,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/members/${memberId}`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspace.id}/members/${memberId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -277,7 +279,7 @@ export default function WorkspaceSettingsPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await workspaceFetch(`/api/v1/workspace/${workspace.id}/setup-drive`, {
+      const res = await workspaceFetch(`/api/v1/workspaces/${workspace.id}/drive/setup`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -296,11 +298,11 @@ export default function WorkspaceSettingsPage() {
       if (!res.ok) throw new Error('Erreur');
       
       const data = await res.json();
-      setDriveRootId(data.folder_id);
+      setDriveRootId(data.root_folder_id);
       toast.success('Structure Drive créée !', {
         action: {
           label: 'Ouvrir',
-          onClick: () => window.open(data.folder_url, '_blank'),
+          onClick: () => window.open(data.root_folder_url, '_blank'),
         },
       });
       fetchWorkspace();
@@ -313,12 +315,12 @@ export default function WorkspaceSettingsPage() {
 
   const copySlug = () => {
     if (workspace) {
-      navigator.clipboard.writeText(workspace.slug);
+      navigator.clipboard.writeText(String(workspace.id));
       toast.success('Slug copié !');
     }
   };
 
-  const isOwnerOrAdmin = workspace?.members.find(
+  const isOwnerOrAdmin = workspace?.owner_user_id === user?.id || workspace?.members.find(
     m => m.user_id === user?.id && ['owner', 'admin'].includes(m.role)
   );
 
@@ -394,10 +396,10 @@ export default function WorkspaceSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Slug (identifiant unique)</Label>
+                <Label>Identifiant du workspace</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={workspace.slug}
+                    value={String(workspace.id)}
                     disabled
                     className="font-mono text-sm"
                   />
@@ -620,7 +622,7 @@ export default function WorkspaceSettingsPage() {
                     <DialogHeader>
                       <DialogTitle>Inviter un membre</DialogTitle>
                       <DialogDescription>
-                        Envoyez une invitation par email pour rejoindre le workspace.
+                        Autorisez une adresse email à rejoindre ce workspace lors de sa connexion.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -712,7 +714,7 @@ export default function WorkspaceSettingsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-gray-500">
-                        {new Date(member.joined_at).toLocaleDateString('fr-FR')}
+                        {member.accepted_at || member.invited_at ? new Date((member.accepted_at || member.invited_at)!).toLocaleDateString('fr-FR') : '—'}
                       </TableCell>
                       {isOwnerOrAdmin && (
                         <TableCell>

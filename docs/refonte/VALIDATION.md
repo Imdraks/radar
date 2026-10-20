@@ -46,3 +46,8 @@ Pour le test visuel : installer Chromium avec Playwright, lancer le frontend loc
 `quality.yml` contrôle PostgreSQL + tests backend, typage et build frontend. Un job séparé `migration-history` exécute la chaîne historique sur une base vierge et **doit rendre visible le blocage hérité**, sans le convertir en succès. La PR peut être examinée ; elle ne doit pas être considérée déployable uniquement parce que les tests du nouveau code passent.
 
 La CI GitHub elle-même n’a pas encore été observée au moment de la validation locale. Les tests ne valident pas des fournisseurs artistiques, comptes Google ou services de paiement réels.
+
+
+## Complément du 20 octobre 2026
+
+Suite backend : 69 tests passent sur PostgreSQL jetable (995 avertissements de dépréciation/configuration de test avant nettoyage de ces conventions). Correctifs et nouvelles limites : API-AUDIT.md. Vérification des parcours locaux avec le vrai backend : LOCAL-DEBUG.md. La CI précédente a été inspectée : frontend réussi ; backend échouait sur une f-string de fixture incompatible avec Python 3.11, corrigée ; migration-history échouait sur le blocage historique connu. Le nouveau résultat distant doit être vérifié après publication.

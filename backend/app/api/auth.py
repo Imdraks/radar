@@ -371,11 +371,14 @@ def disable_2fa(
 def verify_2fa_code(
     data: TwoFactorVerifyRequest,
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Verify 2FA code during login (called after password verification).
     """
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot verify another account")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(

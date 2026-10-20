@@ -23,7 +23,7 @@ def get_current_user(
     token = credentials.credentials
     user_id = verify_token(token, "access")
     
-    if user_id is None:
+    if not isinstance(user_id, str) or not user_id.isascii() or not user_id.isdigit() or len(user_id) > 10 or not (0 < int(user_id) <= 2147483647):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",

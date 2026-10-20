@@ -37,3 +37,8 @@ Un `alembic upgrade head` sur une base PostgreSQL entièrement neuve échoue ava
 La réparation envisagée pour revue est : rendre l’ajout de colonnes de 032 compatible avec celles déjà créées en 020, imposer la création de workspaces avant 010_billing et celle des tables de facturation avant 032, puis vérifier le graphe et les chemins des installations déjà migrées. **Aucun de ces changements historiques n’est inclus.**
 
 La revue automatique a rejeté la réécriture de ces dépendances historiques, jugeant le risque élevé pour les déploiements existants et demandant une autorisation spécifique. Il faut cette autorisation avant de reprendre cette réparation. Les migrations additives et leurs tests restent indépendants de cette décision.
+
+
+## 050 — Propriété des collectes historiques
+
+Ajout nullable de `collection_runs.workspace_id`, index et clé étrangère. Les anciens runs sont conservés sans attribution inventée ; les API d’agence les masquent tant qu’un rapprochement fiable n’a pas été effectué. Les nouveaux runs portent le workspace authentifié. Les workers refusent les runs non attribués. Downgrade automatique uniquement avant toute attribution ; ensuite, archivage et procédure manuelle nécessaires pour conserver la propriété. Cette migration ne répare ni ne réécrit le graphe historique bloqué.

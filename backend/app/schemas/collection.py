@@ -77,10 +77,10 @@ class CollectRequest(BaseModel):
 
 class CollectResponse(BaseModel):
     """Response from POST /collect"""
-    run_id: int
+    run_id: UUID
     source_count: int
     task_ids: List[str]
-    entities_created: List[int]
+    entities_created: List[UUID]
     message: str
 
 
@@ -101,7 +101,7 @@ class SourceRunStatus(BaseModel):
 
 class CollectionRunResponse(BaseModel):
     """Response from GET /runs/{run_id}"""
-    id: int
+    id: UUID
     status: str
     objective: ObjectiveType
     
@@ -119,7 +119,7 @@ class CollectionRunResponse(BaseModel):
     contacts_found: int
     
     # Generated brief
-    brief_id: Optional[int] = None
+    brief_id: Optional[UUID] = None
     error_message: Optional[str] = None
     
     # Details
@@ -144,7 +144,7 @@ class EntityCreate(EntityBase):
 
 
 class EntityResponse(EntityBase):
-    id: int
+    id: UUID
     normalized_name: str
     official_urls: List[Dict[str, str]] = []
     image_url: Optional[str] = None
@@ -170,8 +170,8 @@ class ContactBase(BaseModel):
 
 
 class ContactResponse(ContactBase):
-    id: int
-    entity_id: int
+    id: UUID
+    entity_id: UUID
     source_url: Optional[str]
     source_name: Optional[str]
     reliability_score: int
@@ -198,8 +198,8 @@ class ContactRanked(BaseModel):
 # ========================
 
 class DocumentResponse(BaseModel):
-    id: int
-    entity_id: int
+    id: UUID
+    entity_id: UUID
     source_name: str
     title: str
     url: Optional[str]
@@ -240,8 +240,8 @@ class SourceUsed(BaseModel):
 
 class BriefResponse(BaseModel):
     """Complete brief for an entity"""
-    id: int
-    entity_id: int
+    id: UUID
+    entity_id: UUID
     entity_name: Optional[str] = None
     entity_type: Optional[EntityType] = None
     

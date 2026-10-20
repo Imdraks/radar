@@ -40,7 +40,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     const isAdmin = user.is_superuser === true;
 
     // Non-admin trying to access admin-only pages → redirect to today
-    const adminOnlyPages = ['/admin', '/workspaces', '/users'];
+    const adminOnlyPages = ['/admin', '/workspaces', '/users', '/sources', '/source-health'];
     const isAdminOnlyPage = adminOnlyPages.some(p => pathname === p || pathname.startsWith(p + '/'));
     if (!isAdmin && isAdminOnlyPage) {
       router.push("/today");
@@ -71,6 +71,12 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   // Require authentication
   if (!isAuthenticated) {
+    return null;
+  }
+
+  const platformPage = ['/admin', '/workspaces', '/users', '/sources', '/source-health'].some(p => pathname === p || pathname.startsWith(p + '/'));
+  if ((platformPage && user?.is_superuser !== true) ||
+      (requiredRoles?.length && user && !requiredRoles.includes(user.role))) {
     return null;
   }
 

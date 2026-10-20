@@ -70,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
           if (!currentWsId) {
             try {
               const wsResponse = await api.get("/workspaces");
-              const workspaces = wsResponse.data;
+              const workspaces = wsResponse.data.items;
               if (workspaces && workspaces.length > 0) {
                 localStorage.setItem("current_workspace_id", workspaces[0].id.toString());
               }
@@ -153,7 +153,7 @@ export const useAuthStore = create<AuthState>()(
         if (!currentWsId) {
           try {
             const wsResponse = await api.get("/workspaces");
-            const workspaces = wsResponse.data;
+            const workspaces = wsResponse.data.items;
             if (workspaces && workspaces.length > 0) {
               localStorage.setItem("current_workspace_id", workspaces[0].id.toString());
             }

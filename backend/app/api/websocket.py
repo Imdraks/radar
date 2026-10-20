@@ -5,8 +5,11 @@ import asyncio
 import json
 import logging
 from typing import Dict, Set
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from app.core.security import verify_token
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
+from app.api.deps import get_current_user
+from app.db import get_db
+from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +79,8 @@ manager = ConnectionManager()
 @router.websocket("/ws/notifications")
 async def websocket_notifications(
     websocket: WebSocket,
-    token: str = Query(...)
+    token: str = Query(...),
+    db: Session = Depends(get_db)
 ):
     """
     WebSocket endpoint for real-time notifications.
@@ -88,12 +92,13 @@ async def websocket_notifications(
     - {"type": "notification", "notification_type": "...", "title": "...", "message": "..."}
     - {"type": "ping"}
     """
-    # Verify token
-    user_id = verify_token(token, "access")
-    if not user_id:
-        await websocket.close(code=4001, reason="Invalid or expired token")
+    try:
+        user = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+    except HTTPException:
+        await websocket.close(code=4001, reason="Invalid or inactive account")
         return
-    
+    user_id = str(user.id)
+
     # Connect
     await manager.connect(websocket, user_id)
     

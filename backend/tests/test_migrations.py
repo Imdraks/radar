@@ -95,3 +95,25 @@ def test_tag_dictionary_and_new_associations_are_separate(engine):
             assert connection.execute(text('SELECT name FROM opportunity_tags')).scalar() == 'Preserved legacy tag'
             migration.downgrade()
         connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+
+
+def test_collection_ownership_migration_preserves_unassigned_history(engine):
+    with engine.connect() as connection, connection.begin():
+        schema = 'migration_' + uuid4().hex
+        connection.execute(text(f'CREATE SCHEMA {schema}'))
+        connection.execute(text(f'SET LOCAL search_path TO {schema}'))
+        connection.execute(text('CREATE TABLE workspaces (id integer primary key)'))
+        connection.execute(text('CREATE TABLE collection_runs (id integer primary key)'))
+        connection.execute(text('INSERT INTO workspaces VALUES (1)'))
+        connection.execute(text('INSERT INTO collection_runs VALUES (1)'))
+        migration = load_migration('050_collection_ownership.py')
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            assert connection.execute(text('SELECT workspace_id FROM collection_runs WHERE id=1')).scalar() is None
+            migration.downgrade()
+            assert connection.execute(text('SELECT id FROM collection_runs')).scalar() == 1
+            migration.upgrade()
+            connection.execute(text('UPDATE collection_runs SET workspace_id=1'))
+            with pytest.raises(RuntimeError, match='ownership'):
+                migration.downgrade()
+        connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))

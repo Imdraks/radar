@@ -44,7 +44,7 @@ export function GoogleCalendarIntegration() {
   const checkStatus = useCallback(async () => {
     setCheckingStatus(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
         setStatus({ connected: false });
         return;
@@ -129,7 +129,7 @@ export function GoogleCalendarIntegration() {
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
         addToast({
           title: "Non authentifié",
@@ -167,7 +167,7 @@ export function GoogleCalendarIntegration() {
   const handleDisconnect = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/disconnect`, {
         method: "DELETE",
         headers: {
@@ -195,7 +195,7 @@ export function GoogleCalendarIntegration() {
     setIsSyncing(true);
     setSyncResult(null);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/sync`, {
         method: "POST",
         headers: {
@@ -413,7 +413,7 @@ export function useGoogleCalendar() {
 
   const syncToCalendar = async (opportunityId: number | string) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
         throw new Error("Not authenticated");
       }
@@ -458,7 +458,7 @@ export function useGoogleCalendar() {
 
   const checkConnection = async (): Promise<boolean> => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       if (!token) return false;
 
       const response = await workspaceFetch(`${API_BASE}/api/v1/calendar/google/status`, {

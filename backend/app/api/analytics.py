@@ -30,7 +30,7 @@ CACHE_TTL = 300  # 5 minutes
 
 @router.get("/timeline")
 def get_timeline_data(
-    period: str = Query("30d", regex="^(7d|30d|90d|12m)$"),
+    period: str = Query("30d", pattern="^(7d|30d|90d|12m)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -120,7 +120,7 @@ def get_timeline_data(
 
 @router.get("/conversion")
 def get_conversion_metrics(
-    period: str = Query("30d", regex="^(7d|30d|90d|all)$"),
+    period: str = Query("30d", pattern="^(7d|30d|90d|all)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -483,7 +483,7 @@ def get_realtime_kpis(
 
 @router.get("/top-performers")
 def get_top_performers(
-    period: str = Query("30d", regex="^(30d|90d|all)$"),
+    period: str = Query("30d", pattern="^(30d|90d|all)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
