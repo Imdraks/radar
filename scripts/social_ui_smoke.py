@@ -24,7 +24,7 @@ async def main():
                 elif path.endswith('/subscription/current'):
                     data={'workspace_id':1,'workspace_name':'TEST LOCAL','plan':'premium','available_features':[f.value for f in get_plan_features(Plan.PREMIUM)]}
                 elif path.endswith('/subscription/navigation'):
-                    data={'sections':{s:[{'label':i.label,'path':i.path,'icon':i.icon,'available':True,'locked':False,'admin_only':i.admin_only} for i in items if not i.admin_only] for s,items in NAV_SECTIONS.items()}}
+                    data={'sections':{s:[{'label':i.label,'path':i.path,'icon':i.icon,'available':True,'locked':False,'admin_only':i.admin_only,'context_links':[{'label':child.label,'path':child.path,'icon':child.icon} for child in i.context_links]} for i in items if not i.admin_only] for s,items in NAV_SECTIONS.items()}}
                 elif path.endswith('/social-profiles'):
                     saved.append(route.request.post_data_json);data={'instagram':'https://www.instagram.com/test.artist/'}
                 elif path.endswith('/refresh'):

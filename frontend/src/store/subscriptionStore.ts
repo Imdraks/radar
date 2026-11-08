@@ -8,7 +8,11 @@ export type Feature = 'cockpit' | 'pipeline' | 'projects' | 'production' | 'asse
   | 'artists' | 'profiles' | 'discovery' | 'comparison' | 'map' | 'spotify_search' | 'events'
   | 'analytics' | 'competitor_watch' | 'ai_predictions' | 'market_intelligence'
   | 'crm_extended' | 'quotes' | 'invoices' | 'banking' | 'sources' | 'source_health';
-export interface NavItem { label: string; path: string; icon: string; available: boolean; locked: boolean; admin_only: boolean; upgrade_message?: string; }
+export interface ContextLink { label: string; path: string; icon: string; }
+export interface NavItem { label: string; path: string; icon: string; available: boolean; locked: boolean; admin_only: boolean; upgrade_message?: string; context_links?: ContextLink[]; }
+export function navigationMatches(item: NavItem, pathname: string): boolean {
+  return [item.path, ...(item.context_links || []).map(link => link.path)].some(path => pathname === path || pathname.startsWith(path + '/'));
+}
 export interface NavigationSections { [section: string]: NavItem[]; }
 export interface WorkspaceSubscription {
   workspace_id: number; workspace_name: string; plan: Plan; plan_display_name: string;
@@ -30,7 +34,7 @@ export const FEATURE_ROUTES: Record<string, Feature> = {
   '/clients': 'clients', '/pipeline': 'pipeline', '/leads': 'leads', '/opportunities': 'leads',
   '/dossiers': 'dossiers', '/artist': 'artists', '/artists': 'artists', '/discovery': 'discovery',
   '/spotify-search': 'spotify_search', '/comparison': 'comparison', '/profiles': 'profiles',
-  '/analytics': 'analytics', '/map': 'events', '/shortlist': 'daily_picks', '/scoring': 'scoring',
+  '/analytics': 'analytics', '/intelligence': 'invoices', '/deadlines': 'calendar', '/briefs': 'dossiers', '/map': 'events', '/shortlist': 'daily_picks', '/scoring': 'scoring',
   '/devis': 'quotes', '/quotes': 'quotes', '/factures': 'invoices', '/invoices': 'invoices',
   '/transactions': 'banking', '/competitive': 'competitor_watch', '/predictions': 'ai_predictions',
   '/sources': 'sources', '/source-health': 'source_health',

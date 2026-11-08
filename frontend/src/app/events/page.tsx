@@ -19,7 +19,6 @@ function Events() {
   return <div className="space-y-6">
     <h1 className="text-3xl font-semibold">Événements</h1>
     <p>Chaque événement est relié à un projet de production pour ses tâches, fichiers, contrats et livrables.</p>
-    <Link href="/map" className="underline">Consulter les événements artistiques sur la carte</Link>
     {message && <p role="status">{message}</p>}
     <form className="border rounded-2xl bg-card p-5 sm:p-6 space-y-4 shadow-sm" onSubmit={async e => {
       e.preventDefault(); const form = e.currentTarget; const values = new FormData(form); setPending(true);

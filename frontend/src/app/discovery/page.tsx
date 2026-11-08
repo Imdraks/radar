@@ -399,14 +399,14 @@ function DiscoveryV3Page() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="radar-screen-header">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
             <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
             <h1 className="text-[28px] font-semibold tracking-tight">Discovery</h1>
-            <p className="text-muted-foreground text-sm">Feed intelligent d'artistes analysés</p>
+            <p className="text-muted-foreground text-sm">Recherche, données sourcées et sélections artistiques</p>
           </div>
         </div>
         
@@ -665,27 +665,7 @@ function DiscoveryV3Page() {
               }}
             />
             
-            {/* Quick Links */}
-            <Card className="p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Target className="h-4 w-4 text-purple-500" />
-                Accès rapide
-              </h4>
-              <div className="space-y-2">
-                <Link href="#artist-search" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
-                    <Search className="h-4 w-4" />
-                    Historique des analyses
-                  </Button>
-                </Link>
-                <Link href="/comparison" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
-                    <Users className="h-4 w-4" />
-                    Comparer des artistes
-                  </Button>
-                </Link>
-              </div>
-            </Card>
+
           </div>
         </div>
       </div>

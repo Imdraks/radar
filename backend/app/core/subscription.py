@@ -308,6 +308,7 @@ class NavItem:
     feature: Optional[Feature] = None
     admin_only: bool = False
     badge: Optional[str] = None
+    context_links: List["NavItem"] = field(default_factory=list)
 
 
 NAV_SECTIONS = {
@@ -317,13 +318,18 @@ NAV_SECTIONS = {
                      NavItem("Tâches et production", "/production", "Clapperboard", Feature.PRODUCTION),
                      NavItem("Calendrier", "/agency-calendar", "Calendar", Feature.CALENDAR),
                      NavItem("Fichiers", "/assets", "Image", Feature.ASSETS)],
-    "Événementiel": [NavItem("Événements", "/events", "CalendarDays", Feature.EVENTS),
-                      NavItem("Discovery", "/discovery", "Search", Feature.DISCOVERY),
-                      NavItem("Sélections artistiques", "/comparison", "GitCompare", Feature.COMPARISON)],
-    "Business": [NavItem("Clients et prospects", "/clients", "Users", Feature.CLIENTS),
-                 NavItem("Pipeline commercial", "/pipeline", "TrendingUp", Feature.PIPELINE),
-                 NavItem("Devis", "/devis", "Receipt", Feature.QUOTES),
-                 NavItem("Factures et paiements", "/factures", "FileCheck", Feature.INVOICES)],
+    "Événementiel": [NavItem("Événements", "/events", "CalendarDays", Feature.EVENTS, context_links=[
+                          NavItem("Production événementielle", "/events", "CalendarDays", Feature.EVENTS),
+                          NavItem("Carte artistique", "/map", "Map", Feature.EVENTS)]),
+                      NavItem("Discovery", "/discovery", "Search", Feature.DISCOVERY, context_links=[
+                          NavItem("Recherche et analyse", "/discovery", "Search", Feature.DISCOVERY),
+                          NavItem("Sélections et comparaison", "/comparison", "GitCompare", Feature.COMPARISON)])],
+    "Business": [NavItem("Clients et prospects", "/clients", "Users", Feature.CLIENTS, context_links=[
+                     NavItem("Clients et contacts", "/clients", "Users", Feature.CLIENTS),
+                     NavItem("Pipeline commercial", "/pipeline", "TrendingUp", Feature.PIPELINE)]),
+                 NavItem("Devis et factures", "/devis", "Receipt", Feature.QUOTES, context_links=[
+                     NavItem("Devis", "/devis", "Receipt", Feature.QUOTES),
+                     NavItem("Factures et paiements", "/factures", "FileCheck", Feature.INVOICES)])],
     "Administration": [NavItem("Équipe et intégrations", "/workspace/settings", "Users", admin_only=True),
                         NavItem("Abonnement", "/settings/subscription", "CreditCard"),
                         NavItem("Paramètres", "/settings", "Settings")],

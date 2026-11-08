@@ -7,7 +7,7 @@ Cette branche sécurise l’attribution des abonnements, centralise Core/Premium
 - [Tests, résultats et audits de dépendances](VALIDATION.md)
 - [Activation, intégrations, facturation électronique et exploitation](EXPLOITATION.md)
 
-**149 tests backend passent ; typage et build frontend ont passé lors du lot précédent.** La réparation de l’historique Alembic a été refusée par la revue automatique et nécessite une autorisation spécifique. Les limites des intégrations externes et de la recette sont détaillées dans les comptes rendus ci-dessous. Aucun déploiement de production ni changement de données de production n’a été effectué.
+**154 tests backend passent ; typage et build frontend ont passé lors du lot précédent.** La réparation de l’historique Alembic a été refusée par la revue automatique et nécessite une autorisation spécifique. Les limites des intégrations externes et de la recette sont détaillées dans les comptes rendus ci-dessous. Aucun déploiement de production ni changement de données de production n’a été effectué.
 
 Audit complémentaire : [API et contrats](API-AUDIT.md).
 
@@ -22,3 +22,5 @@ Préversion privée : [démarrer Radar dans GitHub Codespaces](CODESPACES.md).
 Interface : [thème clair, navigation et parcours modernisés](UI-REFRESH.md).
 
 Direction artistique : [Radar — Signal clair](../design/RADAR-DA.md).
+
+Parcours simplifiés : [regroupements, historique et limites](PRODUCT-SIMPLIFICATION.md).

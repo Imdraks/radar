@@ -28,7 +28,7 @@ async def main():
     elif path.endswith('/subscription/current'):
      data={'workspace_id':1,'workspace_name':'TEST — Atelier communication','plan':plan,'plan_display_name':'Radar '+plan.title(),'enabled_packs':[],'addons':[],'max_seats':3,'current_seats':1,'available_features':sorted(features)}
     elif path.endswith('/subscription/navigation'):
-     data={'sections':{section:[{'label':i.label,'path':i.path,'icon':i.icon,'available':True,'locked':False,'admin_only':i.admin_only} for i in items if not i.admin_only and (not i.feature or i.feature.value in features)] for section,items in NAV_SECTIONS.items()}}
+     data={'sections':{section:[{'label':i.label,'path':i.path,'icon':i.icon,'available':True,'locked':False,'admin_only':i.admin_only,'context_links':[{'label':child.label,'path':child.path,'icon':child.icon} for child in i.context_links if not child.feature or child.feature in get_plan_features(Plan(plan))]} for i in items if not i.admin_only and (not i.feature or i.feature.value in features)] for section,items in NAV_SECTIONS.items()}}
     elif path.endswith('/subscription/plans'):
      data=[{**vars(c),'included_packs':[v.value for v in c.included_packs],'included_addons':[],'available_features':sorted(f.value for f in get_plan_features(Plan(c.name))),'is_current':False,'is_recommended':False} for c in PLAN_CONFIGS.values()]
     elif path.endswith('/agency/dashboard'):
@@ -37,6 +37,12 @@ async def main():
      data={'items':[{'id':1,'name':'TEST — Atelier communication','role':'admin','members_count':1}]}
     elif path.endswith('/inbox'):
      data={'items':[]}
+    elif '/discovery/feed/' in path:
+     data={'artists':[],'total':0,'page':1,'limit':20,'has_more':False}
+    elif path.endswith('/discovery/queue'):
+     data={'jobs':[],'running':0,'pending':0,'completed_24h':0}
+    elif path.endswith('/agency/pipeline'):
+     data={'columns':[],'total_deals':0,'total_value':0}
     elif path.endswith('/events'):
      await route.fulfill(status=503,content_type='application/json',body=json.dumps({'detail':'TEST — fournisseur indisponible'}));return
     else:data=[]
@@ -108,6 +114,36 @@ async def main():
     await page.get_by_text('Impossible de charger les événements.',exact=True).wait_for()
     await page.get_by_label('Nom',exact=True).fill('TEST — événement')
     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+   if plan=='business':
+    workflows=[('/discovery','Discovery','Recherche et analyse'),('/comparison','Discovery','Sélections et comparaison'),('/clients','Clients et prospects','Clients et contacts'),('/pipeline','Clients et prospects','Pipeline commercial'),('/devis','Devis et factures','Devis'),('/factures','Devis et factures','Factures et paiements')]
+    for path,group,label in workflows:
+     await page.goto(BASE+path,wait_until='networkidle')
+     tabs=page.get_by_role('navigation',name='Parcours '+group,exact=True)
+     await tabs.wait_for()
+     assert await tabs.get_by_role('link',name=label,exact=True).get_attribute('aria-current')=='page'
+     if path=='/discovery':assert await page.get_by_text('Accès rapide',exact=True).count()==0
+     if path=='/comparison':assert await page.get_by_role('button',name='Nouvelle sélection',exact=True).count()==1
+     if plan=='business' and width==1440 and path in ['/comparison','/factures']:
+      await page.screenshot(path='/tmp/radar-simplified-'+path.strip('/')+'.png',full_page=True)
+     if width>=1024:
+      nav=page.get_by_role('navigation',name='Navigation principale',exact=True)
+      assert await nav.get_by_role('link',name=group,exact=True).get_attribute('aria-current')=='page'
+      assert await nav.get_by_role('link',name='Pipeline commercial',exact=True).count()==0
+      assert await nav.get_by_role('link',name='Sélections artistiques',exact=True).count()==0
+     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),path
+     assert not errors,(path,errors)
+    await page.goto(BASE+'/settings/tools',wait_until='networkidle')
+    await page.get_by_role('heading',name='Outils historiques',exact=True).wait_for()
+    assert await page.get_by_role('link',name='Profils de recherche',exact=False).count()==1
+    await page.goto(BASE+'/settings',wait_until='networkidle')
+    await page.get_by_role('heading',name='Paramètres',exact=True).wait_for()
+    assert await page.get_by_role('button',name='Enregistrer',exact=True).count()==0
+    assert await page.get_by_role('button',name='Changer le mot de passe',exact=True).count()==0
+    assert await page.get_by_role('tab',name='Dashboard',exact=True).count()==0
+   if plan!='business':
+    await page.goto(BASE+'/today',wait_until='networkidle')
+    assert await page.get_by_text('Leads chauds',exact=True).count()==0
+    assert await page.get_by_text('Ce mois',exact=True).count()==0
    assert not errors,errors
    print(f'{plan} {width}px: catalogue, requests, accueil, formulaire, menu clavier, responsive OK',flush=True)
    await context.close()

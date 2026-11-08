@@ -45,9 +45,6 @@ const adminNavigation = [
 const toolsNavigation = [
   { name: 'Sources', href: '/sources', icon: Rss },
   { name: 'Source Health', href: '/source-health', icon: HeartPulse },
-  { name: 'Profils', href: '/profiles', icon: Sliders },
-  { name: 'Scoring', href: '/scoring', icon: BarChart3 },
-  { name: 'Prédictions', href: '/predictions', icon: Brain },
 ];
 
 const bottomNavigation = [

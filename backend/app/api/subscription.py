@@ -92,7 +92,11 @@ async def get_navigation_config(workspace_id: Optional[int] = None, db: Session 
     sections = {}
     for section, items in NAV_SECTIONS.items():
         visible = [{"label": item.label, "path": item.path, "icon": item.icon,
-                    "available": True, "locked": False, "admin_only": item.admin_only}
+                    "available": True, "locked": False, "admin_only": item.admin_only,
+                    "context_links": [{"label": child.label, "path": child.path, "icon": child.icon}
+                                      for child in item.context_links
+                                      if (child.feature is None or child.feature in features)
+                                      and (not child.admin_only or is_workspace_admin(db, current_user, workspace))]}
                    for item in items
                    if (not item.admin_only or is_workspace_admin(db, current_user, workspace))
                    and (item.feature is None or item.feature in features)]

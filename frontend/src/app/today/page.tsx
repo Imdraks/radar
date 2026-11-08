@@ -1,6 +1,7 @@
 "use client";
 import { workspaceFetch } from "@/lib/workspace-fetch";
 import { useAuthStore } from "@/store/auth";
+import { useSubscriptionStore } from "@/store/subscriptionStore";
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
@@ -103,6 +104,7 @@ export default function TodayPage() {
 
 function TodayContent() {
   const user = useAuthStore(state => state.user);
+  const hasBusiness = useSubscriptionStore(state => state.hasFeature('crm_extended'));
   const [data, setData] = useState<DashboardData | null>(null);
   const [inboxItems, setInboxItems] = useState<InboxItemPreview[]>([]);
   const [workspaces, setWorkspaces] = useState<UserWorkspace[]>([]);
@@ -249,7 +251,7 @@ function TodayContent() {
 
       {/* Quick Stats */}
       {data && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-2 gap-4 ${hasBusiness ? 'md:grid-cols-4' : ''}`}>
           <Card className="p-4">
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
@@ -272,13 +274,14 @@ function TodayContent() {
               </div>
             </div>
           </Card>
+          {hasBusiness && <>
           <Card className="p-4">
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
               <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
                 <Users className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{data.hot_leads ?? "Radar Business"}</p>
+                <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{data.hot_leads ?? "—"}</p>
                 <p className="text-xs text-gray-500">Leads chauds</p>
               </div>
             </div>
@@ -290,12 +293,13 @@ function TodayContent() {
               </div>
               <div>
                 <p className="text-xl sm:text-2xl font-semibold tracking-tight break-words">
-                  {data.monthly_revenue == null ? 'Radar Business' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
+                  {data.monthly_revenue == null ? '—' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.monthly_revenue)}
                 </p>
                 <p className="text-xs text-gray-500">Ce mois</p>
               </div>
             </div>
           </Card>
+          </>}
         </div>
       )}
 
@@ -327,7 +331,7 @@ function TodayContent() {
 
       {/* Main 3-column grid */}
       {!allEmpty && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${hasBusiness ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
           
           {/* Block A: À faire aujourd'hui */}
           <Card className="lg:col-span-1">
@@ -442,7 +446,7 @@ function TodayContent() {
           </Card>
 
           {/* Block C: Business */}
-          <Card className="lg:col-span-1">
+          {hasBusiness && <Card className="lg:col-span-1">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-green-600" />
@@ -495,7 +499,7 @@ function TodayContent() {
                 </Link>
               )}
             </CardContent>
-          </Card>
+          </Card>}
         </div>
       )}
 

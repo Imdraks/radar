@@ -263,8 +263,8 @@ function ComparisonTable({ artists }: { artists: ArtistComparisonData[] }) {
   if (artists.length === 0) {
     return (
       <div className="text-center py-16 px-6">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <Scale className="h-10 w-10 text-blue-500" />
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <Scale className="h-10 w-10 text-primary" />
         </div>
         <h3 className="text-xl font-semibold mb-3">Aucun artiste à comparer</h3>
         <p className="text-muted-foreground max-w-md mx-auto mb-6">
@@ -551,7 +551,7 @@ function ComparisonV3Page() {
       setSelectedListId(newList.id);
       setShowCreateDialog(false);
       setNewListName("");
-      toast.success("Shortlist créée", { description: `"${newList.name}" a été créée` });
+      toast.success("Sélection créée", { description: `"${newList.name}" a été créée` });
     },
   });
 
@@ -560,7 +560,7 @@ function ComparisonV3Page() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comparison-lists"] });
       setSelectedListId(null);
-      toast.success("Shortlist supprimée");
+      toast.success("Sélection supprimée");
     },
   });
 
@@ -593,22 +593,22 @@ function ComparisonV3Page() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="radar-screen-header">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
             <GitCompare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Comparaison</h1>
+            <h1 className="text-2xl font-bold">Sélections et comparaison</h1>
             <p className="text-muted-foreground text-sm">
-              {listsQuery.data?.length || 0} shortlists · {listsQuery.data?.reduce((acc, l) => acc + l.artist_count, 0) || 0} artistes
+              {listsQuery.data?.length || 0} sélections · {listsQuery.data?.reduce((acc, l) => acc + l.artist_count, 0) || 0} artistes
             </p>
           </div>
         </div>
         
         <Button onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
-          Nouvelle shortlist
+          Nouvelle sélection
         </Button>
       </div>
 
@@ -617,7 +617,7 @@ function ComparisonV3Page() {
         {/* Sidebar: Lists */}
         <div className="space-y-4">
           <h2 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-            Mes shortlists
+            Mes sélections
           </h2>
 
           {listsQuery.isLoading ? (
@@ -629,15 +629,12 @@ function ComparisonV3Page() {
           ) : listsQuery.data?.length === 0 ? (
             <Card className="p-6 text-center border-dashed border-2">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                <GitCompare className="h-6 w-6 text-blue-500" />
+                <GitCompare className="h-6 w-6 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Créez votre première shortlist
+                Vos sélections apparaîtront ici.
               </p>
-              <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-1" />
-                Nouvelle shortlist
-              </Button>
+
             </Card>
           ) : (
             <div className="space-y-2">
@@ -657,18 +654,15 @@ function ComparisonV3Page() {
         {/* Main: Comparison */}
         <div className="lg:col-span-3 space-y-6">
           {!selectedListId ? (
-            <Card className="p-16 text-center border-dashed border-2">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <GitCompare className="h-10 w-10 text-blue-500" />
+            <Card className="p-6 sm:p-12 text-center border-dashed">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <GitCompare className="h-10 w-10 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">Sélectionnez une shortlist</h3>
+              <h3 className="text-xl font-semibold mb-3">Choisissez votre sélection</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Choisissez une shortlist existante ou créez-en une nouvelle pour commencer à comparer des artistes
+                Choisissez une sélection existante ou créez-en une pour commencer à comparer vos artistes.
               </p>
-              <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Créer une shortlist
-              </Button>
+
             </Card>
           ) : listDetailQuery.isLoading ? (
             <div className="space-y-4">
@@ -682,7 +676,7 @@ function ComparisonV3Page() {
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <h2 className="text-xl font-semibold flex items-center gap-2">
-                      <GitCompare className="h-5 w-5 text-blue-500" />
+                      <GitCompare className="h-5 w-5 text-primary" />
                       {listDetailQuery.data.name}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -771,13 +765,13 @@ function ComparisonV3Page() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Créer une shortlist</DialogTitle>
+            <DialogTitle>Créer une sélection</DialogTitle>
             <DialogDescription>
-              Donnez un nom à votre nouvelle shortlist de comparaison
+              Donnez un nom à votre nouvelle sélection de comparaison
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="list-name">Nom de la shortlist</Label>
+            <Label htmlFor="list-name">Nom de la sélection</Label>
             <Input
               id="list-name"
               value={newListName}

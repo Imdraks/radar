@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, LogOut, ChevronLeft, ChevronRight, Building2, ShieldCheck } from 'lucide-react';
 import { Portal as TooltipPortal } from '@radix-ui/react-tooltip';
 import { useAuthStore } from '@/store/auth';
-import { useSubscriptionStore, selectedWorkspace } from '@/store/subscriptionStore';
+import { useSubscriptionStore, selectedWorkspace, navigationMatches } from '@/store/subscriptionStore';
 import { RouteGuard } from '@/components/access/RouteGuard';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { NavigationIcon } from './navigation-icons';
 import { RadarLogo } from '@/components/brand/RadarBrand';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { LegacyToolNotice } from '@/components/product/LegacyTools';
 
 function SidebarHint({ label, compact, children }: { label: string; compact: boolean; children: React.ReactElement }) {
   if (!compact) return children;
@@ -38,7 +39,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem('radar-sidebar-collapsed', String(next)); } catch { /* The control still works without persistence. */ }
   };
   const activeItem = Object.values(navigation || {}).flat().sort((a, b) => b.path.length - a.path.length)
-    .find(item => pathname === item.path || pathname.startsWith(item.path + '/'));
+    .find(item => navigationMatches(item, pathname));
+  const activeContext = [...(activeItem?.context_links || [])].sort((a, b) => b.path.length - a.path.length)
+    .find(link => pathname === link.path || pathname.startsWith(link.path + '/'));
   const activeSection = Object.entries(navigation || {}).find(([, items]) => items.some(item => item.path === activeItem?.path))?.[0];
   const initials = (user?.full_name || user?.email || 'R').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   useEffect(() => {
@@ -99,12 +102,15 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
               <SheetTitle className="sr-only">Navigation Radar</SheetTitle><SheetDescription id="radar-menu-description" className="sr-only">Accéder aux outils de votre agence.</SheetDescription>{renderSidebar(false, true)}
             </SheetContent>
           </Sheet>
-          <div className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-muted-foreground sm:inline">{activeSection || 'Votre espace'}</span><ChevronRight size={14} className="hidden shrink-0 text-muted-foreground/60 sm:block" /><span className="truncate font-medium">{activeItem?.label || 'Radar'}</span></div>
+          <div className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-muted-foreground sm:inline">{activeSection || 'Votre espace'}</span><ChevronRight size={14} className="hidden shrink-0 text-muted-foreground/60 sm:block" /><span className="truncate font-medium">{activeContext?.label || activeItem?.label || 'Radar'}</span></div>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><BackgroundTasksIndicator /><NotificationCenter /><OnboardingTrigger /><ThemeToggle /><Link href="/settings" aria-label="Paramètres du compte" className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex">{initials}</Link></div>
       </header>
       <main id="radar-main" tabIndex={-1} className="radar-content mx-auto max-w-[1520px] px-4 py-6 pb-28 outline-none sm:px-8 sm:py-8 lg:px-10 lg:pb-10">
-        {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>{children}</RouteGuard>}
+        {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>
+          {(activeItem?.context_links?.length || 0) > 1 && <nav aria-label={`Parcours ${activeItem?.label}`} className="mb-7 flex flex-wrap gap-1.5 rounded-2xl border bg-card p-1.5">{activeItem?.context_links?.map(link => <Link key={link.path} href={link.path} aria-current={activeContext?.path === link.path ? 'page' : undefined} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${activeContext?.path === link.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}><NavigationIcon name={link.icon} className="h-4 w-4" />{link.label}</Link>)}</nav>}
+          <LegacyToolNotice pathname={pathname} />{children}
+        </RouteGuard>}
       </main>
     </div>
     <MobileBottomNav /><OnboardingTour /><WelcomeModal />
