@@ -20,12 +20,11 @@ import { LandingHeader } from "@/components/landing/LandingHeader";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 const PLAN_OPTIONS = [
-  { value: "", label: "Sélectionnez un pack (optionnel)" },
+  { value: "", label: "Sélectionnez une offre (optionnel)" },
   { value: "core", label: "Radar Core" },
   { value: "business", label: "Radar Business" },
-  { value: "talents", label: "Radar Talents" },
-  { value: "intelligence", label: "Radar Intelligence" },
-  { value: "custom", label: "Offre sur mesure" },
+  { value: "premium", label: "Radar Premium" },
+  { value: "custom", label: "Radar Addons — besoin sur mesure" },
 ];
 
 export default function ContactPage() {
@@ -69,7 +68,7 @@ export default function ContactPage() {
       <LandingWrapper>
         <LandingHeader />
 
-        <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-24 pb-16">
+        <main className="radar-public min-h-screen pt-32 pb-20">
           <div className="container mx-auto px-6 max-w-5xl">
             {/* Back link */}
             <Link

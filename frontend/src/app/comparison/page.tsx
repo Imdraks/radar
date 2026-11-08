@@ -606,7 +606,7 @@ function ComparisonV3Page() {
           </div>
         </div>
         
-        <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle shortlist
         </Button>
@@ -634,7 +634,7 @@ function ComparisonV3Page() {
               <p className="text-sm text-muted-foreground mb-4">
                 Créez votre première shortlist
               </p>
-              <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Button size="sm" onClick={() => setShowCreateDialog(true)} className="bg-primary hover:bg-primary/90">
                 <Plus className="h-4 w-4 mr-1" />
                 Nouvelle shortlist
               </Button>
@@ -707,7 +707,7 @@ function ComparisonV3Page() {
                       size="sm"
                       onClick={() => setShowAddArtistDialog(true)}
                       disabled={listDetailQuery.data.artists.length >= 4}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-primary hover:bg-primary/90"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Ajouter un artiste

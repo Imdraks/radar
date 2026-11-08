@@ -288,11 +288,11 @@ export default function QuotesPage() {
   return (
     <ProtectedRoute>
       <AppLayoutWithOnboarding>
-        <div className="p-6 space-y-6">
+        <div className="space-y-7">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-[28px] font-semibold tracking-tight text-foreground dark:text-white flex items-center gap-2">
                 <Receipt className="h-6 w-6 text-blue-600" />
                 Devis
               </h1>

@@ -10,7 +10,7 @@ async def main():
     base=os.environ.get('RADAR_UI_BASE_URL','http://127.0.0.1:3100')
     if urlparse(base).hostname not in {'localhost','127.0.0.1'}:raise RuntimeError('Local server required')
     async with async_playwright() as p:
-        browser=await p.chromium.launch(args=['--no-sandbox'])
+        browser=await p.chromium.launch(args=['--no-sandbox'], executable_path=os.environ.get('RADAR_BROWSER_PATH'))
         for width,terminal in [(1440,'DONE'),(390,'PARTIAL')]:
             context=await browser.new_context(locale='fr-FR',viewport={'width':width,'height':1000})
             await context.add_init_script("localStorage.setItem('access_token','explicit-ui-fixture-only');localStorage.setItem('current_workspace_id','1');localStorage.setItem('opportunities-radar-welcome-shown-v2','true')")

@@ -20,3 +20,5 @@ Réseaux sociaux : [compteurs Instagram, TikTok et YouTube](SOCIAL-AUDIENCE.md).
 Préversion privée : [démarrer Radar dans GitHub Codespaces](CODESPACES.md).
 
 Interface : [thème clair, navigation et parcours modernisés](UI-REFRESH.md).
+
+Direction artistique : [Radar — Signal clair](../design/RADAR-DA.md).

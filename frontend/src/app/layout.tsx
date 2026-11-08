@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import "./radar-brand.css";
 import { Providers } from "./providers";
 import CookieConsent from "@/components/CookieConsent";
 
@@ -13,10 +14,9 @@ export const metadata: Metadata = {
     default: "Radar",
     template: "%s | Radar",
   },
-  description: "Plateforme de détection et gestion d'opportunités événementielles",
+  description: "L’espace de travail des agences : organisation, intelligence artistique, événements et activité commerciale.",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
     apple: "/favicon.svg",

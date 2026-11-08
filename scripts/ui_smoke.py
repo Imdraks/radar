@@ -11,7 +11,7 @@ if urlparse(BASE).hostname not in {'localhost','127.0.0.1'}:
 
 async def main():
  async with async_playwright() as p:
-  browser=await p.chromium.launch(args=['--no-sandbox'])
+  browser=await p.chromium.launch(args=['--no-sandbox'], executable_path=os.environ.get('RADAR_BROWSER_PATH'))
   for plan,width,height in [('business',1440,1000),('premium',1440,1000),('core',1440,1000),('business',768,1024),('business',390,844)]:
    context=await browser.new_context(viewport={'width':width,'height':height},locale='fr-FR')
    await context.add_init_script("localStorage.setItem('access_token','ui-test-only');localStorage.setItem('current_workspace_id','1');localStorage.setItem('opportunities-radar-welcome-shown-v2','true')")

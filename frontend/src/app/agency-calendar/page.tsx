@@ -264,12 +264,12 @@ function CalendarContent() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendrier</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Calendrier</h1>
           <p className="text-gray-600">{events.length} événements ce mois</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Nouvel événement
@@ -563,7 +563,7 @@ function CalendarContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer l'événement
                 </button>

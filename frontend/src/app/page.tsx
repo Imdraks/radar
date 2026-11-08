@@ -1,62 +1,10 @@
-import {
-  LandingWrapper,
-  LandingHeader,
-  Hero,
-  Workflow,
-  FeaturesGrid,
-  WhyRadar,
-  Integrations,
-  Security,
-  FAQ,
-  Pricing,
-  FinalCTA,
-  LandingFooter,
-  ForceLightMode,
-} from "@/components/landing";
-
+import { LandingHeader, LandingFooter, ForceLightMode } from '@/components/landing';
+import { RadarLanding } from '@/components/landing/RadarLanding';
 export const metadata = {
-  title: "Radar - Le cockpit pour piloter votre agence de production",
-  description:
-    "Pipeline, projets, facturation, découverte artistes, production et intelligence artistique — intégré à Google Workspace. La plateforme tout-en-un pour les agences de production musicale.",
-  keywords: ["agence", "production musicale", "gestion de projet", "pipeline", "CRM", "facturation", "devis", "découverte artistes", "Google Workspace", "analytics"],
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "Radar - Le cockpit pour piloter votre agence de production",
-    description:
-      "Pipeline, projets, facturation, découverte artistes et production — intégré à Google Workspace.",
-    url: "/",
-    type: "website",
-    locale: "fr_FR",
-    siteName: "Radar",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Radar - Le cockpit pour piloter votre agence de production",
-    description:
-      "Pipeline, projets, facturation, découverte artistes et analytics — la plateforme tout-en-un pour les agences de production musicale.",
-  },
+ title: 'Radar — Le point de repère de votre agence',
+ description: 'Organisation, intelligence artistique, événements et gestion commerciale : Radar réunit les outils du quotidien des agences de communication, de production et d’événementiel.',
+ alternates: { canonical: '/' },
 };
-
 export default function HomePage() {
-  return (
-    <ForceLightMode>
-      <LandingWrapper>
-        <main className="min-h-screen bg-white text-gray-900">
-          <LandingHeader />
-          <Hero />
-          <FeaturesGrid />
-          <WhyRadar />
-          <Workflow />
-          <Integrations />
-          <Security />
-          <Pricing />
-          <FAQ />
-          <FinalCTA />
-          <LandingFooter />
-        </main>
-      </LandingWrapper>
-    </ForceLightMode>
-  );
+ return <ForceLightMode><div className="radar-public"><LandingHeader /><main><RadarLanding /></main><LandingFooter /></div></ForceLightMode>;
 }

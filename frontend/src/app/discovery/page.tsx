@@ -405,7 +405,7 @@ function DiscoveryV3Page() {
             <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Discovery</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight">Discovery</h1>
             <p className="text-muted-foreground text-sm">Feed intelligent d'artistes analysés</p>
           </div>
         </div>
@@ -438,7 +438,7 @@ function DiscoveryV3Page() {
 
       {/* Active analysis indicator */}
       {(queueQuery.data?.running ?? 0) > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />

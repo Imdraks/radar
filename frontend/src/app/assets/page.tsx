@@ -41,7 +41,7 @@ function AssetsContent() {
           <div className="p-2 bg-purple-100 rounded-lg">
             <Folder className="h-6 w-6 text-purple-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Bibliothèque d'assets</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Bibliothèque d'assets</h1>
         </div>
         <p className="text-gray-500">
           Tous vos assets centralisés : maquettes, documents, liens, médias...

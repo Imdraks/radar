@@ -252,16 +252,16 @@ function ProjectsContent() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-7">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="radar-screen-header radar-screen-intro">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projets</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Projets</h1>
           <p className="text-gray-600">{projects.length} projets</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Nouveau projet
@@ -269,7 +269,7 @@ function ProjectsContent() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-card p-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -541,7 +541,7 @@ function ProjectsContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer le projet
                 </button>
@@ -622,7 +622,7 @@ function ProjectsContent() {
             <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
               <button
                 onClick={() => { setShowViewModal(false); handleEditProject(selectedProject); }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Modifier
               </button>
@@ -701,7 +701,7 @@ function ProjectsContent() {
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Enregistrer
               </button>

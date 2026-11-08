@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RadarLogo } from "@/components/brand/RadarBrand";
 import { ArrowLeft, Building2, Server, Shield, Cookie, Scale, Gavel, Mail } from "lucide-react";
 
 export default function LegalPage() {
@@ -9,6 +10,7 @@ export default function LegalPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-6 py-6">
+          <Link href="/" aria-label="Radar — Accueil" className="mb-4 block w-fit"><RadarLogo /></Link>
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors text-sm"

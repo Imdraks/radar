@@ -351,7 +351,7 @@ export default function WorkspaceSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground dark:text-white">
           Paramètres du Workspace
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">

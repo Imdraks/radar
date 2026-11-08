@@ -14,6 +14,7 @@ import { BackgroundTasksIndicator } from '@/components/tasks/BackgroundTasksIndi
 import { OnboardingProvider, OnboardingTour, OnboardingTrigger, WelcomeModal } from '@/components/onboarding';
 import { MobileBottomNav } from './MobileBottomNav';
 import { NavigationIcon } from './navigation-icons';
+import { RadarLogo } from '@/components/brand/RadarBrand';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,8 +42,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   const sidebar = <div className="radar-sidebar flex h-full flex-col">
     <Link href="/today" onClick={() => setOpen(false)} className="flex shrink-0 items-center gap-3 px-6 py-6 text-foreground hover:no-underline">
-      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20"><Radar size={26} strokeWidth={1.7} /></span>
-      <span><span className="block text-[24px] font-semibold leading-tight tracking-tight">radar<span className="text-primary">.</span></span><span className="mt-0.5 block text-[11px] text-muted-foreground">Votre espace agence</span></span>
+      <span><RadarLogo /><span className="mt-2 block text-[10px] tracking-wide text-muted-foreground">Le point de repère de votre agence</span></span>
     </Link>
     <div className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary"><Building2 size={17} /></span>
