@@ -37,10 +37,22 @@ Arrêter **le Codespace entier** depuis le menu GitHub Codespaces après les tes
 
 ## Base de test et limites de validation
 
-Le script ne peut cibler que le service PostgreSQL interne `postgres`, la base `radar_codespaces_test` et le compte `radar_test`. Il initialise uniquement une base vide et inscrit un marqueur d’instance. Une base non vide sans marqueur ou appartenant à une autre instance est refusée. Les redémarrages ne recréent pas les utilisateurs et ne modifient pas leurs données.
+Le script ne peut cibler que le service PostgreSQL interne `postgres`, la base `radar_codespaces_test` et le compte `radar_test`. Il initialise uniquement une base vide et inscrit un marqueur d’instance. Une base non vide sans marqueur ou appartenant à une autre instance est refusée. Les redémarrages ne recréent pas les utilisateurs et ne modifient pas leurs données. Pour les anciennes préversions reconnues, le lanceur crée uniquement la table `artist_snapshots` si elle manque ; les tables existantes ne sont pas recréées.
 
 Le schéma jetable est créé depuis les modèles SQLAlchemy, comme pour les tests locaux précédents. Le [blocage historique Alembic](MIGRATIONS.md) reste intact : aucun marquage de migration ni réécriture de l’historique n’est effectué. Cette préversion ne valide donc pas l’installation ou la mise à jour d’une base de production. Un changement ultérieur des modèles peut nécessiter un nouveau Codespace vide ; le lanceur ne migre pas automatiquement une base de test existante.
 
 Les protections applicatives et les droits backend restent actifs. L’environnement est identifié par son nom de workspace ; aucune statistique artistique ou transaction commerciale n’est préremplie.
 
-Validation avant publication de la configuration : JSON, syntaxe Python 3.11, syntaxe shell et `docker compose config` passent. La suite backend compte **147 tests réussis**, dont cinq couvrant les identifiants privés, l’isolation de configuration, le refus des bases non reconnues, la conservation au redémarrage et la connexion réelle au compte d’agence. Le contrôle des PID réutilisés est également vérifié. Le lancement complet d’un Codespace sur GitHub reste à effectuer depuis ton compte ; ces contrôles ne sont pas présentés comme une session Codespaces déjà ouverte.
+### Erreur `relation "artist_snapshots" does not exist`
+
+Le modèle historique était importé tardivement par le worker et absent du registre utilisé au premier démarrage. Il est maintenant enregistré avec les autres modèles. Pour réparer un Codespace existant, récupérer la branche puis relancer les services :
+
+```sh
+git pull --ff-only
+python .devcontainer/radar.py stop
+python .devcontainer/radar.py start
+```
+
+Après le message `Radar prêt`, relancer l’enrichissement de l’artiste concerné. La réparation est additive et limitée à la base de test dont le marqueur correspond au Codespace. Elle ne remplace pas une migration de production et ne réécrit pas la migration historique 040. Une base de production rencontrant cette erreur doit faire l’objet d’un diagnostic de ses migrations.
+
+Validation avant publication de la configuration : JSON, syntaxe Python 3.11, syntaxe shell et `docker compose config` passent. La suite backend compte **149 tests réussis**, dont sept couvrant les identifiants privés, l’isolation de configuration, le refus des bases non reconnues, la conservation au redémarrage la connexion réelle au compte d’agence et la réparation ciblée des snapshots manquants. Le contrôle des PID réutilisés est également vérifié. Le lancement complet d’un Codespace sur GitHub reste à effectuer depuis ton compte ; ces contrôles ne sont pas présentés comme une session Codespaces déjà ouverte.

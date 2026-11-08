@@ -3,6 +3,8 @@ import importlib.util
 from pathlib import Path
 import os
 import stat
+import subprocess
+import sys
 from uuid import uuid4
 
 import pytest
@@ -13,6 +15,11 @@ from fastapi.testclient import TestClient
 spec = importlib.util.spec_from_file_location("radar_codespaces", Path(__file__).resolve().parents[2] / ".devcontainer/radar.py")
 preview = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(preview)
+
+
+def test_artist_history_registered_without_api_or_worker_imports():
+    # A fresh interpreter prevents other test modules from masking lazy imports.
+    subprocess.run([sys.executable, "-c", "from app.db import models; from app.db.base import Base; assert 'artist_snapshots' in Base.metadata.tables"], check=True)
 
 
 def test_preview_config_requires_container_and_keeps_private_credentials(tmp_path, monkeypatch):
@@ -113,3 +120,35 @@ def test_preview_refuses_other_instance(empty_preview_engine):
         conn.execute(text(f"INSERT INTO {preview.MARKER} VALUES ('original-instance')"))
     with pytest.raises(RuntimeError, match="autre préversion"):
         preview.initialize_database(empty_preview_engine, {"instance_id": "new-instance"})
+
+
+def test_preview_repairs_missing_history_and_preserves_existing_data(empty_preview_engine, tmp_path, monkeypatch):
+    from sqlalchemy import inspect
+    from app.db.models import ArtistSnapshot
+    from app.db.models.user import User
+    from app.db.models.workspace import Workspace
+    monkeypatch.setenv("RADAR_CODESPACES_SANDBOX", "1")
+    monkeypatch.setattr(preview, "STATE", tmp_path)
+    data = preview.configuration()
+    assert preview.initialize_database(empty_preview_engine, data) is True
+    assert inspect(empty_preview_engine).has_table("artist_snapshots")
+    with Session(empty_preview_engine) as db:
+        workspace = db.query(Workspace).one()
+        workspace.name = "TEST — workspace à conserver"
+        workspace_id = workspace.id
+        user_hash = db.query(User).one().hashed_password
+        db.commit()
+    # Reproduce an older Codespace: bootstrap succeeded before this model was registered.
+    ArtistSnapshot.__table__.drop(empty_preview_engine)
+    assert preview.initialize_database(empty_preview_engine, data) is False
+    with Session(empty_preview_engine) as db:
+        db.add(ArtistSnapshot(artist_name="TEST — artiste", artist_name_normalized="test artiste", workspace_id=workspace_id))
+        db.commit()
+        saved_id = db.query(ArtistSnapshot).one().id
+        assert db.query(User).one().hashed_password == user_hash
+        assert db.query(Workspace).one().name == "TEST — workspace à conserver"
+    # Repeat start: preserve history already collected, rather than recreating the table.
+    assert preview.initialize_database(empty_preview_engine, data) is False
+    with Session(empty_preview_engine) as db:
+        assert db.query(ArtistSnapshot).one().id == saved_id
+        assert db.query(ArtistSnapshot).one().spotify_monthly_listeners is None

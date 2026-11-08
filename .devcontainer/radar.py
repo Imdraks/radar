@@ -94,6 +94,10 @@ def initialize_database(engine, data):
             instance = conn.execute(text(f"SELECT instance_id FROM {MARKER}")).scalar_one()
             if instance != data["instance_id"]:
                 raise RuntimeError("Cette base appartient à une autre préversion ; démarrage refusé.")
+            # Older test bootstraps omitted this lazily imported model. Only add
+            # its missing table after verifying this disposable instance marker.
+            # Existing tables/rows and production migration history are untouched.
+            models.ArtistSnapshot.__table__.create(conn, checkfirst=True)
             return False
         # Test schema only. No Alembic stamping or historical migration rewrite.
         Base.metadata.create_all(conn)

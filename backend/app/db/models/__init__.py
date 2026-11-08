@@ -170,3 +170,6 @@ from .banking import (
 from .subscription_request import SubscriptionRequest
 
 from .production_event import ProductionEvent, EventArtist, EventExpense
+
+# Register historical artist observations before schema creation / Alembic discovery.
+from .artist_snapshot import ArtistSnapshot

@@ -5,7 +5,7 @@ La mise à jour conserve les routes, les données et les contrôles d’accès e
 ## Changements
 
 - Navigation commune : icônes, sections plus lisibles, sélection active sur les sous-pages, contexte de navigation dans l’en-tête, identité du workspace et compte utilisateur. Les entrées proviennent toujours de la navigation renvoyée par le backend.
-- Barre latérale affinée : panneau de 280 px, fond légèrement violet, sections séparées, icônes encadrées sur la page active et repère violet. Le menu défile indépendamment du compte et de l’abonnement fixés en bas ; les sections vides ne sont pas affichées. Le même dessin est utilisé dans le tiroir mobile.
+- Barre latérale affinée : panneau de 280 px, fond légèrement violet, sections séparées, icônes encadrées sur la page active et repère violet. Le menu défile indépendamment du compte fixé en bas ; les sections vides ne sont pas affichées. Le même dessin est utilisé dans le tiroir mobile.
 - Mobile : tiroir réutilisant le composant Radix existant pour le focus, Échap et le retour au bouton d’ouverture ; accès rapides avec icônes et état actif. Le tiroir se ferme au passage en affichage desktop.
 - Composants communs : boutons, cartes, champs et couleurs harmonisés ; suppression du chargement Google Fonts redondant avec `next/font`. Les champs natifs des formulaires de l’application bénéficient d’un fond et d’un focus explicites.
 - Accueil : suppression du double espacement, en-tête responsive, salut utilisant le nom réel de l’utilisateur et indicateurs placés avant les détails. Les chiffres continuent de provenir de l’API.
@@ -30,3 +30,7 @@ git pull --ff-only
 ```
 
 Le serveur Next.js de développement recharge les fichiers modifiés. Actualiser ensuite la page Radar. Si Git signale des modifications locales incompatibles, les conserver et résoudre le conflit ; aucune réinitialisation destructive n’est nécessaire. Aucun changement du schéma de données ni reconstruction du Codespace n’est requis pour ce lot.
+
+## Barre rétractable
+
+Sur ordinateur, le bouton au bord supérieur droit de la barre passe de 280 px à une colonne de 80 px avec les icônes seules et agrandit la surface de travail. Les noms restent accessibles aux lecteurs d’écran et apparaissent en infobulle au survol ou au focus. Le choix est conservé dans le navigateur et reste utilisable lorsque le stockage local est indisponible. Le tiroir mobile conserve ses libellés complets. Le raccourci « Votre abonnement » a été retiré du pied de barre : l’entrée « Abonnement » de navigation est conservée seule.

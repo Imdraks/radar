@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1] / 'backend'))
 from app.core.subscription import PLAN_CONFIGS,Plan,NAV_SECTIONS,get_plan_features
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 BASE=os.environ.get('RADAR_UI_BASE_URL','http://localhost:3000')
 if urlparse(BASE).hostname not in {'localhost','127.0.0.1'}:
  raise RuntimeError('UI fixtures may only target a local test instance')
@@ -14,6 +14,7 @@ async def main():
   browser=await p.chromium.launch(args=['--no-sandbox'], executable_path=os.environ.get('RADAR_BROWSER_PATH'))
   for plan,width,height in [('business',1440,1000),('premium',1440,1000),('core',1440,1000),('business',768,1024),('business',390,844)]:
    context=await browser.new_context(viewport={'width':width,'height':height},locale='fr-FR')
+   if width<1024:await context.add_init_script("localStorage.setItem('radar-sidebar-collapsed','true')")
    await context.add_init_script("localStorage.setItem('access_token','ui-test-only');localStorage.setItem('current_workspace_id','1');localStorage.setItem('opportunities-radar-welcome-shown-v2','true')")
    requests=[]
    features={f.value for f in get_plan_features(Plan(plan))}
@@ -53,6 +54,26 @@ async def main():
    assert await page.get_by_role('button',name='Demander cet abonnement',exact=True).count()==2-expected
    for item in await page.get_by_text('Déjà inclus',exact=True).all():
     assert await item.evaluate('(e)=>getComputedStyle(e).color')=='rgb(21, 128, 61)'
+   sidebar=page.locator('aside[data-onboarding=sidebar]')
+   if width>=1024:
+    assert await sidebar.locator('a[href="/settings/subscription"]').count()==1
+    await page.get_by_role('button',name='Rétracter la barre latérale',exact=True).click()
+    await expect(sidebar).to_have_css('width','80px')
+    assert await page.get_by_role('button',name='Déplier la barre latérale',exact=True).get_attribute('aria-expanded')=='false'
+    assert await sidebar.get_by_role('link',name='Projets',exact=True).locator('svg').is_visible()
+    await sidebar.get_by_role('link',name='Projets',exact=True).hover()
+    await page.get_by_role('tooltip',name='Projets',exact=True).wait_for()
+    await page.reload(wait_until='networkidle')
+    await page.get_by_role('heading',name='Abonnement',exact=True).wait_for()
+    await expect(sidebar).to_have_css('width','80px')
+    assert await page.evaluate("localStorage.getItem('radar-sidebar-collapsed')")=='true'
+    assert await sidebar.locator('a[href="/settings/subscription"]').count()==1
+    if plan=='business':await page.screenshot(path='/tmp/radar-sidebar-collapsed.png')
+    expand=page.get_by_role('button',name='Déplier la barre latérale',exact=True)
+    await expand.focus();await page.keyboard.press('Enter')
+    await expect(sidebar).to_have_css('width','280px')
+    assert await page.evaluate("localStorage.getItem('radar-sidebar-collapsed')")=='false'
+    assert await page.get_by_text('Votre abonnement',exact=True).count()==0
    await page.get_by_label('Besoin d’une extension spécifique ?',exact=True).fill('TEST — intégration spécifique')
    await page.get_by_role('button',name='Envoyer une demande Radar Addons',exact=True).click()
    await page.get_by_text('Demande Radar Addons enregistrée.',exact=True).wait_for()
@@ -67,6 +88,8 @@ async def main():
     await trigger.click();dialog=page.get_by_role('dialog',name='Navigation Radar')
     await dialog.wait_for()
     assert await dialog.get_by_role('navigation',name='Navigation principale').is_visible()
+    assert await dialog.get_by_role('link',name='Projets',exact=True).locator('span').last.get_attribute('class')!='sr-only'
+    assert await dialog.locator('a[href="/settings/subscription"]').count()==1
     await page.keyboard.press('Escape');await dialog.wait_for(state='hidden')
     await trigger.focus();await page.keyboard.press('Enter');await dialog.wait_for()
     await dialog.get_by_role('button',name='Fermer le menu',exact=True).click();await dialog.wait_for(state='hidden')
