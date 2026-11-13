@@ -39,6 +39,9 @@ const adminNavigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Workspaces', href: '/workspaces', icon: Building2 },
   { name: 'Utilisateurs', href: '/users', icon: Users },
+  { name: 'Contrats', href: '/admin/legal', icon: Shield },
+  { name: 'Abonnements', href: '/admin/subscription-requests', icon: Building2 },
+  { name: 'Demandes de droits', href: '/admin/privacy-requests', icon: Shield },
   { name: 'Logs Activité', href: '/admin/activity', icon: Activity },
 ];
 

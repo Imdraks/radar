@@ -208,6 +208,8 @@ class Invoice(Base):
     # Source quote (if converted from quote)
     source_quote_id = Column(Integer, ForeignKey('quotes.id'), nullable=True)
     
+    credited_at = Column(DateTime, nullable=True)
+
     # Status
     status = Column(Enum(InvoiceStatus), default=InvoiceStatus.DRAFT, nullable=False)
     

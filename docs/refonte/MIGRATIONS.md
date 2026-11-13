@@ -62,3 +62,11 @@ Ajoute `privacy_requests`, ses index et les liens nullables utilisateur/workspac
 Ajoute `invoices.legal_details` JSON nullable. Les anciennes mentions ne sont pas inventées. Les brouillons incomplets doivent être complétés avant émission ; les factures émises restent figées. Le downgrade refuse si une valeur existe afin de préserver ces informations.
 
 Le changement de numérotation relève du code : les nouveaux brouillons ont une référence provisoire ; le numéro final et la date réelle sont alloués à l’émission. Un ancien brouillon recevra un numéro définitif selon cette règle, sans renuméroter les documents déjà émis. Aucun numéro ancien n’est recyclé. Les dates et les mentions fiscales doivent être vérifiées en recette ; conserver les originaux des factures historiques dépourvues de photographie.
+
+## 055 — Versions et preuves contractuelles
+
+Ajoute `legal_bundles`, `legal_acceptances` et `subscription_requests.contract_acceptance_id` nullable. Aucun consentement, contrat ou paiement historique n'est inventé. Les anciennes attributions restent présentes ; toute nouvelle décision d'approbation doit rattacher une acceptation valable pour ce workspace et ce plan. Les textes publiés sont immuables par les API ; une nouvelle version est nécessaire pour les modifier. Le downgrade refuse dès qu'une publication existe afin de conserver les preuves.
+
+## 056 — Avoirs totaux
+
+Ajoute `credit_notes` et `invoices.credited_at` nullable. La facture d'origine et ses paiements restent conservés ; les documents déjà présents ne sont pas convertis en avoirs. Un avoir total reprend les montants et mentions figés, reçoit une série transactionnelle AVO et bloque les nouveaux paiements sur l'original. Aucun remboursement automatique ni suppression n'est effectué. Downgrade refusé dès qu'un avoir ou marquage existe ; prévoir archivage et plan comptable de retour manuel.

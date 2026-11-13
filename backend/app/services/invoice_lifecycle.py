@@ -208,6 +208,8 @@ def issue(db, invoice, user_id, email=None):
 def set_payment(
     invoice, amount, user_id, method=None, paid_date=None, expected_amount=None
 ):
+    if invoice.credited_at:
+        raise HTTPException(409, "La facture est couverte par un avoir total ; rapprocher les paiements et remboursements séparément")
     if invoice.status not in PAYABLE:
         raise HTTPException(
             409, "Seule une facture émise et non annulée peut recevoir un paiement"
@@ -242,6 +244,8 @@ def set_payment(
 
 
 def transition(db, invoice, target, user_id, email=None):
+    if invoice.credited_at:
+        raise HTTPException(409, "La facture est couverte par un avoir ; son statut historique est conservé")
     if target == InvoiceStatus.SENT:
         issue(db, invoice, user_id, email)
     elif target == InvoiceStatus.CANCELLED:

@@ -174,6 +174,7 @@ GET,/api/v1/billing/clients/{client_id},True,get_client_api_v1_billing_clients__
 PATCH,/api/v1/billing/clients/{client_id},True,update_client_api_v1_billing_clients__client_id__patch
 DELETE,/api/v1/billing/clients/{client_id}/iban,True,delete_client_iban_api_v1_billing_clients__client_id__iban_delete
 PUT,/api/v1/billing/clients/{client_id}/iban,True,set_client_iban_api_v1_billing_clients__client_id__iban_put
+GET,/api/v1/billing/credit-notes/{note_id}/pdf,True,pdf_api_v1_billing_credit_notes__note_id__pdf_get
 GET,/api/v1/billing/dashboard,True,get_billing_dashboard_api_v1_billing_dashboard_get
 GET,/api/v1/billing/emitter,True,get_emitter_info_api_v1_billing_emitter_get
 PATCH,/api/v1/billing/emitter,True,update_emitter_info_api_v1_billing_emitter_patch
@@ -183,6 +184,10 @@ DELETE,/api/v1/billing/invoices/{invoice_id},True,delete_invoice_api_v1_billing_
 GET,/api/v1/billing/invoices/{invoice_id},True,get_invoice_api_v1_billing_invoices__invoice_id__get
 PATCH,/api/v1/billing/invoices/{invoice_id},True,update_invoice_api_v1_billing_invoices__invoice_id__patch
 POST,/api/v1/billing/invoices/{invoice_id}/cancel,True,cancel_invoice_api_v1_billing_invoices__invoice_id__cancel_post
+GET,/api/v1/billing/invoices/{invoice_id}/credit-notes,True,list_notes_api_v1_billing_invoices__invoice_id__credit_notes_get
+POST,/api/v1/billing/invoices/{invoice_id}/credit-notes,True,issue_api_v1_billing_invoices__invoice_id__credit_notes_post
+GET,/api/v1/billing/invoices/{invoice_id}/electronic-invoicing,True,readiness_api_v1_billing_invoices__invoice_id__electronic_invoicing_get
+GET,/api/v1/billing/invoices/{invoice_id}/exchange,True,export_exchange_api_v1_billing_invoices__invoice_id__exchange_get
 POST,/api/v1/billing/invoices/{invoice_id}/generate-doc,True,generate_invoice_document_api_v1_billing_invoices__invoice_id__generate_doc_post
 POST,/api/v1/billing/invoices/{invoice_id}/items,True,add_invoice_item_api_v1_billing_invoices__invoice_id__items_post
 DELETE,/api/v1/billing/invoices/{invoice_id}/items/{item_id},True,delete_invoice_item_api_v1_billing_invoices__invoice_id__items__item_id__delete
@@ -341,6 +346,12 @@ POST,/api/v1/ingestion/run/{source_id},True,trigger_source_ingestion_api_v1_inge
 GET,/api/v1/ingestion/runs,True,list_ingestion_runs_api_v1_ingestion_runs_get
 GET,/api/v1/ingestion/runs/{run_id},True,get_ingestion_run_api_v1_ingestion_runs__run_id__get
 GET,/api/v1/ingestion/task/{task_id},True,get_task_status_api_v1_ingestion_task__task_id__get
+GET,/api/v1/legal-contracts/acceptances,True,list_acceptances_api_v1_legal_contracts_acceptances_get
+POST,/api/v1/legal-contracts/acceptances,True,accept_api_v1_legal_contracts_acceptances_post
+GET,/api/v1/legal-contracts/admin/acceptances,True,operator_acceptances_api_v1_legal_contracts_admin_acceptances_get
+POST,/api/v1/legal-contracts/admin/publish,True,publish_api_v1_legal_contracts_admin_publish_post
+GET,/api/v1/legal-contracts/current,False,current_bundle_api_v1_legal_contracts_current_get
+GET,/api/v1/legal-contracts/versions/{bundle_id},False,get_version_api_v1_legal_contracts_versions__bundle_id__get
 GET,/api/v1/map/artist-events,True,get_artist_events_api_v1_map_artist_events_get
 GET,/api/v1/map/opportunities,True,get_map_opportunities_api_v1_map_opportunities_get
 GET,/api/v1/map/regions/stats,True,get_region_stats_api_v1_map_regions_stats_get
@@ -365,6 +376,8 @@ GET,/api/v1/privacy/admin/requests,True,admin_requests_api_v1_privacy_admin_requ
 POST,/api/v1/privacy/admin/requests/{request_id}/respond,True,respond_api_v1_privacy_admin_requests__request_id__respond_post
 GET,/api/v1/privacy/requests,True,my_requests_api_v1_privacy_requests_get
 POST,/api/v1/privacy/requests,True,submit_request_api_v1_privacy_requests_post
+GET,/api/v1/privacy/retention-inventory,True,retention_inventory_api_v1_privacy_retention_inventory_get
+GET,/api/v1/privacy/workspace-export,True,workspace_export_api_v1_privacy_workspace_export_get
 GET,/api/v1/profiles,True,list_profiles_api_v1_profiles_get
 POST,/api/v1/profiles,True,create_profile_api_v1_profiles_post
 DELETE,/api/v1/profiles/{profile_id},True,delete_profile_api_v1_profiles__profile_id__delete

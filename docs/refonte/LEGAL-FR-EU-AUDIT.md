@@ -78,3 +78,7 @@ Voir [VALIDATION.md](VALIDATION.md) pour les résultats finaux, [MIGRATIONS.md](
 - [DGCCRF — obligations d’accessibilité](https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/professionnels-vos-produits-et-services-doivent-etre-conformes-la-directive-accessibilite).
 
 Les sources et l’applicabilité devront être revérifiées lors de la mise en service et après changement de finalité, de prestataire, d’offre ou de pays de commercialisation.
+
+## Mise à jour d’exécution — 13 novembre 2026
+
+Voir [LEGAL-COMPLETION.md](LEGAL-COMPLETION.md). L'archive métier de workspace, les versions et preuves contractuelles liées aux nouvelles activations, l'inventaire de conservation et l'avoir total ont été ajoutés après l'audit initial. Les limites précédentes sur leur absence sont remplacées par les capacités et limites détaillées dans ce complément. L'export ne copie toujours pas les originaux externes ; aucune purge, plateforme agréée, publication contractuelle réelle ou certification générale n'est activée. Les modèles, registres et inventaires restent à compléter avec les informations de l'entreprise et des opérations réelles.

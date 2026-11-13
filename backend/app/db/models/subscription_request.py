@@ -16,4 +16,5 @@ class SubscriptionRequest(Base):
     decided_by = Column(Integer, ForeignKey("users.id"))
     decided_at = Column(DateTime)
     authorization_reference = Column(Text)
+    contract_acceptance_id = Column(Integer, ForeignKey("legal_acceptances.id"), nullable=True)
     previous_plan = Column(String(20))

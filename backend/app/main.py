@@ -46,6 +46,8 @@ from app.api.progress import router as progress_router
 from app.api.radar import router as radar_router
 from app.api.activity import router as activity_router
 from app.api.privacy import router as privacy_router
+from app.api.legal_contracts import router as legal_contracts_router
+from app.api.credit_notes import router as credit_notes_router
 from app.api.health import router as health_router
 
 # ============================================================================
@@ -257,6 +259,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Health check endpoints (no prefix for /health and /health/detailed)
 app.include_router(health_router, tags=["Health"])
 app.include_router(privacy_router, prefix="/api/v1")
+app.include_router(legal_contracts_router, prefix="/api/v1")
 
 
 # ============================================================================
@@ -337,6 +340,7 @@ app.include_router(subscription_router, prefix="/api/v1", tags=["Subscription"])
 # BILLING - Quotes (Devis) & Invoices (Factures) - Radar Business
 # ============================================================================
 app.include_router(billing_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.INVOICES)), Depends(require_workspace_write)], prefix="/api/v1/billing", tags=["Billing"])
+app.include_router(credit_notes_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.INVOICES)), Depends(require_workspace_write)], prefix="/api/v1/billing", tags=["Credit notes"])
 
 # ============================================================================
 # BANKING - Connexions bancaires - Radar Business

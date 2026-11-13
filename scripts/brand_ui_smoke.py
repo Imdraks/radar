@@ -27,7 +27,7 @@ async def main():
    await context.route('**/api/**',api)
    await context.route('https://www.googletagmanager.com/**',lambda r:r.abort())
    page=await context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-   for path in ['/','/pricing','/contact','/legal','/privacy','/terms','/sales-terms','/cookies','/data-processing','/subprocessors','/reversibility','/accessibility','/login']:
+   for path in ['/','/pricing','/contact','/legal','/contracts','/retention','/privacy','/terms','/sales-terms','/cookies','/data-processing','/subprocessors','/reversibility','/accessibility','/login']:
     await page.goto(BASE+path,wait_until='networkidle')
     if await page.get_by_role('button',name='Tout refuser',exact=True).is_visible():
      await page.get_by_role('button',name='Tout refuser',exact=True).click()

@@ -138,6 +138,8 @@ class Settings(BaseSettings):
     allowed_emails: str = ""
     
     contact_receiver_email: str = ""
+    # Hash of the reviewed public publisher identity; no publication on an unconfigured instance.
+    legal_publisher_fingerprint: str = ""
 
     # Resend API (for sending invitation emails)
     resend_api_key: str = ""

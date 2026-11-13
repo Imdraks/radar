@@ -163,6 +163,7 @@ async def list_requests(workspace_id: Optional[int] = None, db: Session = Depend
 
 class Decision(BaseModel):
     approve: bool
+    contract_acceptance_id: Optional[int] = Field(default=None, gt=0)
     authorization_reference: str = Field(min_length=5, max_length=2000)
 
 
@@ -193,6 +194,12 @@ async def decide_request(request_id: int, decision: Decision, db: Session = Depe
     workspace = db.query(Workspace).filter_by(id=entry.workspace_id).with_for_update().one()
     entry.previous_plan = workspace.plan
     if decision.approve:
+        from app.db.models.legal_contract import LegalAcceptance, LegalBundle
+        acceptance = db.get(LegalAcceptance, decision.contract_acceptance_id) if decision.contract_acceptance_id else None
+        bundle = db.get(LegalBundle, acceptance.bundle_id) if acceptance else None
+        if not acceptance or acceptance.workspace_id != workspace.id or acceptance.plan != entry.requested_value or not bundle or acceptance.content_hash != bundle.content_hash:
+            raise HTTPException(409, "Une acceptation contractuelle explicite, liée à cet espace et à cette offre, est requise avant activation")
+        entry.contract_acceptance_id = acceptance.id
         plan = Plan(entry.requested_value)
         config = PLAN_CONFIGS[plan]
         workspace.plan = plan.value

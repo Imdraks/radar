@@ -175,3 +175,8 @@ from .production_event import ProductionEvent, EventArtist, EventExpense
 from .artist_snapshot import ArtistSnapshot
 
 from .privacy import PrivacyRequest
+
+from .legal_contract import LegalBundle, LegalAcceptance
+
+from .credit_note import CreditNote
+from .artist_event import ArtistEvent

@@ -2529,21 +2529,25 @@ async def get_billing_dashboard(
     # Invoice counts
     invoices_draft = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.DRAFT
     ).count()
     
     invoices_sent = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.SENT
     ).count()
     
     invoices_paid = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.PAID
     ).count()
     
     invoices_overdue = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.OVERDUE
     ).count()
     
@@ -2555,7 +2559,7 @@ async def get_billing_dashboard(
     
     total_invoices = db.query(func.coalesce(func.sum(Invoice.total), 0)).filter(
         Invoice.workspace_id == workspace_id,
-        Invoice.status != InvoiceStatus.CANCELLED
+        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.PAID, InvoiceStatus.OVERDUE])
     ).scalar()
     
     total_paid = db.query(func.coalesce(func.sum(Invoice.amount_paid), 0)).filter(
@@ -2564,10 +2568,18 @@ async def get_billing_dashboard(
     
     total_pending = db.query(func.coalesce(func.sum(Invoice.total - Invoice.amount_paid), 0)).filter(
         Invoice.workspace_id == workspace_id,
-        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE])
+        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE]),
+        Invoice.credited_at.is_(None)
     ).scalar()
     
+    from app.db.models.credit_note import CreditNote
+    credits = db.query(func.coalesce(func.sum(CreditNote.total), 0)).filter(CreditNote.workspace_id == workspace_id).scalar()
+    credited_count = db.query(CreditNote).filter_by(workspace_id=workspace_id).count()
+    paid_credited = db.query(func.coalesce(func.sum(Invoice.amount_paid), 0)).filter(Invoice.workspace_id == workspace_id, Invoice.credited_at.is_not(None)).scalar()
     return BillingDashboard(
+        credited_invoices_count=credited_count,
+        credits_total=Decimal(str(credits)),
+        payments_on_credited_invoices=Decimal(str(paid_credited)),
         quotes_draft=quotes_draft,
         quotes_sent=quotes_sent,
         quotes_accepted=quotes_accepted,
@@ -2576,7 +2588,7 @@ async def get_billing_dashboard(
         invoices_paid=invoices_paid,
         invoices_overdue=invoices_overdue,
         total_quotes_amount=Decimal(str(total_quotes)),
-        total_invoices_amount=Decimal(str(total_invoices)),
+        total_invoices_amount=Decimal(str(total_invoices)) - Decimal(str(credits)),
         total_paid=Decimal(str(total_paid)),
         total_pending=Decimal(str(total_pending))
     )

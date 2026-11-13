@@ -67,6 +67,7 @@ interface Invoice {
   reference: string;
   title: string;
   description?: string;
+  credited_at?: string|null;
   status: 'DRAFT' | 'SENT' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   issue_date: string;
   due_date?: string;
@@ -294,12 +295,12 @@ export default function InvoicesPage() {
   // Calculate stats
   const stats = {
     draft: invoices.filter(i => i.status === 'DRAFT').length,
-    sent: invoices.filter(i => i.status === 'SENT').length,
-    paid: invoices.filter(i => i.status === 'PAID').length,
-    overdue: invoices.filter(i => i.status === 'OVERDUE').length,
+    sent: invoices.filter(i => !i.credited_at && i.status === 'SENT').length,
+    paid: invoices.filter(i => !i.credited_at && i.status === 'PAID').length,
+    overdue: invoices.filter(i => !i.credited_at && i.status === 'OVERDUE').length,
     totalPaid: invoices.reduce((sum, i) => sum + Number(i.amount_paid), 0),
     totalPending: invoices
-      .filter(i => ['SENT', 'PARTIAL', 'OVERDUE'].includes(i.status))
+      .filter(i => !i.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(i.status))
       .reduce((sum, i) => sum + (Number(i.total) - Number(i.amount_paid)), 0),
   };
 
@@ -470,7 +471,7 @@ export default function InvoicesPage() {
                       <TableCell>
                         <Badge className={STATUS_CONFIG[invoice.status].color}>
                           <StatusIcon className="h-3 w-3 mr-1" />
-                          {STATUS_CONFIG[invoice.status].label}
+                          {invoice.credited_at ? 'Avoir total émis' : STATUS_CONFIG[invoice.status].label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -499,7 +500,7 @@ export default function InvoicesPage() {
                                 Marquer envoyée
                               </DropdownMenuItem>
                             )}
-                            {['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
+                            {!invoice.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
                               <DropdownMenuItem onClick={(e) => { 
                                 e.stopPropagation(); 
                                 setSelectedInvoice(invoice);
@@ -511,7 +512,7 @@ export default function InvoicesPage() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            {invoice.status !== 'PAID' && (
+                            {invoice.status === 'DRAFT' && (
                               <DropdownMenuItem 
                                 onClick={(e) => { e.stopPropagation(); deleteInvoice(invoice.id); }}
                                 className="text-red-600"

@@ -78,6 +78,7 @@ jobs:
           python ../scripts/brand_ui_smoke.py
           python ../scripts/ui_smoke.py
           python ../scripts/consent_ui_smoke.py
+          python ../scripts/legal_ui_smoke.py
         env:
           TESTING: 'true'
           RADAR_UI_BASE_URL: http://127.0.0.1:3000

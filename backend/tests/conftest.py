@@ -75,6 +75,10 @@ def client(connection, monkeypatch):
     def database():
         with Session(connection, join_transaction_mode="create_savepoint", expire_on_commit=False) as session:
             yield session
+    from app.api.legal_contracts import Publisher, publisher_hash
+    from app.core.config import settings
+    from legal_test_data import TEST_PUBLISHER
+    monkeypatch.setattr(settings, "legal_publisher_fingerprint", publisher_hash(Publisher.model_validate(TEST_PUBLISHER).model_dump(mode="json")))
     app.dependency_overrides[get_db] = database
     monkeypatch.setattr("app.api.map_calendar.cache_get", lambda *args: None)
     monkeypatch.setattr("app.core.cache.cache_get", lambda *args: None)

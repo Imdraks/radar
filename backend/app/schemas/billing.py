@@ -289,6 +289,7 @@ class InvoicePaymentUpdate(BaseModel):
 
 
 class InvoiceResponse(InvoiceBase):
+    credited_at: Optional[datetime] = None
     """Invoice response schema"""
     id: int
     workspace_id: int
@@ -352,6 +353,9 @@ class QuoteToInvoiceCreate(BaseModel):
 # ============ Dashboard Schemas ============
 
 class BillingDashboard(BaseModel):
+    credited_invoices_count: int = 0
+    credits_total: Decimal = Decimal("0")
+    payments_on_credited_invoices: Decimal = Decimal("0")
     """Billing dashboard stats"""
     quotes_draft: int
     quotes_sent: int

@@ -1,4 +1,5 @@
 'use client';
+import { InvoiceCorrections } from '@/components/billing/InvoiceCorrections';
 import {InvoiceLegalFields, type InvoiceLegalDetails} from '@/components/billing/InvoiceLegalFields';
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
@@ -72,6 +73,7 @@ interface Invoice {
   description?: string;
   legal_details?: InvoiceLegalDetails | null;
   updated_at?: string;
+  credited_at?: string|null;
   status: 'DRAFT' | 'SENT' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   issue_date: string;
   due_date?: string;
@@ -490,7 +492,7 @@ export default function InvoiceDetailPage() {
   }
 
   const isEditable = invoice.status === 'DRAFT';
-  const remaining = Number(invoice.total) - Number(invoice.amount_paid);
+  const remaining = invoice.credited_at ? 0 : Number(invoice.total) - Number(invoice.amount_paid);
   const paymentProgress = Number(invoice.total) > 0 
     ? (Number(invoice.amount_paid) / Number(invoice.total)) * 100 
     : 0;
@@ -622,7 +624,7 @@ export default function InvoiceDetailPage() {
               Marquer envoyée
             </Button>
           )}
-          {['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
+          {!invoice.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
             <Button 
               onClick={() => {
                 setPayment({ amount: String(remaining), method: 'BANK_TRANSFER' });
@@ -652,7 +654,8 @@ export default function InvoiceDetailPage() {
 
       {invoice.status==='DRAFT' && <InvoiceLegalFields key={invoice.id+":"+(invoice.updated_at||"")} invoiceId={invoice.id} details={invoice.legal_details} dueDate={invoice.due_date} onSaved={fetchInvoice}/>}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
+        <InvoiceCorrections invoiceId={invoice.id} status={invoice.status} credited={!!invoice.credited_at} onChanged={fetchInvoice}/>
+      {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Invoice Info */}
           {editing ? (

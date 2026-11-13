@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { CheckCircle2, Users, Sparkles, ArrowUpRight, Loader2, ShieldCheck } from 'lucide-react';
 import { AppLayout, ProtectedRoute } from '@/components/layout';
 import { PlanCatalog } from '@/components/subscription/PlanCatalog';
@@ -19,6 +20,7 @@ export default function SubscriptionPage() {
       <div className="flex items-center gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ShieldCheck size={24} strokeWidth={1.6} /></span><div><p className="text-xs text-muted-foreground">Votre offre actuelle</p><p className="mt-1 text-lg font-semibold text-foreground">{subscription?.plan_display_name || 'Chargement…'}</p></div></div>
       <div className="flex flex-wrap items-center gap-5 text-sm"><span className="flex items-center gap-2 text-muted-foreground"><Users size={16} />{subscription?.current_seats ?? '—'} membre(s)</span><span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400"><CheckCircle2 size={14} />Offre actuelle</span></div>
     </section>
+    <p className="text-sm"><Link className="text-violet-700 underline" href="/settings/contracts">Documents et acceptations contractuelles</Link> · Une demande de plan reste sans engagement ; une nouvelle activation nécessite une acceptation liée à votre offre commerciale.</p>
     <section aria-labelledby="plans-title" className="space-y-5">
       <div><h2 id="plans-title" className="text-lg font-semibold">Les offres Radar</h2><p className="mt-1 text-sm text-muted-foreground">Les fonctionnalités des offres inférieures sont déjà comprises dans votre abonnement.</p></div>
       <PlanCatalog currentPlan={subscription?.plan} onRequest={async plan => {

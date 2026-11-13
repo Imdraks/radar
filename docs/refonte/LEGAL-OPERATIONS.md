@@ -31,3 +31,13 @@ Contenir, préserver les preuves sans divulguer de secrets, établir périmètre
 ## Contrôle final
 
 Exécuter `python scripts/check_release.py` après validation réelle de tous les éléments. Faire une recette sur l’instance de production préparée avec comptes autorisés, contrôler les documents publics et la preuve d’acceptation des contrats. La réussite du script ou de la CI ne donne pas, à elle seule, une autorisation juridique de vente. Maintenir une revue lors d’un changement de prestataire, finalité ou réglementation.
+
+## Finalisation contractuelle et restitution ajoutées
+
+Consulter [LEGAL-COMPLETION.md](LEGAL-COMPLETION.md). Compléter les six projets de `backend/app/resources/legal_templates` et les inventaires de `docs/refonte/legal` avec des faits validés. `prepare_legal_bundle.py` écrit un projet hors ligne et n'autorise pas sa publication. Ne jamais remplacer les champs manquants par des données d'exemple ou supprimer la déclaration de projet avant revue réelle.
+
+Après vérification de l'identité publique et normalisation des champs du dossier, calculer l'empreinte de l'objet `publisher` (JSON UTF-8, clés triées, sans espaces, SHA-256 ; les champs optionnels absents du modèle API prennent une chaîne vide). La configurer dans `LEGAL_PUBLISHER_FINGERPRINT`. La publication opérateur refuse une identité incohérente ou non configurée. Vérifier notamment la normalisation de l'email par le schéma API ; une empreinte sur une variante différente doit être corrigée, pas contournée. Conserver la référence et les preuves de revue, publier une version unique, puis recetter consultation, téléchargement et acceptation depuis un compte d'agence. Une approbation de plan doit rattacher sa preuve d'acceptation ; une simple référence saisie par le client ne prouve pas l'accord commercial ou le paiement.
+
+L'archive métier et l'inventaire de conservation sont désormais accessibles dans Données et droits. Vérifier les empreintes de l'archive et récupérer séparément les fichiers référencés ; rapprocher les données historiques non attribuées et les éléments exclus. Les statuts de demandes et inventaires ne déclenchent toujours aucune purge automatique.
+
+Les avoirs totaux peuvent être émis sur les factures ayant les preuves nécessaires. Relire motif, fiscalité et montant avant émission. Conserver et transmettre original + avoir, puis rapprocher réellement paiements et remboursements. Les avoirs partiels, factures historiques insuffisamment documentées et situations particulières nécessitent un traitement adapté avec le conseil comptable. Ne pas supprimer un avoir erroné ou considérer un paiement historique comme remboursé.

@@ -34,7 +34,10 @@ def test_request_is_not_activation_and_platform_approval_is_audited(client, db_s
     assert client.get('/api/v1/subscription/current', headers=headers()).json()['plan'] == 'core'
     duplicate = client.post('/api/v1/subscription/change-plan', headers=headers(), json={'plan':'business'})
     assert duplicate.json()['request_id'] == request_id
-    decision = {'approve':True, 'authorization_reference':'Administrative commercial agreement REF-TEST'}
+    from test_legal_operations import publish_test_bundle, accept_test_bundle
+    bundle, _ = publish_test_bundle(client, headers)
+    acceptance = accept_test_bundle(client, headers, workspaces[0].id, bundle)
+    decision = {'approve':True, 'authorization_reference':'Administrative commercial agreement REF-TEST', 'contract_acceptance_id': acceptance['id']}
     assert client.post(f'/api/v1/subscription/admin/requests/{request_id}/decision', headers=headers(), json=decision).status_code == 403
     approved = client.post(f'/api/v1/subscription/admin/requests/{request_id}/decision', headers=headers(2), json=decision)
     assert approved.status_code == 200, approved.text

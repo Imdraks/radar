@@ -160,3 +160,37 @@ def test_invoice_legal_migration_preserves_existing_invoices_and_refuses_evidenc
                 migration.downgrade()
             assert connection.execute(text('SELECT reference FROM invoices')).scalar() == 'FAC-2026-0001'
         connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+
+
+def test_legal_contract_migration_refuses_loss_of_published_text(engine):
+    with engine.connect() as connection, connection.begin():
+        schema='migration_'+uuid4().hex
+        connection.execute(text(f'CREATE SCHEMA {schema}'))
+        connection.execute(text(f'SET LOCAL search_path TO {schema}'))
+        for table in ['users','workspaces','subscription_requests']:
+            connection.execute(text(f'CREATE TABLE {table} (id integer primary key)'))
+        migration=load_migration('055_legal_contract_evidence.py')
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade();migration.downgrade();migration.upgrade()
+            connection.execute(text("INSERT INTO legal_bundles (version,content_hash,publisher,documents,review_reference) VALUES ('test','test','{}','{}','TEST review')"))
+            with pytest.raises(RuntimeError,match='Archive published legal'):
+                migration.downgrade()
+        connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+
+
+def test_credit_migration_preserves_originals_and_refuses_evidence_loss(engine):
+    with engine.connect() as connection, connection.begin():
+        schema='migration_'+uuid4().hex
+        connection.execute(text(f'CREATE SCHEMA {schema}'))
+        connection.execute(text(f'SET LOCAL search_path TO {schema}'))
+        for table in ['users','workspaces','invoices']:
+            connection.execute(text(f'CREATE TABLE {table} (id integer primary key)'))
+            connection.execute(text(f'INSERT INTO {table} VALUES (1)'))
+        migration=load_migration('056_full_credit_notes.py')
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade();migration.downgrade();migration.upgrade()
+            connection.execute(text("INSERT INTO credit_notes (workspace_id,invoice_id,reference,idempotency_key,issue_date,reason,subtotal,tax_amount,total,snapshot) VALUES (1,1,'AVO-test','test-key',CURRENT_DATE,'TEST',100,20,120,'{}')"))
+            with pytest.raises(RuntimeError,match='Archive credit notes'):
+                migration.downgrade()
+            assert connection.execute(text('SELECT id FROM invoices')).scalar()==1
+        connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
