@@ -3,7 +3,7 @@ Billing schemas for quotes (devis) and invoices (factures)
 """
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -236,7 +236,16 @@ class InvoiceItemResponse(InvoiceItemBase):
 
 # ============ Invoice Schemas ============
 
+class InvoiceLegalDetails(BaseModel):
+    vat_exemption_mention: Optional[str] = Field(None, max_length=1000)
+    service_date: Optional[date] = None
+    customer_type: Optional[Literal["professional", "consumer"]] = None
+    early_payment_terms: Optional[str] = Field(None, min_length=1, max_length=500)
+    late_payment_basis: Optional[Literal["ecb_plus_10", "legal_interest_times_3"]] = None
+
+
 class InvoiceBase(BaseModel):
+    legal_details: Optional[InvoiceLegalDetails] = None
     """Base invoice schema"""
     title: str = Field(..., max_length=255)
     description: Optional[str] = None
@@ -256,6 +265,7 @@ class InvoiceCreate(InvoiceBase):
 
 
 class InvoiceUpdate(BaseModel):
+    legal_details: Optional[InvoiceLegalDetails] = None
     """Update invoice schema"""
     title: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None

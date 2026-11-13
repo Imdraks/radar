@@ -3,6 +3,7 @@ import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
 import Link from "next/link";
+import legal from "@/config/legal.json";
 import {
   Radar,
   Send,
@@ -49,7 +50,7 @@ export default function ContactPage() {
       const res = await workspaceFetch(`${apiUrl}/api/v1/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, privacy_notice_version: "2026-11-13" }),
       });
 
       if (!res.ok) {
@@ -59,7 +60,7 @@ export default function ContactPage() {
       setStatus("success");
     } catch {
       setStatus("error");
-      setErrorMsg("Une erreur est survenue. Vous pouvez aussi nous écrire à contact@radarapp.fr");
+      setErrorMsg("Le message n’a pas pu être transmis. Consultez le contact publié dans les mentions légales.");
     }
   };
 
@@ -94,7 +95,7 @@ export default function ContactPage() {
                 </h1>
                 <p className="text-gray-600 mb-8">
                   Une question sur nos offres ? Besoin d'une démo personnalisée ?
-                  Notre équipe vous répond sous 24h.
+                  Nous étudions les demandes des professionnels.
                 </p>
 
                 <div className="space-y-6">
@@ -105,10 +106,10 @@ export default function ContactPage() {
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
                       <a
-                        href="mailto:contact@radarapp.fr"
+                        href={legal.contactEmail ? `mailto:${legal.contactEmail}` : undefined}
                         className="text-purple-600 hover:text-purple-700 text-sm"
                       >
-                        contact@radarapp.fr
+                        {legal.contactEmail || "Contact à renseigner"}
                       </a>
                     </div>
                   </div>
@@ -119,7 +120,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Localisation</p>
-                      <p className="text-gray-600 text-sm">Paris, France</p>
+                      <p className="text-gray-600 text-sm">{legal.address || "Adresse à renseigner"}</p>
                     </div>
                   </div>
                 </div>
@@ -127,7 +128,7 @@ export default function ContactPage() {
                 {/* Trust */}
                 <div className="mt-10 p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                    <Shield className="h-3.5 w-3.5" /> Hébergé en France • RGPD conforme • Données chiffrées
+                    <Shield className="h-3.5 w-3.5" /> Demandes professionnelles • Informations de confidentialité accessibles
                   </p>
                 </div>
               </div>
@@ -145,7 +146,7 @@ export default function ContactPage() {
                       Message envoyé !
                     </h2>
                     <p className="text-gray-600 mb-6">
-                      Merci pour votre message. Notre équipe vous contactera sous 24h.
+                      Merci pour votre message. Votre demande a été transmise à notre équipe.
                     </p>
                     <Link href="/">
                       <Button variant="outline" className="rounded-xl">
@@ -166,26 +167,26 @@ export default function ContactPage() {
                       {/* Name + Email */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1.5">
                             Nom complet *
                           </label>
                           <input
                             type="text"
                             required
-                            value={form.name}
+                            id="contact-name" value={form.name}
                             onChange={(e) => setForm({ ...form, name: e.target.value })}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
                             placeholder="Jean Dupont"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1.5">
                             Email professionnel *
                           </label>
                           <input
                             type="email"
                             required
-                            value={form.email}
+                            id="contact-email" value={form.email}
                             onChange={(e) => setForm({ ...form, email: e.target.value })}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
                             placeholder="jean@agence.com"
@@ -196,24 +197,24 @@ export default function ContactPage() {
                       {/* Company + Phone */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          <label htmlFor="contact-company" className="block text-sm font-medium text-gray-700 mb-1.5">
                             Société
                           </label>
                           <input
                             type="text"
-                            value={form.company}
+                            id="contact-company" value={form.company}
                             onChange={(e) => setForm({ ...form, company: e.target.value })}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
                             placeholder="Mon Agence"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
                             Téléphone
                           </label>
                           <input
                             type="tel"
-                            value={form.phone}
+                            id="contact-phone" value={form.phone}
                             onChange={(e) => setForm({ ...form, phone: e.target.value })}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
                             placeholder="06 12 34 56 78"
@@ -223,11 +224,11 @@ export default function ContactPage() {
 
                       {/* Pack */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label htmlFor="contact-plan" className="block text-sm font-medium text-gray-700 mb-1.5">
                           Pack qui vous intéresse
                         </label>
                         <select
-                          value={form.plan}
+                          id="contact-plan" value={form.plan}
                           onChange={(e) => setForm({ ...form, plan: e.target.value })}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors bg-white"
                         >
@@ -241,22 +242,23 @@ export default function ContactPage() {
 
                       {/* Message */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1.5">
                           Message *
                         </label>
                         <textarea
                           required
                           rows={5}
-                          value={form.message}
+                          id="contact-message" value={form.message}
                           onChange={(e) => setForm({ ...form, message: e.target.value })}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors resize-none"
                           placeholder="Décrivez votre besoin, posez vos questions..."
                         />
                       </div>
 
+                      <p id="contact-privacy" className="text-xs leading-relaxed text-gray-600">Le nom, l’email et le message servent à répondre à votre demande professionnelle. Société, téléphone et offre sont facultatifs. Aucun abonnement à une newsletter n’en découle. N’envoyez ni identifiant secret ni donnée sensible. <Link href="/privacy#contact">Finalités, base juridique, destinataires, conservation et droits</Link>.</p>
                       {/* Error */}
                       {status === "error" && (
-                        <p className="text-red-600 text-sm">{errorMsg}</p>
+                        <p role="alert" className="text-red-600 text-sm">{errorMsg}</p>
                       )}
 
                       {/* Submit */}

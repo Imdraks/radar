@@ -14,5 +14,18 @@
   "privacyContact": "",
   "dpaUrl": "",
   "subprocessorsUrl": "",
-  "retentionPolicyUrl": ""
+  "retentionPolicyUrl": "",
+  "audience": "professionals",
+  "noticeVersion": "2026-11-13",
+  "publisherType": "",
+  "phone": "",
+  "vatNumber": "",
+  "salesTermsUrl": "",
+  "exportProcedureUrl": "",
+  "transferSafeguardsUrl": "",
+  "contactRetention": "",
+  "securityLogsRetention": "",
+  "workspaceRetention": "",
+  "rightsRequestRetention": "",
+  "contractVersion": ""
 }

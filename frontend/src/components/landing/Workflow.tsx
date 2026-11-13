@@ -28,7 +28,7 @@ const steps = [
     step: "04",
     icon: FileText,
     title: "Facturer",
-    description: "Devis → Facture → Paiement en quelques clics. PDF conforme, sauvegarde Drive automatique.",
+    description: "Devis, factures et suivi manuel des paiements. Export PDF et liaison Drive selon configuration.",
     color: "from-green-500 to-emerald-500",
   },
   {

@@ -1,8 +1,11 @@
 """Invoice transitions and frozen parties. Manual payments are declarations, never bank confirmations."""
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 from types import SimpleNamespace
+from html import escape
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from app.services.billing_numbers import next_reference
 import re
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -85,7 +88,9 @@ def issue(db, invoice, user_id, email=None):
     if invoice.status == InvoiceStatus.SENT:
         return  # Idempotent; never recreate the original snapshot.
     require_draft(invoice)
-    workspace = db.query(Workspace).filter_by(id=invoice.workspace_id).first()
+    workspace = (
+        db.query(Workspace).filter_by(id=invoice.workspace_id).with_for_update().first()
+    )
     client = (
         db.query(BillingClient)
         .filter_by(id=invoice.client_id, workspace_id=invoice.workspace_id)
@@ -104,6 +109,11 @@ def issue(db, invoice, user_id, email=None):
     if workspace and (workspace.legal_country or "").lower() in {"france", "fr"}:
         if not re.fullmatch(r"\d{14}", workspace.siret or ""):
             missing.append("siret (14 chiffres)")
+        if not str(workspace.forme_juridique or "").strip():
+            missing.append("forme juridique déclarée de l’émetteur")
+        declared_form = str(workspace.forme_juridique or "").strip().upper()
+        if declared_form in {"SAS", "SASU", "SARL", "EURL", "SA", "SCA", "SNC"} and not str(workspace.capital_social or "").strip():
+            missing.append("capital social déclaré de l’émetteur")
         if not workspace.tva_franchise and not workspace.vat_number:
             missing.append("vat_number ou franchise TVA")
     if client is None:
@@ -118,22 +128,77 @@ def issue(db, invoice, user_id, email=None):
         raise HTTPException(
             422, "La franchise de TVA impose un taux nul avant émission"
         )
+    legal = invoice.legal_details or {}
+    for field in ("service_date", "customer_type", "early_payment_terms"):
+        if not str(legal.get(field) or "").strip():
+            missing.append(field)
+    if (
+        invoice.tax_rate == 0
+        and not workspace.tva_franchise
+        and not str(legal.get("vat_exemption_mention") or "").strip()
+    ):
+        missing.append(
+            "mention TVA justifiant le taux nul, l’exonération ou l’autoliquidation"
+        )
+    if not invoice.due_date:
+        missing.append("due_date")
+    if legal.get("customer_type") == "professional":
+        if legal.get("late_payment_basis") not in {
+            "ecb_plus_10",
+            "legal_interest_times_3",
+        }:
+            missing.append("late_payment_basis")
+        if (
+            client
+            and (client.country or "").lower() in {"france", "fr"}
+            and not re.fullmatch(r"\d{9}|\d{14}", client.siret or "")
+        ):
+            missing.append("client.siren_ou_siret")
     if not invoice.items:
         missing.append("lignes")
+    labels = {
+        "legal_name": "nom légal de l’émetteur",
+        "legal_address": "adresse de l’émetteur",
+        "legal_city": "ville de l’émetteur",
+        "legal_postal_code": "code postal de l’émetteur",
+        "legal_country": "pays de l’émetteur",
+        "service_date": "date de prestation",
+        "customer_type": "type de client",
+        "early_payment_terms": "conditions d’escompte",
+        "late_payment_basis": "formule de pénalités",
+        "due_date": "échéance de paiement",
+        "client.siren_ou_siret": "SIREN ou SIRET du client professionnel",
+    }
     if missing:
+        missing = [labels.get(field, field) for field in missing]
         raise HTTPException(
             422, "Émission impossible : compléter " + ", ".join(missing)
         )
-    if invoice.total <= 0 or (
-        invoice.due_date and invoice.due_date < invoice.issue_date
-    ):
-        raise HTTPException(422, "Montant ou échéance invalide")
+    issued_at = datetime.utcnow()
+    options = workspace.settings if isinstance(workspace.settings, dict) else {}
+    billing_zone = options.get("billing_timezone", "Europe/Paris")
+    try:
+        issued_date = (
+            issued_at.replace(tzinfo=timezone.utc)
+            .astimezone(ZoneInfo(billing_zone))
+            .date()
+        )
+    except (ZoneInfoNotFoundError, TypeError, ValueError):
+        raise HTTPException(422, "Le fuseau de facturation de l’espace est invalide")
+    if invoice.total <= 0 or (invoice.due_date and invoice.due_date < issued_date):
+        raise HTTPException(422, "Montant ou échéance invalide à la date d’émission")
+    # Actual issuance determines the legal date and final series; it cannot be backdated.
+    invoice.issue_date = issued_date
+    invoice.reference = next_reference(
+        db, invoice.workspace_id, "FAC", document_date=issued_date
+    )
     invoice.issued_snapshot = {
-        "version": 1,
+        "version": 2,
+        "billing_timezone": billing_zone,
         "emitter": {f: getattr(workspace, f, None) for f in EMITTER_FIELDS},
         "client": {f: getattr(client, f, None) for f in CLIENT_FIELDS},
     }
-    invoice.issued_at = datetime.utcnow()
+    invoice.issued_at = issued_at
     invoice.sent_at = invoice.issued_at
     invoice.sent_to_email = email or client.email
     invoice.status = InvoiceStatus.SENT
@@ -213,3 +278,32 @@ def frozen_parties(invoice, workspace):
             "Document historique sans photographie à l’émission : consulter son original conservé.",
         )
     return SimpleNamespace(**snapshot["emitter"]), SimpleNamespace(**snapshot["client"])
+
+
+def invoice_legal_text(invoice):
+    details = invoice.legal_details or {}
+    if not details:
+        if invoice.status != InvoiceStatus.DRAFT:
+            raise HTTPException(
+                409,
+                "Consulter l’original de cette facture historique, sans conditions reconstituées",
+            )
+        return "Brouillon : renseigner les informations de prestation et de paiement avant émission."
+    lines = [
+        "Date de prestation : " + str(details.get("service_date") or "à renseigner"),
+        "Escompte : " + str(details.get("early_payment_terms") or "à renseigner"),
+    ]
+    if details.get("vat_exemption_mention"):
+        lines.append("Mention TVA : " + details["vat_exemption_mention"])
+    if details.get("customer_type") == "professional":
+        basis = {
+            "ecb_plus_10": "taux de refinancement de la BCE applicable au premier jour du semestre concerné, majoré de 10 points",
+            "legal_interest_times_3": "trois fois le taux de l’intérêt légal",
+        }.get(details.get("late_payment_basis"), "taux contractuel à renseigner")
+        lines += [
+            "Pénalités de retard : "
+            + basis
+            + ", exigibles sans rappel après l’échéance.",
+            "Indemnité forfaitaire légale pour frais de recouvrement : 40 euros, applicable au client professionnel en retard de paiement.",
+        ]
+    return "<br/>".join(escape(line) for line in lines)

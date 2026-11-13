@@ -2,7 +2,7 @@
 Called only by the isolated migration harness; API providers are not invoked.
 """
 
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from uuid import uuid4
 from unittest.mock import patch
 from sqlalchemy.orm import Session
@@ -36,6 +36,7 @@ def run(engine):
             plan="business",
             max_seats=3,
             legal_name="TEST issuer",
+            forme_juridique="EI",
             legal_address="1 test street",
             legal_city="Paris",
             legal_postal_code="75001",
@@ -53,6 +54,7 @@ def run(engine):
             city="Paris",
             postal_code="75002",
             country="France",
+            siret="12345678901234",
         )
         db.add(customer)
         db.flush()
@@ -108,6 +110,13 @@ def run(engine):
                 headers=headers,
                 json={
                     "title": "TEST migrated invoice",
+                    "due_date": (date.today() + timedelta(days=30)).isoformat(),
+                    "legal_details": {
+                        "service_date": date.today().isoformat(),
+                        "customer_type": "professional",
+                        "early_payment_terms": "Aucun escompte convenu",
+                        "late_payment_basis": "ecb_plus_10",
+                    },
                     "client_id": customer_id,
                     "items": [
                         {"description": "Service", "quantity": "1", "unit_price": "100"}

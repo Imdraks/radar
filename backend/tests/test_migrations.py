@@ -117,3 +117,46 @@ def test_collection_ownership_migration_preserves_unassigned_history(engine):
             with pytest.raises(RuntimeError, match='ownership'):
                 migration.downgrade()
         connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+
+
+def test_privacy_migration_preserves_dossiers_and_allows_empty_rollback(engine):
+    with engine.connect() as connection, connection.begin():
+        schema = 'migration_' + uuid4().hex
+        connection.execute(text(f'CREATE SCHEMA {schema}'))
+        connection.execute(text(f'SET LOCAL search_path TO {schema}'))
+        for table in ['users', 'workspaces']:
+            connection.execute(text(f'CREATE TABLE {table} (id integer primary key)'))
+            connection.execute(text(f'INSERT INTO {table} VALUES (1)'))
+        migration = load_migration('053_privacy_requests.py')
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            migration.downgrade()
+            migration.upgrade()
+            connection.execute(text("INSERT INTO privacy_requests (user_id,workspace_id,kind,scope,details,response_due_at) VALUES (1,1,'access','personal','',now())"))
+            # Deleting an account must not cascade into deletion of rights evidence.
+            connection.execute(text('DELETE FROM users WHERE id=1'))
+            assert connection.execute(text('SELECT user_id FROM privacy_requests')).scalar() is None
+            with pytest.raises(RuntimeError, match='Archive rights requests'):
+                migration.downgrade()
+            assert connection.execute(text('SELECT count(*) FROM privacy_requests')).scalar() == 1
+        connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+
+
+def test_invoice_legal_migration_preserves_existing_invoices_and_refuses_evidence_loss(engine):
+    with engine.connect() as connection, connection.begin():
+        schema = 'migration_' + uuid4().hex
+        connection.execute(text(f'CREATE SCHEMA {schema}'))
+        connection.execute(text(f'SET LOCAL search_path TO {schema}'))
+        connection.execute(text('CREATE TABLE invoices (id integer primary key, reference text)'))
+        connection.execute(text("INSERT INTO invoices VALUES (1,'FAC-2026-0001')"))
+        migration = load_migration('054_invoice_legal_details.py')
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            assert connection.execute(text('SELECT reference,legal_details FROM invoices')).one() == ('FAC-2026-0001', None)
+            migration.downgrade()
+            migration.upgrade()
+            connection.execute(text("UPDATE invoices SET legal_details='{}'"))
+            with pytest.raises(RuntimeError, match='Archive invoice legal details'):
+                migration.downgrade()
+            assert connection.execute(text('SELECT reference FROM invoices')).scalar() == 'FAC-2026-0001'
+        connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))

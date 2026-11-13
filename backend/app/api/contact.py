@@ -1,9 +1,11 @@
 """
 Public contact form endpoint (no auth required)
 """
+
 from html import escape
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Literal
 from app.services.email_service import EmailService
 from app.core.config import settings
 import logging
@@ -13,19 +15,29 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/contact", tags=["contact"])
 
 
+CONTACT_NOTICE_VERSION = "2026-11-13"
+
+
 class ContactRequest(BaseModel):
-    name: str
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=2, max_length=150, pattern=r"^[^\r\n]+$")
     email: EmailStr
-    company: str = ""
-    phone: str = ""
-    plan: str = ""
-    message: str
+    company: str = Field(default="", max_length=200, pattern=r"^[^\r\n]*$")
+    phone: str = Field(default="", max_length=40, pattern=r"^[^\r\n]*$")
+    plan: Literal["", "core", "premium", "business", "custom"] = ""
+    message: str = Field(min_length=5, max_length=5000)
+    privacy_notice_version: Literal["2026-11-13"]
 
 
 @router.post("")
 async def submit_contact(data: ContactRequest):
     """Receive a contact form submission and send notification email."""
     email_service = EmailService()
+    if not settings.contact_receiver_email or not email_service.is_configured:
+        raise HTTPException(
+            503,
+            "Le canal de contact n’est pas configuré. Utilisez le contact publié dans les mentions légales.",
+        )
 
     # Escape all user inputs for safe HTML rendering
     safe_name = escape(data.name)
@@ -53,15 +65,19 @@ async def submit_contact(data: ContactRequest):
     """
 
     result = await email_service.send_email(
-        to=settings.admin_email,
-        subject=f"[Radar Contact] {data.name} — {data.company or 'Particulier'}",
+        to=settings.contact_receiver_email,
+        subject=f"[Radar Contact] {data.name} — {data.company or 'Contact professionnel'}",
         html=html,
-        text=f"Nom: {data.name}\nEmail: {data.email}\nSociété: {data.company}\nTéléphone: {data.phone}\nPack: {data.plan}\n\nMessage:\n{data.message}",
+        text=f"Nom: {data.name}\nEmail: {data.email}\nSociété: {data.company}\nTéléphone: {data.phone}\nPack: {data.plan}\n\nMessage:\n{data.message}\nNotice présentée : {data.privacy_notice_version}",
     )
 
-    if result.get("error"):
-        logger.error(f"Failed to send contact email: {result}")
+    if result.get("error") or not result.get("id"):
+        logger.error(
+            "Contact delivery failed; no message body or provider response logged"
+        )
         raise HTTPException(status_code=500, detail="Erreur lors de l'envoi du message")
 
-    logger.info(f"Contact form submitted: {data.name} <{data.email}>")
+    logger.info(
+        "Contact form delivered; notice_version=%s", data.privacy_notice_version
+    )
     return {"status": "ok", "message": "Message envoyé avec succès"}

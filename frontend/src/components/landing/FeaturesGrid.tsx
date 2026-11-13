@@ -29,7 +29,7 @@ const features = [
   {
     icon: FileText,
     title: "Devis & Factures",
-    description: "Créez vos devis et factures conformes. Export PDF, sauvegarde automatique sur Google Drive.",
+    description: "Préparez devis et factures. Export PDF et liaison Google Drive selon configuration.",
   },
   {
     icon: Music2,

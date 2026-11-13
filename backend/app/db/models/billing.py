@@ -243,6 +243,7 @@ class Invoice(Base):
     # Audit log
     audit_log = Column(JSON, default=list)
     
+    legal_details = Column(JSON, nullable=True)
     issued_at = Column(DateTime, nullable=True)
     issued_snapshot = Column(JSON, nullable=True)
 

@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Install system dependencies including Playwright/Chromium requirements
 RUN apt-get update && apt-get install -y \
+    tzdata \
     build-essential \
     libpq-dev \
     wget \

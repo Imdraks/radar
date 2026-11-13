@@ -81,3 +81,20 @@ Voir [COMMERCIAL-HARDENING.md](COMMERCIAL-HARDENING.md) et [RELEASE-RECOVERY.md]
 Le contrôle commercial `python scripts/check_release.py` est **volontairement bloquant** tant que les informations publiques réelles et références contractuelles ne sont pas fournies. Son mode `--check-template` valide la structure et ne donne pas d’autorisation de publication. Le prestataire de facturation électronique, l’infrastructure de production, la récupération de l’ancien serveur et les intégrations réelles restent à recetter ; aucune opération sur une base client n’a été effectuée.
 
 - Vérification finale du scanner historique : le catalogue statique ne préremplit plus les métriques et ne permet plus un retour anticipé avec une confiance de 95 %. Les helpers sont conservés pour référence ; les nouvelles observations absentes restent absentes dans l’historique. Les tentatives de scan ne deviennent pas des sources vérifiées et les concerts non collectés ne valent pas zéro par défaut.
+
+## Audit France / UE B2B — 13 novembre 2026
+
+Périmètre et sources : [LEGAL-FR-EU-AUDIT.md](LEGAL-FR-EU-AUDIT.md). Procédure : [LEGAL-OPERATIONS.md](LEGAL-OPERATIONS.md). Aucun serveur de production actif n’était disponible.
+
+- Suite finale backend : **186 tests réussis**, sur PostgreSQL jetable et dépendances exactes. Les 2 040 avertissements restent une dette de dépréciation et de configuration de test ; ils ne sont pas présentés comme corrigés.
+- Cas supplémentaires : demandes personnelles sans abonnement payant, portée workspace et isolation, réponses superuser tracées et rejouabilité refusée, délai d’un mois calendaire, export partiel sans secrets, contact borné et versionné sans faux envoi, date et série définitive à émission, mentions explicites, TVA nulle, RCS déclaré, forme/capital, et refus des downgrades destructeurs de 053/054.
+- Les six parcours historiques Alembic atteignent **054** avec conservation des sentinelles et second upgrade idempotent. La recette API sur le schéma migré passe, y compris émission/paiement/PDF. Google reste explicitement neutralisé dans cette recette.
+- Tests Node de la politique de consentement : réussis (fichier de tests contenant des assertions sur choix invalide, ancien, futur, refus, accord et fin de mois). Ne pas assimiler ce test à un audit des traceurs d’une production réelle.
+- Configuration légale : structure valide ; contrôle de publication ordinaire bloqué comme attendu sur les informations réelles et contrats manquants. Aucun changement de `commercialReleaseEnabled` pour masquer ce blocage.
+
+Les résultats navigateur et CI du commit publié sont consignés ci-dessous après leur exécution. Les anciennes sections restent un historique daté, pas le statut du dernier commit.
+
+- Typage TypeScript et build Next.js de production finaux : réussis sous Node 24, après correction des labels de sélection et du rendu des longues références de brouillons sur mobile.
+- Chromium sur le build final : **39 passages publics** (13 routes, largeurs 1440/768/390 px), **cinq configurations métier** (Business/Premium/Core sur ordinateur, Business tablette/mobile), et contrôle de consentement réussis. Les nouveaux parcours de dépôt d’une demande de droits et de saisie des mentions d’émission sont inclus. Les API sont des fixtures explicites ; ces vérifications ne prétendent pas valider une infrastructure ou un prestataire réel.
+- Inventaire OpenAPI régénéré : **489 opérations HTTP** déclarées. La déclaration de sécurité et l’existence d’une route ne constituent pas, à elles seules, une preuve de conformité ou de bon fonctionnement.
+- Diff contrôlé sans erreur de whitespace ; compilation Python réussie. Résultats et logs locaux conservés hors Git dans `/workspace/audits/radar-legal-2026-11-13` ; le résultat distant est à vérifier pour le SHA publié dans la PR.

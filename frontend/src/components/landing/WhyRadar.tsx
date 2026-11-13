@@ -20,8 +20,8 @@ const reasons = [
   },
   {
     icon: Shield,
-    title: "RGPD & hébergement France",
-    description: "Données hébergées en France. Rôles et permissions granulaires. Audit trail complet.",
+    title: "Rôles et permissions",
+    description: "Accès par espace de travail et rôles. Hébergement et engagements précisés dans votre contrat.",
   },
 ];
 

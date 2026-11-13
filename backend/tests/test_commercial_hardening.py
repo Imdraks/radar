@@ -312,3 +312,155 @@ def test_vat_exempt_issuer_cannot_issue_taxed_invoice(
     assert updated.status_code == 200
     assert updated.json()["total"] == "100.00"
     assert client.post(url + "/send", headers=headers()).status_code == 200
+
+
+def test_draft_invoice_numbers_do_not_create_gaps_in_issued_series(
+    client, headers, invoice, db_session, actors
+):
+    first = client.post(
+        "/api/v1/billing/invoices",
+        headers=headers(),
+        json={"title": "TEST removed draft"},
+    )
+    assert first.status_code == 200
+    assert first.json()["reference"].startswith("BROUILLON-")
+    assert (
+        client.delete(
+            f"/api/v1/billing/invoices/{first.json()['id']}", headers=headers()
+        ).status_code
+        == 200
+    )
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert invoice["reference"].startswith("BROUILLON-")
+    assert client.post(path + "/send", headers=headers()).status_code == 200
+    emitted = client.get(path, headers=headers()).json()
+    assert emitted["reference"].endswith("-0001")
+    assert emitted["reference"].startswith("FAC-")
+
+
+def test_issue_requires_legal_information_without_consuming_a_final_number(
+    client, headers, invoice
+):
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert (
+        client.patch(path, headers=headers(), json={"legal_details": None}).status_code
+        == 200
+    )
+    response = client.post(path + "/send", headers=headers())
+    assert response.status_code == 422
+    assert (
+        client.get(path, headers=headers()).json()["reference"].startswith("BROUILLON-")
+    )
+
+
+def test_late_collection_fee_is_never_asserted_against_a_consumer(
+    client, headers, invoice
+):
+    from app.services.invoice_lifecycle import invoice_legal_text
+    from types import SimpleNamespace
+
+    details = {
+        "service_date": "2026-11-13",
+        "customer_type": "consumer",
+        "early_payment_terms": "Sans escompte",
+    }
+    value = invoice_legal_text(SimpleNamespace(legal_details=details))
+    assert "40 euros" not in value
+    details = {
+        **details,
+        "customer_type": "professional",
+        "late_payment_basis": "ecb_plus_10",
+    }
+    assert "40 euros" in invoice_legal_text(SimpleNamespace(legal_details=details))
+
+
+@pytest.mark.parametrize("registered_city", [None, "Lyon"])
+def test_invoice_pdf_only_uses_declared_rcs(
+    client, headers, invoice, db_session, actors, monkeypatch, registered_city
+):
+    from reportlab.platypus import Paragraph as OriginalParagraph
+    import reportlab.platypus
+
+    rendered = []
+
+    def paragraph(value, *args, **kwargs):
+        rendered.append(str(value))
+        return OriginalParagraph(value, *args, **kwargs)
+
+    monkeypatch.setattr(reportlab.platypus, "Paragraph", paragraph)
+    actors[1][0].rcs_city = registered_city
+    db_session.commit()
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert client.post(path + "/send", headers=headers()).status_code == 200
+    assert client.get(path + "/pdf", headers=headers()).status_code == 200
+    text = "\n".join(rendered)
+    assert "RCS Paris" not in text
+    if registered_city:
+        assert "RCS Lyon" in text
+
+
+def test_issuance_date_is_actual_local_date_and_reference_uses_its_year(
+    client, headers, invoice, db_session, actors, monkeypatch
+):
+    from datetime import datetime as RealDate
+    from app.services import invoice_lifecycle as lifecycle
+
+    class FrozenDate(RealDate):
+        @classmethod
+        def utcnow(cls):
+            return RealDate(2026, 12, 31, 23, 30)
+
+    monkeypatch.setattr(lifecycle, "datetime", FrozenDate)
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert (
+        client.patch(
+            path,
+            headers=headers(),
+            json={"issue_date": "2026-01-01", "due_date": "2027-01-31"},
+        ).status_code
+        == 200
+    )
+    assert client.post(path + "/send", headers=headers()).status_code == 200
+    result = client.get(path, headers=headers()).json()
+    assert result["issue_date"] == "2027-01-01"
+    assert result["reference"].startswith("FAC-2027-")
+
+
+def test_zero_vat_without_franchise_requires_an_explicit_legal_mention(
+    client, headers, invoice
+):
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert (
+        client.patch(path, headers=headers(), json={"tax_rate": "0"}).status_code == 200
+    )
+    assert client.post(path + "/send", headers=headers()).status_code == 422
+    details = {
+        "service_date": "2026-11-13",
+        "customer_type": "professional",
+        "early_payment_terms": "Aucun escompte",
+        "late_payment_basis": "ecb_plus_10",
+        "vat_exemption_mention": "TEST — motif légal à vérifier dans la recette",
+    }
+    assert (
+        client.patch(
+            path, headers=headers(), json={"legal_details": details}
+        ).status_code
+        == 200
+    )
+    assert client.post(path + "/send", headers=headers()).status_code == 200
+
+
+def test_issuer_legal_form_and_company_capital_must_be_declared(
+    client, headers, invoice, db_session, actors
+):
+    ws = actors[1][0]
+    path = f"/api/v1/billing/invoices/{invoice['id']}"
+    ws.forme_juridique = None
+    db_session.commit()
+    assert client.post(path + "/send", headers=headers()).status_code == 422
+    response = client.patch("/api/v1/billing/emitter", headers=headers(), json={"forme_juridique": "SAS", "capital_social": ""})
+    assert response.status_code == 200
+    assert response.json()["forme_juridique"] == "SAS"
+    assert client.post(path + "/send", headers=headers()).status_code == 422
+    assert client.patch("/api/v1/billing/emitter", headers=headers(), json={"capital_social": "1000 EUR"}).status_code == 200
+    assert client.post(path + "/send", headers=headers()).status_code == 200

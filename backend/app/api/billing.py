@@ -35,7 +35,7 @@ from app.schemas.billing import (
 from app.core.encryption import encrypt_iban, decrypt_iban, mask_iban
 
 from app.services.invoice_lifecycle import (
-    locked_invoice, require_draft, transition, set_payment, frozen_parties, audit as audit_invoice,
+    locked_invoice, require_draft, transition, set_payment, frozen_parties, invoice_legal_text, audit as audit_invoice,
 )
 
 router = APIRouter()
@@ -60,6 +60,10 @@ class EmitterInfo(BaseModel):
     legal_email: Optional[str] = None
     siret: Optional[str] = None
     vat_number: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    capital_social: Optional[str] = None
+    rcs_city: Optional[str] = None
+    tva_franchise: Optional[bool] = None
     logo_drive_file_id: Optional[str] = None
     payment_info: Optional[dict] = None
     # Template IDs
@@ -81,6 +85,10 @@ class EmitterInfoUpdate(BaseModel):
     legal_email: Optional[str] = None
     siret: Optional[str] = None
     vat_number: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    capital_social: Optional[str] = None
+    rcs_city: Optional[str] = None
+    tva_franchise: Optional[bool] = None
     logo_drive_file_id: Optional[str] = None
     payment_info: Optional[dict] = None
     devis_template_doc_id: Optional[str] = None
@@ -90,17 +98,8 @@ class EmitterInfoUpdate(BaseModel):
 # ============ Helper Functions ============
 
 def next_document_reference(db: Session, workspace_id: int, kind: str) -> str:
-    from sqlalchemy.dialects.postgresql import insert
-    from app.db.models.billing import BillingCounter
-    year = datetime.utcnow().year
-    counter = BillingCounter.__table__
-    statement = insert(counter).values(workspace_id=workspace_id, year=year, kind=kind, last_number=1)
-    statement = statement.on_conflict_do_update(
-        index_elements=[counter.c.workspace_id, counter.c.year, counter.c.kind],
-        set_={"last_number": counter.c.last_number + 1}
-    ).returning(counter.c.last_number)
-    number = db.execute(statement).scalar_one()
-    return f"{kind}-{year}-{number:04d}"
+    from app.services.billing_numbers import next_reference
+    return next_reference(db, workspace_id, kind)
 
 
 def generate_quote_reference(db: Session, workspace_id: int) -> str:
@@ -168,6 +167,10 @@ async def get_emitter_info(
         legal_email=workspace.legal_email or workspace.billing_email,
         siret=workspace.siret,
         vat_number=workspace.vat_number,
+        forme_juridique=workspace.forme_juridique,
+        capital_social=workspace.capital_social,
+        rcs_city=workspace.rcs_city,
+        tva_franchise=workspace.tva_franchise,
         logo_drive_file_id=workspace.logo_drive_file_id,
         payment_info=workspace.payment_info,
         devis_template_doc_id=workspace.devis_template_doc_id,
@@ -217,6 +220,10 @@ async def update_emitter_info(
         legal_email=workspace.legal_email or workspace.billing_email,
         siret=workspace.siret,
         vat_number=workspace.vat_number,
+        forme_juridique=workspace.forme_juridique,
+        capital_social=workspace.capital_social,
+        rcs_city=workspace.rcs_city,
+        tva_franchise=workspace.tva_franchise,
         logo_drive_file_id=workspace.logo_drive_file_id,
         payment_info=workspace.payment_info,
         devis_template_doc_id=workspace.devis_template_doc_id,
@@ -810,7 +817,7 @@ async def convert_quote_to_invoice(
     # Create invoice
     invoice = Invoice(
         workspace_id=workspace_id,
-        reference=generate_invoice_reference(db, workspace_id),
+        reference=f"BROUILLON-{uuid.uuid4().hex}",
         created_by_id=current_user.id,
         client_id=quote.client_id,
         opportunity_id=quote.opportunity_id,
@@ -1082,7 +1089,7 @@ async def generate_quote_pdf(
         if contact_email:
             client_contact_lines.append(f"Email: {contact_email}")
         if c.siret:
-            client_contact_lines.append(f"SIRET: {c.siret}")
+            client_contact_lines.append(f"{'SIREN' if len(c.siret) == 9 else 'SIRET'}: {c.siret}")
         if c.vat_number:
             client_contact_lines.append(f"TVA: {c.vat_number}")
     
@@ -1279,7 +1286,7 @@ async def generate_quote_pdf(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = "Les conditions d’escompte, d’échéance et de pénalités sont celles acceptées dans les documents commerciaux applicables."
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
     
@@ -1294,9 +1301,6 @@ async def generate_quote_pdf(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -1507,7 +1511,7 @@ async def upload_quote_pdf_to_drive(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = "Les conditions d’escompte, d’échéance et de pénalités sont celles acceptées dans les documents commerciaux applicables."
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -1521,9 +1525,6 @@ async def upload_quote_pdf_to_drive(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -1658,8 +1659,9 @@ async def create_invoice(
     """Create a new invoice"""
     invoice = Invoice(
         workspace_id=workspace_id,
-        reference=generate_invoice_reference(db, workspace_id),
+        reference=f"BROUILLON-{uuid.uuid4().hex}",
         created_by_id=current_user.id,
+        legal_details=invoice_in.legal_details.model_dump(mode="json") if invoice_in.legal_details else None,
         title=invoice_in.title,
         description=invoice_in.description,
         client_id=invoice_in.client_id,
@@ -1736,6 +1738,8 @@ async def update_invoice(
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
     update_data = invoice_in.model_dump(exclude_unset=True)
+    if "legal_details" in update_data:
+        update_data["legal_details"] = invoice_in.legal_details.model_dump(mode="json") if invoice_in.legal_details else None
     target = update_data.pop("status", None)
     if update_data:
         require_draft(invoice)
@@ -2025,7 +2029,7 @@ async def generate_invoice_pdf(
         contact_email = c.contact_email or c.email
         if contact_phone: client_contact_lines.append(f"Tél: {contact_phone}")
         if contact_email: client_contact_lines.append(f"Email: {contact_email}")
-        if c.siret: client_contact_lines.append(f"SIRET: {c.siret}")
+        if c.siret: client_contact_lines.append(f"{'SIREN' if len(c.siret) == 9 else 'SIRET'}: {c.siret}")
         if c.vat_number: client_contact_lines.append(f"TVA: {c.vat_number}")
 
     address_data = [[
@@ -2176,7 +2180,7 @@ async def generate_invoice_pdf(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = invoice_legal_text(invoice)
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -2190,9 +2194,6 @@ async def generate_invoice_pdf(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -2417,7 +2418,7 @@ async def upload_invoice_pdf_to_drive(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = invoice_legal_text(invoice)
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -2431,9 +2432,6 @@ async def upload_invoice_pdf_to_drive(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -2866,6 +2864,8 @@ async def generate_invoice_document(
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
+    require_draft(invoice)  # Editable Google Docs are draft previews, not issued originals.
+
     # Get workspace for template and emitter info
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     live_workspace = workspace

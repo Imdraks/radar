@@ -6,12 +6,15 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 REQUIRED = (
+    "audience",
+    "noticeVersion",
+    "publisherType",
+    "phone",
     "companyName",
     "legalForm",
     "address",
     "siret",
     "rcs",
-    "capital",
     "publicationDirector",
     "contactEmail",
     "hostingName",
@@ -21,6 +24,14 @@ REQUIRED = (
     "dpaUrl",
     "subprocessorsUrl",
     "retentionPolicyUrl",
+    "salesTermsUrl",
+    "exportProcedureUrl",
+    "transferSafeguardsUrl",
+    "contactRetention",
+    "securityLogsRetention",
+    "workspaceRetention",
+    "rightsRequestRetention",
+    "contractVersion",
 )
 
 
@@ -47,7 +58,20 @@ def main():
     missing = [field for field in REQUIRED if not config[field].strip()]
     if not config["commercialReleaseEnabled"]:
         missing.append("commercialReleaseEnabled")
-    for key in ("dpaUrl", "subprocessorsUrl", "retentionPolicyUrl"):
+    if config["audience"] != "professionals":
+        missing.append("B2C offering requires a separate legal review")
+    if config["publisherType"] not in {"company", "individual"}:
+        missing.append("publisherType (company or individual)")
+    if config["publisherType"] == "company" and not config.get("capital", "").strip():
+        missing.append("capital for a company")
+    for key in (
+        "dpaUrl",
+        "subprocessorsUrl",
+        "retentionPolicyUrl",
+        "salesTermsUrl",
+        "exportProcedureUrl",
+        "transferSafeguardsUrl",
+    ):
         if urlparse(config[key]).scheme != "https":
             missing.append(key + " (HTTPS required)")
     if len(config["siret"]) != 14 or not config["siret"].isdigit():

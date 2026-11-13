@@ -21,6 +21,7 @@ function SettingsContent() {
       <TabsContent value="appearance"><Card><CardHeader><CardTitle className="text-lg">Apparence</CardTitle><CardDescription>Choisissez le thème de votre espace de travail.</CardDescription></CardHeader><CardContent className="flex items-center justify-between"><p className="text-sm">Thème de l’interface</p><ThemeToggle /></CardContent></Card></TabsContent>
     </Tabs>
     {showWorkspaceSettings && <Link href="/workspace/settings" className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5"><div><h2 className="text-sm font-semibold">Équipe et intégrations</h2><p className="mt-1 text-xs text-muted-foreground">Retrouvez la configuration de votre espace de travail.</p></div><ArrowUpRight size={17} /></Link>}
+    <Link href="/settings/privacy" className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5"><div><h2 className="text-sm font-semibold">Données et droits</h2><p className="mt-1 text-xs text-muted-foreground">Export du compte, demandes de droits, résiliation et réversibilité.</p></div><ArrowUpRight size={17} /></Link>
     <Link href="/settings/tools" className="flex items-start gap-4 rounded-2xl border bg-card p-5"><Archive size={20} className="shrink-0 text-muted-foreground" /><div className="flex-1"><h2 className="text-sm font-semibold">Historique et outils secondaires</h2><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Accéder aux anciennes analyses, profils de recherche et documents conservés.</p></div><ArrowUpRight size={17} /></Link>
   </div>;
 }

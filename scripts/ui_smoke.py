@@ -17,9 +17,21 @@ async def main():
    if width<1024:await context.add_init_script("localStorage.setItem('radar-sidebar-collapsed','true')")
    await context.add_init_script("localStorage.setItem('access_token','ui-test-only');localStorage.setItem('current_workspace_id','1');localStorage.setItem('opportunities-radar-welcome-shown-v2','true')")
    requests=[]
+   rights=[]
+   invoice={'id':10,'reference':'BROUILLON-'+'a'*32,'title':'TEST invoice','status':'DRAFT','issue_date':'2026-11-13','due_date':None,'client_id':None,'subtotal':100,'tax_rate':20,'tax_amount':20,'discount_percent':0,'discount_amount':0,'total':120,'amount_paid':0,'items':[{'id':1,'description':'TEST service','quantity':1,'unit_price':100,'line_total':100,'unit':'jour','position':0}],'created_at':'2026-11-13T12:00:00','updated_at':'2026-11-13T12:00:00'}
    features={f.value for f in get_plan_features(Plan(plan))}
    async def api(route):
     path=urlparse(route.request.url).path
+    if path.endswith('/privacy/requests'):
+     if route.request.method=='POST':
+      body=route.request.post_data_json;requests.append((path,body))
+      rights.append({'id':1,'workspace_id':None,'scope':'personal','status':'received','created_at':'2026-11-13T12:00:00','updated_at':'2026-11-13T12:00:00','response_due_at':'2026-12-13T12:00:00','response':None,**body})
+      await route.fulfill(status=201,content_type='application/json',body=json.dumps(rights[-1]));return
+     await route.fulfill(status=200,content_type='application/json',body=json.dumps(rights));return
+    if path.endswith('/billing/invoices/10'):
+     if route.request.method=='PATCH':
+      body=route.request.post_data_json;requests.append((path,body));invoice.update(body);invoice['updated_at']='2026-11-13T12:01:00'
+     await route.fulfill(status=200,content_type='application/json',body=json.dumps(invoice));return
     if route.request.method=='POST':
      requests.append((path,route.request.post_data_json))
      await route.fulfill(status=202,content_type='application/json',body=json.dumps({'id':1,'status':'pending'}));return
@@ -140,6 +152,27 @@ async def main():
     assert await page.get_by_role('button',name='Enregistrer',exact=True).count()==0
     assert await page.get_by_role('button',name='Changer le mot de passe',exact=True).count()==0
     assert await page.get_by_role('tab',name='Dashboard',exact=True).count()==0
+   await page.goto(BASE+'/settings/privacy',wait_until='networkidle')
+   await page.get_by_role('heading',name='Données et droits',exact=True).wait_for()
+   await page.get_by_label('Objet',exact=True).select_option('access')
+   await page.get_by_role('button',name='Enregistrer la demande',exact=True).click()
+   await page.get_by_text('Demande n°1 enregistrée.',exact=False).wait_for()
+   assert rights[-1]['scope']=='personal'
+   assert requests[-1][1]['details']==''
+   assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+   if plan=='business' and width in [1440,390]:
+    await page.goto(BASE+'/factures/10',wait_until='networkidle')
+    await page.get_by_role('heading',name='Informations avant émission',exact=True).wait_for()
+    await page.get_by_label('Date de prestation',exact=True).fill('2026-11-13')
+    await page.get_by_label('Échéance de paiement',exact=True).fill('2026-12-13')
+    await page.get_by_label('Type de client',exact=True).select_option('professional')
+    await page.get_by_label('Conditions d’escompte',exact=True).fill('Aucun escompte convenu')
+    await page.get_by_label('Formule de pénalités prévue au contrat',exact=True).select_option('ecb_plus_10')
+    await page.get_by_role('button',name='Enregistrer les informations d’émission',exact=True).click()
+    await page.wait_for_timeout(300)
+    assert invoice['legal_details']['customer_type']=='professional'
+    assert invoice['due_date']=='2026-12-13'
+    assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth')
    if plan!='business':
     await page.goto(BASE+'/today',wait_until='networkidle')
     assert await page.get_by_text('Leads chauds',exact=True).count()==0

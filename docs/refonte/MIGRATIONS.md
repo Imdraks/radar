@@ -52,3 +52,13 @@ Ajoute `invoices.issued_at` et `issued_snapshot`, nullables. Les nouveaux docume
 ## 052 — Alignement du schéma historique
 
 Ajoute si absents `collection_runs.brief_id` (UUID nullable, lien vers briefs) et `comments.is_internal` (booléen, true pour préserver la confidentialité historique). Aucun lien historique n’est deviné. Les champs sont conservés au downgrade ; celui-ci refuse si des liens ou visibilités personnalisées devraient être archivés. Ce retour est volontairement non destructeur et ne reconstitue donc pas à l’identique l’ancien schéma physique.
+
+## 053 — Dossiers de demandes de droits
+
+Ajoute `privacy_requests`, ses index et les liens nullables utilisateur/workspace (`ON DELETE SET NULL`). Conserve type, portée, échéances, réponse et journal de décision. Aucun compte, fichier ou document existant n’est supprimé. Le downgrade refuse dès qu’un dossier existe ; prévoir archivage validé et retour manuel plutôt que détruire les demandes.
+
+## 054 — Mentions déclarées des factures
+
+Ajoute `invoices.legal_details` JSON nullable. Les anciennes mentions ne sont pas inventées. Les brouillons incomplets doivent être complétés avant émission ; les factures émises restent figées. Le downgrade refuse si une valeur existe afin de préserver ces informations.
+
+Le changement de numérotation relève du code : les nouveaux brouillons ont une référence provisoire ; le numéro final et la date réelle sont alloués à l’émission. Un ancien brouillon recevra un numéro définitif selon cette règle, sans renuméroter les documents déjà émis. Aucun numéro ancien n’est recyclé. Les dates et les mentions fiscales doivent être vérifiées en recette ; conserver les originaux des factures historiques dépourvues de photographie.

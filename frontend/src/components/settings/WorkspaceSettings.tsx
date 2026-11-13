@@ -427,17 +427,7 @@ function CompanyInfoSection({
     if (siege.libelle_voie) addrParts.push(siege.libelle_voie);
     const streetAddress = addrParts.join(" ");
 
-    // Compute TVA intracommunautaire from SIREN
-    const siren = company.siren || "";
-    let vatNumber = "";
-    if (siren && siren.length === 9) {
-      const sirenNum = parseInt(siren, 10);
-      if (!isNaN(sirenNum)) {
-        const key = (12 + 3 * (sirenNum % 97)) % 97;
-        vatNumber = `FR${key.toString().padStart(2, "0")}${siren}`;
-      }
-    }
-
+    // Registry lookup does not prove VAT liability, legal form or court registration.
     setForm({
       ...form,
       legal_name: company.nom_complet || company.nom_raison_sociale || "",
@@ -446,9 +436,9 @@ function CompanyInfoSection({
       legal_postal_code: siege.code_postal || "",
       legal_country: "France",
       siret: siege.siret || "",
-      vat_number: vatNumber || form.vat_number,
-      forme_juridique: company.nature_juridique || form.forme_juridique,
-      rcs_city: siege.libelle_commune || form.rcs_city,
+      vat_number: form.vat_number,
+      forme_juridique: form.forme_juridique,
+      rcs_city: form.rcs_city,
       capital_social: form.capital_social,
       tva_franchise: form.tva_franchise,
       legal_phone: form.legal_phone,
@@ -630,6 +620,8 @@ function CompanyInfoSection({
             />
           </div>
         </div>
+
+        <p className="text-sm text-muted-foreground">Vérifiez la forme juridique, le capital, le RCS et la TVA à partir de vos documents officiels. La recherche d’entreprise ne valide pas ces informations.</p>
 
         {/* Franchise TVA */}
         <div className="flex items-center gap-2">

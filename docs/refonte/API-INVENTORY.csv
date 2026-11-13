@@ -360,6 +360,11 @@ PATCH,/api/v1/opportunities/{opportunity_id}/tasks/{task_id},True,update_task_ap
 POST,/api/v1/predictions/batch,True,batch_predict_api_v1_predictions_batch_post
 GET,/api/v1/predictions/trends/analysis,True,get_trend_analysis_api_v1_predictions_trends_analysis_get
 GET,/api/v1/predictions/{opportunity_id},True,get_prediction_api_v1_predictions__opportunity_id__get
+GET,/api/v1/privacy/account-export,True,account_export_api_v1_privacy_account_export_get
+GET,/api/v1/privacy/admin/requests,True,admin_requests_api_v1_privacy_admin_requests_get
+POST,/api/v1/privacy/admin/requests/{request_id}/respond,True,respond_api_v1_privacy_admin_requests__request_id__respond_post
+GET,/api/v1/privacy/requests,True,my_requests_api_v1_privacy_requests_get
+POST,/api/v1/privacy/requests,True,submit_request_api_v1_privacy_requests_post
 GET,/api/v1/profiles,True,list_profiles_api_v1_profiles_get
 POST,/api/v1/profiles,True,create_profile_api_v1_profiles_post
 DELETE,/api/v1/profiles/{profile_id},True,delete_profile_api_v1_profiles__profile_id__delete

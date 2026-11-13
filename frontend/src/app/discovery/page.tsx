@@ -406,7 +406,7 @@ function DiscoveryV3Page() {
           </div>
           <div>
             <h1 className="text-[28px] font-semibold tracking-tight">Discovery</h1>
-            <p className="text-muted-foreground text-sm">Recherche, données sourcées et sélections artistiques</p>
+            <p className="text-muted-foreground text-sm">Recherche, données sourcées et sélections artistiques</p><p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">Les analyses combinent observations, calculs et, selon les fonctions activées, synthèses assistées par IA. Projections et cachets restent indicatifs : vérifiez les sources et gardez une décision humaine. <a className="underline" href="/privacy#discovery">Données et limites</a></p>
           </div>
         </div>
         

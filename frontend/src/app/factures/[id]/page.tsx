@@ -1,4 +1,5 @@
 'use client';
+import {InvoiceLegalFields, type InvoiceLegalDetails} from '@/components/billing/InvoiceLegalFields';
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
@@ -69,6 +70,8 @@ interface Invoice {
   reference: string;
   title: string;
   description?: string;
+  legal_details?: InvoiceLegalDetails | null;
+  updated_at?: string;
   status: 'DRAFT' | 'SENT' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   issue_date: string;
   due_date?: string;
@@ -568,15 +571,15 @@ export default function InvoiceDetailPage() {
       <AppLayoutWithOnboarding>
         <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 max-w-full items-start gap-4">
           <Button variant="ghost" onClick={() => router.push('/factures')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h1 className="min-w-0 break-all text-2xl font-bold text-gray-900 dark:text-white">
                 {invoice.reference}
               </h1>
               <Badge className={STATUS_CONFIG[invoice.status].color}>
@@ -586,7 +589,7 @@ export default function InvoiceDetailPage() {
             <p className="text-gray-500 dark:text-gray-400">{invoice.title}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={generatePdf} disabled={generatingPdf}>
             {generatingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
             {generatingPdf ? 'Génération...' : 'PDF'}
@@ -647,6 +650,7 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
+      {invoice.status==='DRAFT' && <InvoiceLegalFields key={invoice.id+":"+(invoice.updated_at||"")} invoiceId={invoice.id} details={invoice.legal_details} dueDate={invoice.due_date} onSaved={fetchInvoice}/>}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">

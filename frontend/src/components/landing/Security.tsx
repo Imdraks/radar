@@ -5,7 +5,7 @@ import { Shield, Server, Lock, Users, Eye, FileCheck } from "lucide-react";
 const securityFeatures = [
   {
     icon: Server,
-    title: "Hébergé en Europe",
+    title: "Hébergement documenté",
     description: "La localisation et les engagements d’hébergement sont précisés dans votre contrat.",
   },
   {
@@ -43,7 +43,7 @@ export function Security() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 rounded-full text-sm text-green-700 mb-4">
             <Shield className="h-4 w-4" />
-            Sécurité & Conformité
+            Sécurité et contrôle des accès
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
             Vos données en sécurité
