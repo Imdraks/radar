@@ -267,3 +267,35 @@ def test_artist_history_records_only_observed_providers(
     snapshot = db_session.query(ArtistSnapshot).one()
     assert snapshot.sources_used == expected
     assert snapshot.source_quality_score is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_scan_does_not_shortcut_to_static_artist_numbers(monkeypatch):
+    from unittest.mock import AsyncMock
+    from app.intelligence import web_artist_scanner as module
+
+    scanner = module.WebArtistScanner()
+    scanner.session = object()  # No HTTP session is opened in this test.
+
+    def forbidden_catalog(name):
+        raise AssertionError("Static catalog must not enter a live scan")
+
+    monkeypatch.setattr(module, "get_known_artist", forbidden_catalog)
+    names = [
+        "viberate",
+        "wikipedia",
+        "spotify_web",
+        "youtube",
+        "discogs",
+        "songkick",
+        "bandsintown",
+        "ticketmaster",
+        "fnac_spectacles",
+        "google",
+    ]
+    for name in names:
+        monkeypatch.setattr(scanner, "_scan_" + name, AsyncMock(return_value=None))
+    result = await scanner.scan_artist("SCH", force_refresh=False)
+    assert result.spotify_monthly_listeners == 0
+    assert result.sources_scanned == []
+    assert "Base de données artistes FR" not in result.sources_scanned

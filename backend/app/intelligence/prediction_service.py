@@ -580,9 +580,9 @@ class ArtistPredictionService:
         youtube_subscribers: Optional[int] = None,
         youtube_views_30d: Optional[int] = None,
         instagram_followers: Optional[int] = None,
-        concerts_next_30d: int = 0,
-        concerts_next_90d: int = 0,
-        source_quality_score: float = 50.0,
+        concerts_next_30d: Optional[int] = None,
+        concerts_next_90d: Optional[int] = None,
+        source_quality_score: Optional[float] = None,
         sources_used: Optional[str] = None
     ) -> ArtistSnapshot:
         """Crée un nouveau snapshot pour un artiste"""

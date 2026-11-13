@@ -46,8 +46,8 @@ class ArtistSnapshot(Base):
     instagram_followers = Column(Integer, nullable=True)
     
     # === Métriques Concerts ===
-    concerts_next_30d = Column(Integer, default=0)
-    concerts_next_90d = Column(Integer, default=0)
+    concerts_next_30d = Column(Integer, nullable=True)
+    concerts_next_90d = Column(Integer, nullable=True)
     
     # === Qualité des données ===
     source_quality_score = Column(Float, nullable=True)  # Optional empirical calibration; never invent a default
