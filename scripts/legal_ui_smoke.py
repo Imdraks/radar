@@ -4,7 +4,7 @@ import asyncio, json, os, io
 from pathlib import Path
 from urllib.parse import urlparse
 from zipfile import ZipFile
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, expect
 
 BASE = os.environ.get("RADAR_UI_BASE_URL", "http://127.0.0.1:3000")
 if urlparse(BASE).hostname not in {"localhost", "127.0.0.1"}:
@@ -206,6 +206,9 @@ async def main():
                     )
                     return
                 elif path.endswith("/billing/invoices/10"):
+                    # Exercise an actual delayed refetch after the successful credit response.
+                    if invoice["credited_at"]:
+                        await asyncio.sleep(0.15)
                     data = invoice
                 elif path.endswith("/billing/invoices/10/credit-notes"):
                     data = notes
@@ -294,12 +297,9 @@ async def main():
                 "Avoir total émis. Aucun remboursement exécuté.", exact=True
             ).wait_for()
             assert notes and invoice["credited_at"]
-            assert (
-                await page.get_by_role(
-                    "button", name="Enregistrer paiement", exact=True
-                ).count()
-                == 0
-            )
+            await expect(
+                page.get_by_role("button", name="Enregistrer paiement", exact=True)
+            ).to_have_count(0)
             async with page.expect_download() as credit:
                 await page.get_by_role(
                     "button", name="Télécharger l’avoir PDF", exact=True
