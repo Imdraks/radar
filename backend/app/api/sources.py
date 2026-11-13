@@ -2,7 +2,6 @@
 Source configuration endpoints
 """
 from typing import List
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -41,7 +40,7 @@ def list_sources(
 
 @router.get("/{source_id}", response_model=SourceConfigResponse)
 def get_source(
-    source_id: UUID,
+    source_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -81,7 +80,7 @@ def create_source(
 
 @router.patch("/{source_id}", response_model=SourceConfigResponse)
 def update_source(
-    source_id: UUID,
+    source_id: int,
     update_data: SourceConfigUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
@@ -105,7 +104,7 @@ def update_source(
 
 @router.delete("/{source_id}")
 def delete_source(
-    source_id: UUID,
+    source_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -124,7 +123,7 @@ def delete_source(
 
 @router.post("/{source_id}/test", response_model=SourceTestResult)
 async def test_source(
-    source_id: UUID,
+    source_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):

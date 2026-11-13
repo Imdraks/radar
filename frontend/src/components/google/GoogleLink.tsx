@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from 'react';
 import {
@@ -93,7 +94,7 @@ export function GoogleLink({
     setIsCreating(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(getEndpoint(), {
+      const res = await workspaceFetch(getEndpoint(), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

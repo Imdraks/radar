@@ -1,5 +1,2 @@
 import { redirect } from 'next/navigation';
-
-export default function QuotesRedirect() {
-  redirect('/devis');
-}
+export default function LegacyRoute() { redirect('/devis'); }

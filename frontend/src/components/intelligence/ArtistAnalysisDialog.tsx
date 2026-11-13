@@ -584,7 +584,7 @@ export function ArtistAnalysisDialog() {
                               <Brain className="h-4 w-4 text-purple-500" />
                               Résumé IA
                             </h4>
-                            <p className="text-sm">{aiData.ai_summary}</p>
+                            <p className="mb-2 text-xs text-muted-foreground">Synthèse assistée par IA : elle peut contenir des erreurs et doit être vérifiée à partir des sources. Elle ne remplace pas une décision humaine.</p><p className="text-sm">{aiData.ai_summary}</p>
                           </div>
                         )}
 

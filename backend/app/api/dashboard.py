@@ -28,7 +28,7 @@ def get_dashboard_stats(
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get dashboard statistics with caching"""
-    cache_key = f"dashboard:stats:{current_user.id}"
+    cache_key = f"dashboard:stats:{current_user.id}:{db.info.get('workspace_id')}"
     
     # Try cache first
     cached = cache_get(cache_key)
@@ -134,7 +134,7 @@ def get_top_opportunities(
     current_user: User = Depends(get_current_user),
 ):
     """Get top scored opportunities with caching"""
-    cache_key = f"dashboard:top:{current_user.id}:{limit}"
+    cache_key = f"dashboard:top:{current_user.id}:{db.info.get('workspace_id')}:{limit}"
     
     # Try cache first
     cached = cache_get(cache_key)

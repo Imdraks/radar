@@ -5,8 +5,11 @@ import asyncio
 import json
 import logging
 from typing import Dict, Set
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from app.core.security import verify_token
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
+from app.api.deps import get_current_user, resolve_workspace_id
+from app.db import get_db
+from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +26,7 @@ class ConnectionManager:
     
     async def connect(self, websocket: WebSocket, user_id: str):
         """Accept and store a new connection"""
-        await websocket.accept()
+        await websocket.accept(subprotocol="radar")
         async with self._lock:
             if user_id not in self.active_connections:
                 self.active_connections[user_id] = set()
@@ -50,12 +53,12 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Error sending to user {user_id}: {e}")
     
-    async def broadcast(self, message: dict):
+    async def broadcast(self, workspace_id: int, message: dict):
         """Send a message to all connected users"""
         async with self._lock:
             all_connections = [
-                ws for connections in self.active_connections.values() 
-                for ws in connections
+                ws for key, connections in self.active_connections.items()
+                if key.startswith(f"{workspace_id}:") for ws in connections
             ]
         
         for websocket in all_connections:
@@ -76,24 +79,31 @@ manager = ConnectionManager()
 @router.websocket("/ws/notifications")
 async def websocket_notifications(
     websocket: WebSocket,
-    token: str = Query(...)
+    db: Session = Depends(get_db)
 ):
     """
     WebSocket endpoint for real-time notifications.
     
-    Connect with: ws://host/ws/notifications?token=<jwt_token>
+    Authenticate using the radar and bearer.<jwt> WebSocket subprotocols.
     
     Messages sent to client:
     - {"type": "connected", "message": "Connected to notifications"}
     - {"type": "notification", "notification_type": "...", "title": "...", "message": "..."}
     - {"type": "ping"}
     """
-    # Verify token
-    user_id = verify_token(token, "access")
-    if not user_id:
-        await websocket.close(code=4001, reason="Invalid or expired token")
+    try:
+        protocols = websocket.headers.get("sec-websocket-protocol", "").split(",")
+        token = next((p.strip()[7:] for p in protocols if p.strip().startswith("bearer.")), "")
+        user = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+        selected = websocket.query_params.get("workspace_id")
+        if selected is not None and (not selected.isdecimal() or len(selected) > 10):
+            raise HTTPException(400, "Invalid workspace")
+        workspace_id = resolve_workspace_id(db, user, int(selected) if selected else None)
+    except HTTPException:
+        await websocket.close(code=4001, reason="Invalid or inactive account")
         return
-    
+    user_id = f"{workspace_id}:{user.id}"
+
     # Connect
     await manager.connect(websocket, user_id)
     
@@ -102,7 +112,7 @@ async def websocket_notifications(
         await websocket.send_json({
             "type": "connected",
             "message": "Connected to notifications",
-            "user_id": user_id
+            "user_id": str(user.id)
         })
         
         # Keep connection alive and handle incoming messages
@@ -114,13 +124,24 @@ async def websocket_notifications(
                     timeout=30.0  # 30 second timeout for ping/pong
                 )
                 
+                # Recheck account, token expiry and membership on every heartbeat.
+                db.expire_all()
+                try:
+                    current = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+                    resolve_workspace_id(db, current, workspace_id)
+                except HTTPException:
+                    await websocket.close(code=4001, reason="Session expired or access revoked")
+                    break
                 # Handle ping from client
                 if data == "ping":
                     await websocket.send_json({"type": "pong"})
                 
             except asyncio.TimeoutError:
-                # Send ping to keep connection alive
+                # Quiet clients are also revalidated; heartbeat cannot keep a revoked account alive.
                 try:
+                    db.expire_all()
+                    current = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+                    resolve_workspace_id(db, current, workspace_id)
                     await websocket.send_json({"type": "ping"})
                 except Exception:
                     break
@@ -140,10 +161,11 @@ async def send_notification_to_user(
     title: str,
     message: str,
     opportunity_id: str = None,
-    priority: str = "medium"
+    priority: str = "medium",
+    *, workspace_id: int,
 ):
     """Send a notification to a specific user"""
-    await manager.send_to_user(user_id, {
+    await manager.send_to_user(f"{workspace_id}:{user_id}", {
         "type": "notification",
         "notification_type": notification_type,
         "title": title,
@@ -158,10 +180,11 @@ async def broadcast_notification(
     title: str,
     message: str,
     opportunity_id: str = None,
-    priority: str = "medium"
+    priority: str = "medium",
+    *, workspace_id: int,
 ):
     """Broadcast a notification to all connected users"""
-    await manager.broadcast({
+    await manager.broadcast(workspace_id, {
         "type": "notification",
         "notification_type": notification_type,
         "title": title,

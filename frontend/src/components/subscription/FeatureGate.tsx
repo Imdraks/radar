@@ -1,3 +1,4 @@
+"use client";
 /**
  * Feature Gate Components
  * =======================
@@ -7,8 +8,6 @@
  * - LockedFeature: Display upgrade prompt for locked features
  * - UpgradeBadge: Badge to show upgrade required
  */
-
-'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -90,6 +89,7 @@ export function LockedFeature({ feature, title, compact = false }: LockedFeature
   const plan = useSubscriptionStore((s) => s.subscription?.plan);
   
   const featureLabels: Record<Feature, string> = {
+    events: "Événements",
     cockpit: 'Cockpit',
     pipeline: 'Pipeline',
     projects: 'Projets',

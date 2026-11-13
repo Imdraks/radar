@@ -99,7 +99,7 @@ class Client(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     
     # Workspace association - CRITICAL for multi-tenancy
-    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     
@@ -153,7 +153,7 @@ class Deal(Base):
     # Infos deal
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[DealStatus] = mapped_column(
-        Enum(DealStatus, values_callable=lambda x: [e.value for e in x]),
+        Enum(DealStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=DealStatus.NEW
     )
     value: Mapped[Optional[float]] = mapped_column(Float)  # Montant estimé
@@ -211,7 +211,7 @@ class Project(Base):
     # Infos projet
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[ProjectStatus] = mapped_column(
-        Enum(ProjectStatus, values_callable=lambda x: [e.value for e in x]),
+        Enum(ProjectStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ProjectStatus.ACTIVE
     )
     deadline: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -283,7 +283,7 @@ class Deliverable(Base):
     name: Mapped[str] = mapped_column(String(500), nullable=False)
     type: Mapped[Optional[str]] = mapped_column(String(100))  # video, design, document, etc.
     status: Mapped[DeliverableStatus] = mapped_column(
-        Enum(DeliverableStatus, values_callable=lambda x: [e.value for e in x]),
+        Enum(DeliverableStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=DeliverableStatus.DRAFT
     )
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -319,7 +319,7 @@ class Approval(Base):
     
     # Statut
     status: Mapped[ApprovalStatus] = mapped_column(
-        Enum(ApprovalStatus, values_callable=lambda x: [e.value for e in x]),
+        Enum(ApprovalStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=ApprovalStatus.PENDING
     )
     
@@ -375,7 +375,7 @@ class Asset(Base):
     
     # Infos - legacy fields (kept for compatibility)
     kind: Mapped[AssetKind] = mapped_column(
-        Enum(AssetKind, values_callable=lambda x: [e.value for e in x]),
+        Enum(AssetKind, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=AssetKind.LINK
     )
     asset_type: Mapped[Optional[str]] = mapped_column(String(50))  # brief, report, template, other (legacy)
@@ -426,11 +426,11 @@ class AgencyTask(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, values_callable=lambda x: [e.value for e in x]),
+        Enum(TaskStatus, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TaskStatus.TODO
     )
     priority: Mapped[TaskPriority] = mapped_column(
-        Enum(TaskPriority, values_callable=lambda x: [e.value for e in x]),
+        Enum(TaskPriority, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=TaskPriority.MEDIUM
     )
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -469,7 +469,7 @@ class CalendarEvent(Base):
     # Infos événement
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     type: Mapped[CalendarEventType] = mapped_column(
-        Enum(CalendarEventType, values_callable=lambda x: [e.value for e in x]),
+        Enum(CalendarEventType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         default=CalendarEventType.OTHER
     )
     start: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -518,7 +518,7 @@ class ProjectActivityLog(Base):
     # Log content
     message: Mapped[str] = mapped_column(String(1000), nullable=False)
     activity_type: Mapped[Optional[ActivityType]] = mapped_column(
-        Enum(ActivityType, values_callable=lambda x: [e.value for e in x]),
+        Enum(ActivityType, values_callable=lambda x: [e.value for e in x], native_enum=False),
         nullable=True
     )
     

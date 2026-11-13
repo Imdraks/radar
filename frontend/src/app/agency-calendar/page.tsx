@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -93,10 +94,10 @@ function CalendarContent() {
       });
       
       const [eventsRes, projectsRes] = await Promise.all([
-        fetch(`/api/v1/agency/calendar?${params}`, {
+        workspaceFetch(`/api/v1/agency/calendar?${params}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/projects', {
+        workspaceFetch('/api/v1/agency/projects', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -123,7 +124,7 @@ function CalendarContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/calendar', {
+      const response = await workspaceFetch('/api/v1/agency/calendar', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -152,7 +153,7 @@ function CalendarContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/calendar/${eventId}`, {
+      await workspaceFetch(`/api/v1/agency/calendar/${eventId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -263,12 +264,12 @@ function CalendarContent() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendrier</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Calendrier</h1>
           <p className="text-gray-600">{events.length} événements ce mois</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Nouvel événement
@@ -562,7 +563,7 @@ function CalendarContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer l'événement
                 </button>

@@ -12,6 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.db.base import Base
+from app.core.subscription import PLAN_CONFIGS, Plan
 
 if TYPE_CHECKING:
     from app.db.models.user import User
@@ -103,16 +104,16 @@ class Workspace(Base):
     
     # =========== SUBSCRIPTION ===========
     # Plan: mini, standard, premium
-    plan: Mapped[str] = mapped_column(String(20), default="standard", nullable=False)
+    plan: Mapped[str] = mapped_column(String(20), default="core", nullable=False)
     
     # Enabled packs (JSON array): ["core", "clients", "leads", "talents"]
-    enabled_packs: Mapped[list] = mapped_column(JSON, default=lambda: ["core", "clients", "leads", "talents"])
+    enabled_packs: Mapped[list] = mapped_column(JSON, default=lambda: ["core"])
     
     # Add-ons (JSON array): ["radar_business"]
     addons: Mapped[list] = mapped_column(JSON, default=list)
     
     # Seat limits
-    max_seats: Mapped[int] = mapped_column(default=10)
+    max_seats: Mapped[int] = mapped_column(default=PLAN_CONFIGS[Plan.CORE].max_seats)
     
     # Billing (Stripe)
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255))

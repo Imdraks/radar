@@ -2,7 +2,6 @@
 User management endpoints
 """
 from typing import List
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -62,7 +61,7 @@ def list_users(
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
-    user_id: UUID,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -106,7 +105,7 @@ def create_user(
 
 @router.patch("/{user_id}", response_model=UserResponse)
 def update_user(
-    user_id: UUID,
+    user_id: int,
     update_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
@@ -135,7 +134,7 @@ def update_user(
 
 @router.delete("/{user_id}")
 def delete_user(
-    user_id: UUID,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):

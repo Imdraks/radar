@@ -3,7 +3,7 @@ Billing schemas for quotes (devis) and invoices (factures)
 """
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -236,14 +236,23 @@ class InvoiceItemResponse(InvoiceItemBase):
 
 # ============ Invoice Schemas ============
 
+class InvoiceLegalDetails(BaseModel):
+    vat_exemption_mention: Optional[str] = Field(None, max_length=1000)
+    service_date: Optional[date] = None
+    customer_type: Optional[Literal["professional", "consumer"]] = None
+    early_payment_terms: Optional[str] = Field(None, min_length=1, max_length=500)
+    late_payment_basis: Optional[Literal["ecb_plus_10", "legal_interest_times_3"]] = None
+
+
 class InvoiceBase(BaseModel):
+    legal_details: Optional[InvoiceLegalDetails] = None
     """Base invoice schema"""
     title: str = Field(..., max_length=255)
     description: Optional[str] = None
     issue_date: date = Field(default_factory=date.today)
     due_date: Optional[date] = None
-    tax_rate: Decimal = Decimal("20.00")
-    discount_percent: Decimal = Decimal("0")
+    tax_rate: Decimal = Field(Decimal("20.00"), ge=0, le=100)
+    discount_percent: Decimal = Field(Decimal("0"), ge=0, le=100)
     terms: Optional[str] = None
     notes: Optional[str] = None
 
@@ -256,6 +265,7 @@ class InvoiceCreate(InvoiceBase):
 
 
 class InvoiceUpdate(BaseModel):
+    legal_details: Optional[InvoiceLegalDetails] = None
     """Update invoice schema"""
     title: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
@@ -263,8 +273,8 @@ class InvoiceUpdate(BaseModel):
     opportunity_id: Optional[int] = None
     issue_date: Optional[date] = None
     due_date: Optional[date] = None
-    tax_rate: Optional[Decimal] = None
-    discount_percent: Optional[Decimal] = None
+    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     terms: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[InvoiceStatus] = None
@@ -272,12 +282,14 @@ class InvoiceUpdate(BaseModel):
 
 class InvoicePaymentUpdate(BaseModel):
     """Update payment info"""
-    amount_paid: Decimal
+    amount_paid: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    expected_amount_paid: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     payment_method: Optional[PaymentMethod] = None
     paid_date: Optional[date] = None
 
 
 class InvoiceResponse(InvoiceBase):
+    credited_at: Optional[datetime] = None
     """Invoice response schema"""
     id: int
     workspace_id: int
@@ -341,6 +353,9 @@ class QuoteToInvoiceCreate(BaseModel):
 # ============ Dashboard Schemas ============
 
 class BillingDashboard(BaseModel):
+    credited_invoices_count: int = 0
+    credits_total: Decimal = Decimal("0")
+    payments_on_credited_invoices: Decimal = Decimal("0")
     """Billing dashboard stats"""
     quotes_draft: int
     quotes_sent: int

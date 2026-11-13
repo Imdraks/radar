@@ -1,0 +1,24 @@
+PROJET — CONSERVATION, ARCHIVAGE ET EFFACEMENT
+Éditeur : [[EDITEUR]]. Version : [[VERSION_CONTRACTUELLE]]. Responsable de la politique et validation : [[RESPONSABLE_CONSERVATION]]. Cette politique doit correspondre aux systèmes, contrats et sauvegardes réellement utilisés.
+
+1. Principes
+Les durées sont déterminées par finalité, obligation légale, nécessité contractuelle et preuve proportionnée, avec un point de départ explicite. L'activité du compte, la fin de contrat, la clôture d'un exercice et la résolution d'un dossier ne sont pas des dates interchangeables. Une exception de conservation doit être justifiée et l'accès limité. Le fait qu'une donnée soit publique ou que le client soit professionnel n'autorise pas une conservation illimitée.
+
+2. Durées applicables à compléter
+Demandes de contact/prospects — point de départ, durée active, éventuel archivage et opposition : [[CONTACT_RETENTION]].
+Comptes, accès, invitations et départ des membres — point de départ, délais de révocation, données résiduelles et accès : [[ACCOUNT_RETENTION]].
+Projets, tâches, fichiers et autres données métier — durée liée au service, restitution, fin de contrat et instructions du client : [[WORKSPACE_RETENTION]].
+Observations et profils artistiques — finalité, actualisation, informations indirectes, opposition et archivage : [[ARTIST_RETENTION]].
+Journaux de sécurité et exploitation — finalité, durée, accès, anonymisation éventuelle et litiges : [[SECURITY_LOG_RETENTION]].
+Demandes de droits et preuves de réponse — point de départ, durée de justification et accès restreint : [[RIGHTS_RETENTION]].
+Versions contractuelles, commandes et preuves d'acceptation — justification, délai et accès : [[CONTRACT_EVIDENCE_RETENTION]].
+Sauvegardes — rotation, suppression différée, contrôle de restauration, lieux et chiffrement vérifiés : [[BACKUP_RETENTION]].
+
+3. Pièces financières
+Les documents comptables et pièces justificatives concernés doivent être conservés selon les obligations applicables, notamment la durée de dix ans du code de commerce, avec le point de départ et le régime à confirmer pour les documents concernés. Les obligations fiscales peuvent avoir des durées distinctes. Les factures, avoirs et preuves nécessaires ne sont pas supprimés pour corriger leur contenu. Ces durées ne sont pas transposées automatiquement à tous les messages, contacts ou profils du workspace. Les règles de l'entreprise et de ses clients sont précisées : [[FINANCIAL_ARCHIVING_VALIDATED]].
+
+4. Exécution et contrôle
+L'inventaire Radar fournit des volumes et dates anciennes, sans qualifier automatiquement une donnée d'effaçable. Avant toute action : vérifier finalité, état du contrat, instructions, obligations de conservation, litiges, autres personnes et systèmes externes ; approuver le périmètre ; préserver les preuves nécessaires avec accès restreint ; tester et documenter l'opération ; contrôler les résultats et les destinataires. Une suppression applicative ne prouve pas la disparition dans les sauvegardes ou prestataires. Le processus de réapplication des demandes après restauration doit être défini : [[EFFACEMENT_ET_RESTAURATION_VALIDES]].
+
+5. Droits et suivi
+Le contact de protection des données est [[PRIVACY_CONTACT]]. Une demande d'accès, d'effacement, d'opposition, une résiliation et une réversibilité sont distinguées. Toute limitation ou conservation légalement nécessaire est expliquée à la personne et documentée. La politique fait l'objet de revues lors d'un changement de prestataire, finalité, périmètre ou droit applicable. Aucune purge automatique n'est activée par la publication de ce texte.

@@ -23,15 +23,12 @@ logger = logging.getLogger(__name__)
 class RateLimiter:
     """In-memory rate limiter with sliding window"""
     
-    # IPs whitelistées (jamais rate limited)
-    WHITELISTED_IPS: Set[str] = {
-        "127.0.0.1",
-        "localhost",
-        "91.163.219.107",  # Ayman - Admin
-    }
-    
+    # Explicit operational configuration only; no developer IP or loopback bypass.
+    WHITELISTED_IPS: Set[str] = set()
+
     def __init__(self):
         self.requests: Dict[str, list] = defaultdict(list)
+        self.WHITELISTED_IPS = set()
         self.blocked_ips: Dict[str, datetime] = {}
         # Charger les IPs whitelistées depuis env
         import os
@@ -42,15 +39,27 @@ class RateLimiter:
         
     def _get_client_ip(self, request: Request) -> str:
         """Get client IP, handling proxies"""
-        # Check for forwarded headers (reverse proxy)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
-        return request.client.host if request.client else "unknown"
-    
+        from ipaddress import ip_address, ip_network
+        import os
+        peer = request.client.host if request.client else "unknown"
+        trusted = False
+        try:
+            peer_address = ip_address(peer)
+            for network in os.getenv("TRUSTED_PROXY_IPS", "").split(","):
+                if network.strip() and peer_address in ip_network(network.strip()):
+                    trusted = True
+                    break
+        except ValueError:
+            pass
+        if trusted:
+            forwarded = request.headers.get("X-Forwarded-For") or request.headers.get("X-Real-IP")
+            if forwarded:
+                try:
+                    return str(ip_address(forwarded.split(",")[0].strip()))
+                except ValueError:
+                    pass
+        return peer
+
     def _cleanup_old_requests(self, ip: str, window_seconds: int):
         """Remove requests outside the time window"""
         cutoff = time.time() - window_seconds
@@ -90,17 +99,18 @@ class RateLimiter:
         if self.is_blocked(ip):
             return False
         
-        # Cleanup old requests
-        self._cleanup_old_requests(ip, window_seconds)
-        
-        # Check rate limit
-        if len(self.requests[ip]) >= max_requests:
-            # Too many requests - block IP
+        # A shared IP budget still protects against requests spread over endpoints.
+        global_key = f"{ip}:__all__"
+        bucket = request.url.path if request.url.path in RATE_LIMITS else "default"
+        key = f"{ip}:{bucket}:{window_seconds}"
+        self._cleanup_old_requests(global_key, 60)
+        self._cleanup_old_requests(key, window_seconds)
+        if len(self.requests[global_key]) >= RATE_LIMITS["default"]["max"] or len(self.requests[key]) >= max_requests:
             self.block_ip(ip, duration_minutes=5)
             return False
-        
-        # Record this request
-        self.requests[ip].append(time.time())
+        now = time.time()
+        self.requests[global_key].append(now)
+        self.requests[key].append(now)
         return True
 
 

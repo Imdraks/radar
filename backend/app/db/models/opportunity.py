@@ -194,6 +194,7 @@ class OpportunityTag(Base):
     __tablename__ = "opportunity_tags"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
     name = Column(String(50), unique=True, nullable=False)
     color = Column(String(7), default="#6366f1")  # Hex color
     created_at = Column(DateTime, default=datetime.utcnow)

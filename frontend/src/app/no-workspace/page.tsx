@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RadarLogo } from "@/components/brand/RadarBrand";
 import { Building2, Clock, LogOut, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,40 +36,40 @@ export default function NoWorkspacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full bg-white/10 backdrop-blur-lg border-white/20 text-white">
-        <CardHeader className="text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="max-w-md w-full bg-card text-foreground shadow-sm">
+        <CardHeader className="text-center"><div className="mb-6 flex justify-center"><RadarLogo /></div>
           <div className="mx-auto mb-4 w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center">
-            <Clock className="h-8 w-8 text-yellow-400" />
+            <Clock className="h-8 w-8 text-amber-700" />
           </div>
           <CardTitle className="text-2xl">En attente d'invitation</CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-muted-foreground">
             Votre compte a été créé avec succès
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-white/5 rounded-lg p-4 space-y-3">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-purple-400" />
+              <Mail className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm text-gray-400">Connecté en tant que</p>
+                <p className="text-sm text-muted-foreground">Connecté en tant que</p>
                 <p className="font-medium">{userEmail || "..."}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-purple-400" />
+              <Building2 className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm text-gray-400">Workspace</p>
-                <p className="font-medium text-yellow-400">Aucun accès</p>
+                <p className="text-sm text-muted-foreground">Workspace</p>
+                <p className="font-medium text-amber-700">Aucun accès</p>
               </div>
             </div>
           </div>
 
           <div className="text-center space-y-2">
-            <p className="text-gray-300">
+            <p className="text-muted-foreground">
               Vous n'êtes pas encore membre d'un espace de travail.
             </p>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Demandez à un administrateur de vous inviter, ou contactez le support.
             </p>
           </div>
@@ -76,7 +77,7 @@ export default function NoWorkspacePage() {
           <div className="flex flex-col gap-3">
             <Button
               variant="outline"
-              className="w-full border-white/20 hover:bg-white/10"
+              className="w-full border-border hover:bg-muted"
               onClick={() => window.location.reload()}
             >
               <Clock className="h-4 w-4 mr-2" />
@@ -84,7 +85,7 @@ export default function NoWorkspacePage() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full text-gray-400 hover:text-white hover:bg-white/10"
+              className="w-full text-muted-foreground hover:text-foreground hover:bg-muted"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -94,7 +95,7 @@ export default function NoWorkspacePage() {
 
           <p className="text-xs text-center text-gray-500">
             Besoin d'aide ? Contactez{" "}
-            <a href="mailto:contact@radarapp.fr" className="text-purple-400 hover:underline">
+            <a href="mailto:contact@radarapp.fr" className="text-primary hover:underline">
               contact@radarapp.fr
             </a>
           </p>

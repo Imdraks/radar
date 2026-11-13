@@ -31,7 +31,7 @@ RUN adduser --disabled-password --gecos '' appuser
 
 # Copy requirements first for caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir pip==26.2.1 && pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright browsers as appuser (important for cache location)
 USER appuser

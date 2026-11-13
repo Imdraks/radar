@@ -3,7 +3,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Conditions Générales d'Utilisation",
   description:
-    "Conditions générales d'utilisation de la plateforme Radar. Hébergement en France, conforme RGPD.",
+    "Conditions générales d'utilisation de la plateforme Radar. Informations sur le service, les traitements de données et les droits.",
   alternates: {
     canonical: "/terms",
   },

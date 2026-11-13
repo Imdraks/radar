@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/utils';
+import { RadarLogo } from '@/components/brand/RadarBrand';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -38,15 +39,15 @@ const adminNavigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Workspaces', href: '/workspaces', icon: Building2 },
   { name: 'Utilisateurs', href: '/users', icon: Users },
+  { name: 'Contrats', href: '/admin/legal', icon: Shield },
+  { name: 'Abonnements', href: '/admin/subscription-requests', icon: Building2 },
+  { name: 'Demandes de droits', href: '/admin/privacy-requests', icon: Shield },
   { name: 'Logs Activité', href: '/admin/activity', icon: Activity },
 ];
 
 const toolsNavigation = [
   { name: 'Sources', href: '/sources', icon: Rss },
   { name: 'Source Health', href: '/source-health', icon: HeartPulse },
-  { name: 'Profils', href: '/profiles', icon: Sliders },
-  { name: 'Scoring', href: '/scoring', icon: BarChart3 },
-  { name: 'Prédictions', href: '/predictions', icon: Brain },
 ];
 
 const bottomNavigation = [
@@ -118,13 +119,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-800">
-            <div className="h-10 w-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg">Radar Admin</h1>
-              <p className="text-xs text-gray-400">Panel d'administration</p>
-            </div>
+            <div><RadarLogo inverted /><p className="mt-2 text-xs text-muted-foreground">Administration plateforme</p></div>
           </div>
 
           {/* Navigation */}

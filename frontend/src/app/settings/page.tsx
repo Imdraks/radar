@@ -1,165 +1,28 @@
-"use client";
-
-import { AppLayout, ProtectedRoute } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuthStore } from "@/store/auth";
-import { Bell, User, Lock, Palette, LayoutDashboard, Bookmark, Building2 } from "lucide-react";
-import { NotificationSettings } from "@/components/settings/NotificationSettings";
-import { DashboardCustomizer } from "@/components/settings/DashboardCustomizer";
-import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { WorkspaceSettings } from "@/components/settings/WorkspaceSettings";
+'use client';
+import Link from 'next/link';
+import { Archive, ArrowUpRight, Bell, User, Lock, Palette } from 'lucide-react';
+import { AppLayout, ProtectedRoute } from '@/components/layout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import { TwoFactorSettings } from '@/components/settings/TwoFactorSettings';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useAuthStore } from '@/store/auth';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 
 function SettingsContent() {
-  const { user } = useAuthStore();
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Paramètres</h1>
-        <p className="text-muted-foreground">
-          Gérez votre compte et vos préférences
-        </p>
-      </div>
-
-      <Tabs defaultValue="workspace" className="space-y-4">
-        <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="workspace">
-            <Building2 className="h-4 w-4 mr-2" />
-            Espace de travail
-          </TabsTrigger>
-          <TabsTrigger value="profile">
-            <User className="h-4 w-4 mr-2" />
-            Profil
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="dashboard">
-            <LayoutDashboard className="h-4 w-4 mr-2" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="security">
-            <Lock className="h-4 w-4 mr-2" />
-            Sécurité
-          </TabsTrigger>
-          <TabsTrigger value="appearance">
-            <Palette className="h-4 w-4 mr-2" />
-            Apparence
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="workspace">
-          <WorkspaceSettings />
-        </TabsContent>
-
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du profil</CardTitle>
-              <CardDescription>
-                Mettez à jour vos informations personnelles
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={user?.email} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Nom complet</Label>
-                <Input id="full_name" defaultValue={user?.full_name || ""} />
-              </div>
-              <Button>Enregistrer</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <NotificationSettings />
-        </TabsContent>
-
-        <TabsContent value="dashboard">
-          <DashboardCustomizer />
-        </TabsContent>
-
-        <TabsContent value="security">
-          <div className="space-y-6">
-            <TwoFactorSettings />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Mot de passe</CardTitle>
-                <CardDescription>
-                  Changez votre mot de passe
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current_password">Mot de passe actuel</Label>
-                  <Input id="current_password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new_password">Nouveau mot de passe</Label>
-                  <Input id="new_password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm_password">Confirmer le nouveau mot de passe</Label>
-                  <Input id="confirm_password" type="password" />
-                </div>
-                <Button>Changer le mot de passe</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Apparence</CardTitle>
-              <CardDescription>
-                Personnalisez l&apos;interface
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Thème</p>
-                  <p className="text-sm text-muted-foreground">
-                    Choisir le thème de l&apos;application
-                  </p>
-                </div>
-                <ThemeToggle />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Affichage compact</p>
-                  <p className="text-sm text-muted-foreground">
-                    Réduire l&apos;espacement dans les listes
-                  </p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  const user = useAuthStore(state => state.user);
+  const showWorkspaceSettings = useSubscriptionStore(state => Object.values(state.navigation || {}).flat().some(item => item.path === '/workspace/settings'));
+  return <div className="space-y-7"><div><p className="radar-eyebrow mb-2">Administration</p><h1 className="text-3xl font-semibold tracking-tight">Paramètres</h1><p className="mt-2 text-sm text-muted-foreground">Votre compte, vos notifications et vos préférences.</p></div>
+    <Tabs defaultValue="profile" className="space-y-5"><TabsList className="flex-wrap h-auto gap-1"><TabsTrigger value="profile"><User size={15} className="mr-2" />Compte</TabsTrigger><TabsTrigger value="notifications"><Bell size={15} className="mr-2" />Notifications</TabsTrigger><TabsTrigger value="security"><Lock size={15} className="mr-2" />Sécurité</TabsTrigger><TabsTrigger value="appearance"><Palette size={15} className="mr-2" />Apparence</TabsTrigger></TabsList>
+      <TabsContent value="profile"><Card><CardHeader><CardTitle className="text-lg">Informations du compte</CardTitle><CardDescription>Les informations associées à votre connexion.</CardDescription></CardHeader><CardContent><dl className="grid gap-6 sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">Nom</dt><dd className="mt-1 font-medium">{user?.full_name || 'Non renseigné'}</dd></div><div><dt className="text-xs text-muted-foreground">Email</dt><dd className="mt-1 break-all font-medium">{user?.email || 'Non renseigné'}</dd></div></dl></CardContent></Card></TabsContent>
+      <TabsContent value="notifications"><NotificationSettings /></TabsContent>
+      <TabsContent value="security"><TwoFactorSettings /></TabsContent>
+      <TabsContent value="appearance"><Card><CardHeader><CardTitle className="text-lg">Apparence</CardTitle><CardDescription>Choisissez le thème de votre espace de travail.</CardDescription></CardHeader><CardContent className="flex items-center justify-between"><p className="text-sm">Thème de l’interface</p><ThemeToggle /></CardContent></Card></TabsContent>
+    </Tabs>
+    {showWorkspaceSettings && <Link href="/workspace/settings" className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5"><div><h2 className="text-sm font-semibold">Équipe et intégrations</h2><p className="mt-1 text-xs text-muted-foreground">Retrouvez la configuration de votre espace de travail.</p></div><ArrowUpRight size={17} /></Link>}
+    <Link href="/settings/privacy" className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5"><div><h2 className="text-sm font-semibold">Données et droits</h2><p className="mt-1 text-xs text-muted-foreground">Export du compte, demandes de droits, résiliation et réversibilité.</p></div><ArrowUpRight size={17} /></Link>
+    <Link href="/settings/tools" className="flex items-start gap-4 rounded-2xl border bg-card p-5"><Archive size={20} className="shrink-0 text-muted-foreground" /><div className="flex-1"><h2 className="text-sm font-semibold">Historique et outils secondaires</h2><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Accéder aux anciennes analyses, profils de recherche et documents conservés.</p></div><ArrowUpRight size={17} /></Link>
+  </div>;
 }
-
-export default function SettingsPage() {
-  return (
-    <ProtectedRoute>
-      <AppLayout>
-        <SettingsContent />
-      </AppLayout>
-    </ProtectedRoute>
-  );
-}
+export default function SettingsPage() { return <ProtectedRoute><AppLayout><SettingsContent /></AppLayout></ProtectedRoute>; }

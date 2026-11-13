@@ -82,7 +82,7 @@ export function Hero() {
             <div className="flex flex-wrap items-center gap-4 mt-10 justify-center lg:justify-start text-sm text-gray-500">
               <span>Découverte & Scoring artistes</span>
               <span className="text-gray-300">•</span>
-              <span>Devis & Factures conformes</span>
+              <span>Devis et factures centralisés</span>
               <span className="text-gray-300">•</span>
               <span>Google Workspace + Banques</span>
               <span className="text-gray-300">•</span>

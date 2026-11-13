@@ -40,14 +40,15 @@ services:
       dockerfile: Dockerfile.prod
     container_name: radar_backend_prod
     environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - TESTING=false
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
     env_file:
       - .env
-    volumes:
-      - ./revolut_private.pem:/app/revolut_private.pem:ro
     expose:
       - "8000"
     depends_on:
@@ -66,6 +67,9 @@ services:
       dockerfile: Dockerfile.prod
     container_name: radar_worker_prod
     environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - TESTING=false
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
@@ -77,7 +81,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A app.workers.celery_app worker --loglevel=debug --concurrency=4
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=4 --queues=celery,dossier_builder_gpt,web_enrichment,ingestion_standard
     networks:
       - radar_network
     restart: unless-stopped
@@ -89,6 +93,9 @@ services:
       dockerfile: Dockerfile.prod
     container_name: radar_scheduler_prod
     environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - TESTING=false
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
@@ -97,7 +104,7 @@ services:
       - .env
     depends_on:
       - worker
-    command: celery -A app.workers.celery_app beat --loglevel=debug
+    command: celery -A app.workers.celery_app beat --loglevel=info
     networks:
       - radar_network
     restart: unless-stopped

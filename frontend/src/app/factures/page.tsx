@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -66,6 +67,7 @@ interface Invoice {
   reference: string;
   title: string;
   description?: string;
+  credited_at?: string|null;
   status: 'DRAFT' | 'SENT' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   issue_date: string;
   due_date?: string;
@@ -126,7 +128,7 @@ export default function InvoicesPage() {
       if (search) params.append('search', search);
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       
-      const res = await fetch(`/api/v1/billing/invoices?${params}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -143,7 +145,7 @@ export default function InvoicesPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -172,7 +174,7 @@ export default function InvoicesPage() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + newInvoice.due_days);
       
-      const res = await fetch('/api/v1/billing/invoices', {
+      const res = await workspaceFetch('/api/v1/billing/invoices', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +208,7 @@ export default function InvoicesPage() {
   const updateStatus = async (invoiceId: number, status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,14 +234,15 @@ export default function InvoicesPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${selectedInvoice.id}/payment`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${selectedInvoice.id}/payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount_paid: parseFloat(payment.amount),
+          amount_paid: (Number(selectedInvoice?.amount_paid || 0) + Number(payment.amount)).toFixed(2),
+          expected_amount_paid: Number(selectedInvoice?.amount_paid || 0).toFixed(2),
           payment_method: payment.method,
         }),
       });
@@ -264,7 +267,7 @@ export default function InvoicesPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -292,23 +295,24 @@ export default function InvoicesPage() {
   // Calculate stats
   const stats = {
     draft: invoices.filter(i => i.status === 'DRAFT').length,
-    sent: invoices.filter(i => i.status === 'SENT').length,
-    paid: invoices.filter(i => i.status === 'PAID').length,
-    overdue: invoices.filter(i => i.status === 'OVERDUE').length,
+    sent: invoices.filter(i => !i.credited_at && i.status === 'SENT').length,
+    paid: invoices.filter(i => !i.credited_at && i.status === 'PAID').length,
+    overdue: invoices.filter(i => !i.credited_at && i.status === 'OVERDUE').length,
     totalPaid: invoices.reduce((sum, i) => sum + Number(i.amount_paid), 0),
     totalPending: invoices
-      .filter(i => ['SENT', 'PARTIAL', 'OVERDUE'].includes(i.status))
+      .filter(i => !i.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(i.status))
       .reduce((sum, i) => sum + (Number(i.total) - Number(i.amount_paid)), 0),
   };
 
   return (
     <ProtectedRoute>
       <AppLayoutWithOnboarding>
-        <div className="p-6 space-y-6">
+        <div className="space-y-7">
+          <p role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Les paiements sont déclarés manuellement. La transmission à une plateforme agréée de facturation électronique n’est pas activée. Une facture émise est figée ; conservez son original.</p>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-[28px] font-semibold tracking-tight text-foreground dark:text-white flex items-center gap-2">
                 <FileCheck className="h-6 w-6 text-green-600" />
             Factures
           </h1>
@@ -467,7 +471,7 @@ export default function InvoicesPage() {
                       <TableCell>
                         <Badge className={STATUS_CONFIG[invoice.status].color}>
                           <StatusIcon className="h-3 w-3 mr-1" />
-                          {STATUS_CONFIG[invoice.status].label}
+                          {invoice.credited_at ? 'Avoir total émis' : STATUS_CONFIG[invoice.status].label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
@@ -496,7 +500,7 @@ export default function InvoicesPage() {
                                 Marquer envoyée
                               </DropdownMenuItem>
                             )}
-                            {['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
+                            {!invoice.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
                               <DropdownMenuItem onClick={(e) => { 
                                 e.stopPropagation(); 
                                 setSelectedInvoice(invoice);
@@ -508,7 +512,7 @@ export default function InvoicesPage() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            {invoice.status !== 'PAID' && (
+                            {invoice.status === 'DRAFT' && (
                               <DropdownMenuItem 
                                 onClick={(e) => { e.stopPropagation(); deleteInvoice(invoice.id); }}
                                 className="text-red-600"

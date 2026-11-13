@@ -1,0 +1,6 @@
+import {LegalDocument,LegalSection,PrivacyContact} from '@/components/legal/LegalDocument';
+export default function Page(){return <LegalDocument title="Accessibilité">
+ <LegalSection title="État de l’évaluation"><p>Aucun audit d’accessibilité réglementaire complet n’a été réalisé sur cette version. Radar n’affiche donc aucun pourcentage, label ou déclaration de conformité RGAA/WCAG inventés. Les contrôles locaux de responsive et de navigation clavier ne remplacent pas cet audit.</p></LegalSection>
+ <LegalSection title="Champ applicable"><p>Les obligations dépendent notamment de l’entité exploitante, de son activité, de sa taille et des services proposés. La vente uniquement professionnelle doit être distinguée des services de commerce électronique destinés aux consommateurs. Les obligations françaises d’accessibilité et les éventuelles exigences européennes doivent être évaluées avant exploitation, sans présumer une exemption.</p></LegalSection>
+ <LegalSection title="Signaler une difficulté"><p>Indiquez la page concernée, la difficulté rencontrée et, si utile, votre technologie d’assistance au contact suivant : <PrivacyContact/>. N’incluez pas de mot de passe ni de document sensible. Les mesures, déclarations et plans éventuellement obligatoires seront publiés selon le champ applicable et les résultats d’audit.</p></LegalSection>
+ </LegalDocument>;}

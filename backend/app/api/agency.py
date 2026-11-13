@@ -3,7 +3,7 @@ Agency Cockpit V2 API - Dashboard, Clients, Deals
 """
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import Request, APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, case
 
@@ -16,7 +16,7 @@ from app.db.models.agency import (
 from app.db.models.user import User
 from app.db.models.billing import BillingClient
 from app.core.encryption import encrypt_iban, decrypt_iban, mask_iban
-from app.api.deps import get_current_user, require_workspace_member, get_user_workspace_id
+from app.api.deps import get_current_user, require_workspace_member, get_user_workspace_id, get_current_workspace
 from app.schemas.agency import (
     # Client
     ClientCreate, ClientUpdate, ClientResponse, ClientListResponse,
@@ -29,7 +29,15 @@ from app.schemas.agency import (
     DealStatus as DealStatusEnum
 )
 
-router = APIRouter(prefix="/agency", tags=["agency-cockpit"])
+
+def require_agency_business(request: Request, workspace=Depends(get_current_workspace)):
+    from app.core.subscription import effective_features, Feature
+    if request.url.path.rstrip("/").endswith("/dashboard"):
+        return
+    if Feature.CLIENTS not in effective_features(workspace):
+        raise HTTPException(status_code=403, detail="Radar Business requis")
+
+router = APIRouter(dependencies=[Depends(require_agency_business)], prefix="/agency", tags=["agency-cockpit"])
 
 
 def sync_crm_to_billing(db: Session, crm_client: Client, workspace_id: int, iban: str = None, bic: str = None, bank_name: str = None):
@@ -153,12 +161,10 @@ async def get_dashboard_v2(
     - Business (leads chauds, devis envoyés)
     """
     # Get workspace_id - use provided or user's default
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        from app.db.models.workspace import WorkspaceMember
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
+    ws_id = get_user_workspace_id(workspace_id, current_user, db)
     
+    from app.core.subscription import Feature, effective_features
+    has_business = Feature.CLIENTS in effective_features(get_current_workspace(workspace_id, current_user, db))
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
@@ -400,6 +406,12 @@ async def get_dashboard_v2(
         Deal.updated_at >= month_start
     ).scalar() or 0
     
+    if not has_business:
+        todos = [item for item in todos if item.type != "followup"]
+        business = []
+        hot_leads_count = None
+        monthly_revenue = None
+
     return DashboardV2Response(
         todos=todos[:15],  # Limit
         todos_count=len(todos),
@@ -410,7 +422,7 @@ async def get_dashboard_v2(
         active_projects=active_projects_count,
         pending_validations=pending_validations_count,
         hot_leads=hot_leads_count,
-        monthly_revenue=float(monthly_revenue)
+        monthly_revenue=float(monthly_revenue) if monthly_revenue is not None else None
     )
 
 
@@ -429,11 +441,7 @@ async def list_clients(
 ):
     """Liste tous les clients du workspace"""
     # Get workspace_id
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        from app.db.models.workspace import WorkspaceMember
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
+    ws_id = get_user_workspace_id(workspace_id, current_user, db)
     
     query = db.query(Client).filter(Client.workspace_id == ws_id)
     
@@ -474,11 +482,7 @@ async def create_client(
 ):
     """Créer un nouveau client dans le workspace"""
     # Get workspace_id
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        from app.db.models.workspace import WorkspaceMember
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
+    ws_id = get_user_workspace_id(workspace_id, current_user, db)
     
     if not ws_id:
         raise HTTPException(status_code=400, detail="Workspace ID required")
@@ -691,11 +695,7 @@ async def get_pipeline(
 ):
     """Pipeline commercial Kanban"""
     # Get workspace_id
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        from app.db.models.workspace import WorkspaceMember
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
+    ws_id = get_user_workspace_id(workspace_id, current_user, db)
     
     columns = []
     total_deals = 0
@@ -773,11 +773,7 @@ async def list_deals(
 ):
     """Liste des deals du workspace"""
     # Get workspace_id
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        from app.db.models.workspace import WorkspaceMember
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
+    ws_id = get_user_workspace_id(workspace_id, current_user, db)
     
     query = db.query(Deal).join(Client).filter(Client.workspace_id == ws_id)
     

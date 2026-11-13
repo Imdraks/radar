@@ -29,7 +29,7 @@ const features = [
   {
     icon: FileText,
     title: "Devis & Factures",
-    description: "Créez vos devis et factures conformes. Export PDF, sauvegarde automatique sur Google Drive.",
+    description: "Préparez devis et factures. Export PDF et liaison Google Drive selon configuration.",
   },
   {
     icon: Music2,
@@ -44,7 +44,7 @@ const features = [
   {
     icon: Eye,
     title: "Veille Concurrentielle",
-    description: "Surveillez vos concurrents : parts de marché, alertes, benchmark pricing et analyse des tendances.",
+    description: "Reliez vos événements aux projets, artistes, tâches et documents.",
   },
   {
     icon: HardDrive,
@@ -53,8 +53,8 @@ const features = [
   },
   {
     icon: Landmark,
-    title: "Transactions & Banques",
-    description: "Connectez vos comptes bancaires et Revolut. Suivi des paiements et rapprochement automatique.",
+    title: "Gestion commerciale",
+    description: "Avec Radar Business, gérez les devis, factures et le suivi des paiements.",
   },
 ];
 

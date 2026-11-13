@@ -1,0 +1,115 @@
+# Validation du lot de refonte
+
+Vérifications locales du 19 octobre 2026. Aucun accès à la production.
+
+| Vérification | Résultat | Portée et limite |
+| --- | --- | --- |
+| `pytest backend/tests -q` | **43 tests passent** | PostgreSQL jetable, schéma indépendant par session ; vraies signatures JWT et vrai login, permissions, isolation, droits payants, expiration, demandes/décisions, projets/enfants, devis→facture→paiement, événements, données manquantes, pannes simulées et migrations nouvelles |
+| `python -m compileall -q backend/app backend/alembic` | Réussi | Import/syntaxe, pas une preuve fonctionnelle |
+| `pip check` | Réussi | Dépendances installées compatibles |
+| `alembic heads` | Une tête : `049_billing_numbering` | Ne démontre pas que toute la chaîne historique est applicable |
+| `alembic upgrade head`, base entièrement neuve | **Échec préexistant avant 046** | 032 ajoute une colonne déjà créée en 020 ; ordre de création de la branche facturation également à réparer. Historique non modifié après rejet automatique |
+| `npm ci` | Réussi | Lockfile régénéré et réinstallation propre ; même méthode retenue dans Docker |
+| `npm run type-check` | Réussi | Compilation TypeScript stricte |
+| `npm run build` | Réussi | Next.js 15.5.28 ; génération des pages et contrôle de types/lint |
+| Chromium, 1440×1000, 768×1024, 390×844 | Réussi | Catalogue partagé, ouverture/fermeture du menu, absence de débordement horizontal et erreur événementielle explicite ; API **simulées et identifiées comme test local** |
+| `pip-audit` sur l’environnement actualisé | Aucune vulnérabilité connue signalée | Résultat au jour de la vérification, pas une garantie permanente |
+| `npm audit --omit=dev` | 0 critique, **5 élevées et 2 modérées restantes** | Chaîne Tailwind/Chokidar/Micromatch/Braces et parsing CSS. Ne pas présenter le dépôt comme exempt de vulnérabilités |
+
+Les tests backend produisent encore des avertissements de dépréciation : Pydantic Config, événements de démarrage FastAPI, datetime UTC naïves, API TestClient et passlib. Ils ne sont pas comptés comme des échecs ; leur modernisation reste une dette technique.
+
+## Évolution des dépendances
+
+- Next.js 14.1.0 → 15.5.28 ; adaptation ES2017 et maintien de React 18. MapLibre 5 → 6.15 avec adaptation de l’import. Axios → 1.20. Ces mises à niveau répondent aux avis de sécurité observés, sans changer l’architecture Next.js/TypeScript.
+- PostCSS 8.5.31 imposé dans Next via override compatible de la même branche majeure, vérifié après installation propre et build.
+- FastAPI 0.149, Starlette 1.9, Pydantic 2.14 et bibliothèques HTTP/auth/parsing concernées actualisées. Python 3.11 reste le runtime Docker/CI ; tests locaux exécutés sous Python 3.12.
+- PyJWT, déjà présent pour SSO/Revolut, remplace python-jose pour les tokens Radar. Vérification explicite du format HS256 existant, de l’expiration et du type access/refresh ; retrait de la dépendance ECDSA non utilisée.
+- Versions d’outillage test et pip actualisées. Le nombre d’alertes Python initial incluait aussi l’outillage de l’environnement ; ce n’est pas un nombre de failles toutes exploitables dans Radar.
+- Braces 3.0.3 reste signalé, sans version 3 corrigée publiée au moment de l’audit. Le passage à Tailwind 4 n’a pas été imposé pour masquer ce résultat : il nécessite une migration CSS propre et sa recette. Les alertes restantes sont consignées, pas ignorées dans le rapport.
+
+## Rejouer les tests
+
+Créer un environnement Python à partir de `backend/requirements.txt`. Fournir **uniquement l’URL d’une base PostgreSQL jetable** dans `RADAR_TEST_DATABASE_URL`. Le fixture crée et retire ses propres schémas de test ; ne jamais utiliser une base de production.
+
+```sh
+PYTHONPATH=backend TESTING=true pytest backend/tests -q
+cd frontend
+npm ci
+npm run type-check
+npm run build
+```
+
+Pour le test visuel : installer Chromium avec Playwright, lancer le frontend localement, puis exécuter `python scripts/ui_smoke.py`. `RADAR_UI_BASE_URL` permet de préciser l’URL locale de test. Les captures sont produites dans `/tmp` ; les mocks ne sont pas chargés dans l’application.
+
+## CI et statut attendu
+
+`quality.yml` contrôle PostgreSQL + tests backend, typage et build frontend. Un job séparé `migration-history` exécute la chaîne historique sur une base vierge et **doit rendre visible le blocage hérité**, sans le convertir en succès. La PR peut être examinée ; elle ne doit pas être considérée déployable uniquement parce que les tests du nouveau code passent.
+
+La CI GitHub elle-même n’a pas encore été observée au moment de la validation locale. Les tests ne valident pas des fournisseurs artistiques, comptes Google ou services de paiement réels.
+
+
+## Complément du 20 octobre 2026
+
+Suite backend : 69 tests passent sur PostgreSQL jetable (995 avertissements de dépréciation/configuration de test avant nettoyage de ces conventions). Correctifs et nouvelles limites : API-AUDIT.md. Vérification des parcours locaux avec le vrai backend : LOCAL-DEBUG.md. La CI précédente a été inspectée : frontend réussi ; backend échouait sur une f-string de fixture incompatible avec Python 3.11, corrigée ; migration-history échouait sur le blocage historique connu. Le nouveau résultat distant doit être vérifié après publication.
+
+
+## Collecte Spotify publique — 20 octobre 2026
+
+92 tests backend réussis, dont 23 cas supplémentaires couvrant collecte/identité, erreurs HTTP, cache, absence d’estimation, persistance et restitution de provenance. Quatre artistes vérifiés par requêtes réelles non authentifiées : voir SPOTIFY-AUDIENCE.md. Typage TypeScript, build Next.js et compilation Python réussis. Aucun nouveau schéma ni migration pour ce collecteur.
+
+
+## Compteurs sociaux — 20 octobre 2026
+
+142 tests backend réussis sur PostgreSQL jetable. Typage TypeScript, build Next.js et compilation Python réussis. `social_ui_smoke.py` valide l’affichage des arrondis, la configuration YouTube manquante, la sauvegarde des profils et le rafraîchissement réel des observations dans le navigateur (statuts DONE et PARTIAL) à 1440 et 390 pixels, avec API explicitement simulées. Contrôle de régression du catalogue, de la navigation et de l’erreur événement à 1440, 768 et 390 pixels réussi. Les tests attendent l’initialisation asynchrone du catalogue avant les interactions et désactivent le tutoriel de bienvenue dans leurs fixtures pour tester ce parcours précis.
+
+Les collectes réelles Instagram et TikTok, leurs limites de précision et le blocage de validation réelle YouTube sont détaillés dans SOCIAL-AUDIENCE.md. YouTube : fixtures validées, clé API gratuite à configurer, aucune collecte réelle annoncée comme réussie. Aucun changement de données de production ni migration nouvelle.
+
+## Corrections de préparation commerciale — 13 novembre 2026
+
+Voir [COMMERCIAL-HARDENING.md](COMMERCIAL-HARDENING.md) et [RELEASE-RECOVERY.md](RELEASE-RECOVERY.md).
+
+- Installation complète des dépendances Python dans un venv neuf : réussie ; `pip check` ne signale aucun conflit. Celery 5.7.0, Kombu 5.7.0, Redis client 8.1.0 et python-dateutil 2.9.0.post0 sont compatibles. L’ancien assemblage Redis client 5.0.1/Kombu 5.7.0 échouait réellement au démarrage du worker.
+- Suite backend : **168 cas passent** sur PostgreSQL jetable avec les dépendances finales. Les avertissements de dépréciation restent une dette technique ; les clés faibles signalées appartiennent exclusivement à la configuration TESTING.
+- Six chemins Alembic testés : base vide, 020 inbox, 010 billing, 032, 043 et 050 vers la tête 052. Données sentinelles et template conservés, second upgrade idempotent, présence des tables/colonnes mappées vérifiée.
+- La base construite par Alembic fait aussi l’objet d’une recette API : vrai login local, projet et détail, événement, émission/paiement/PDF d’une facture et rejet du retour en brouillon. L’appel Google de création de dossier est neutralisé explicitement ; aucune intégration Google n’est déclarée validée.
+- Quatre échanges réels de tâches de test avec worker et Redis jetables réussis : celery, dossier_builder_gpt, ingestion_standard, web_enrichment. Aucun fournisseur externe invoqué.
+- Sauvegarde custom via la fonction réelle de deploy.sh, checksum, restauration dans une seconde base et conservation d’enregistrements sentinelles : réussis. Ce n’est pas une restauration des données de l’ancien serveur.
+- Typage TypeScript et build Next.js de production : réussis sous Node 24.19.0. Audits npm production et pip-audit des requirements finaux : **aucune vulnérabilité connue remontée** au jour du contrôle.
+- Recette Chromium locale du build : pages publiques sur 1440/768/390 px, navigation et abonnements Core/Premium/Business, scripts de consentement. Les suites UI utilisent des fixtures API explicites, séparées de la recette backend réelle.
+- CI enrichie : contrôle npm, Node 24, parcours historiques des migrations, échanges worker/broker et régressions navigateur. Les résultats distants doivent être observés pour le commit publié ; un résultat local ne remplace pas la CI.
+
+Le contrôle commercial `python scripts/check_release.py` est **volontairement bloquant** tant que les informations publiques réelles et références contractuelles ne sont pas fournies. Son mode `--check-template` valide la structure et ne donne pas d’autorisation de publication. Le prestataire de facturation électronique, l’infrastructure de production, la récupération de l’ancien serveur et les intégrations réelles restent à recetter ; aucune opération sur une base client n’a été effectuée.
+
+- Vérification finale du scanner historique : le catalogue statique ne préremplit plus les métriques et ne permet plus un retour anticipé avec une confiance de 95 %. Les helpers sont conservés pour référence ; les nouvelles observations absentes restent absentes dans l’historique. Les tentatives de scan ne deviennent pas des sources vérifiées et les concerts non collectés ne valent pas zéro par défaut.
+
+## Audit France / UE B2B — 13 novembre 2026
+
+Périmètre et sources : [LEGAL-FR-EU-AUDIT.md](LEGAL-FR-EU-AUDIT.md). Procédure : [LEGAL-OPERATIONS.md](LEGAL-OPERATIONS.md). Aucun serveur de production actif n’était disponible.
+
+- Suite finale backend : **186 tests réussis**, sur PostgreSQL jetable et dépendances exactes. Les 2 040 avertissements restent une dette de dépréciation et de configuration de test ; ils ne sont pas présentés comme corrigés.
+- Cas supplémentaires : demandes personnelles sans abonnement payant, portée workspace et isolation, réponses superuser tracées et rejouabilité refusée, délai d’un mois calendaire, export partiel sans secrets, contact borné et versionné sans faux envoi, date et série définitive à émission, mentions explicites, TVA nulle, RCS déclaré, forme/capital, et refus des downgrades destructeurs de 053/054.
+- Les six parcours historiques Alembic atteignent **054** avec conservation des sentinelles et second upgrade idempotent. La recette API sur le schéma migré passe, y compris émission/paiement/PDF. Google reste explicitement neutralisé dans cette recette.
+- Tests Node de la politique de consentement : réussis (fichier de tests contenant des assertions sur choix invalide, ancien, futur, refus, accord et fin de mois). Ne pas assimiler ce test à un audit des traceurs d’une production réelle.
+- Configuration légale : structure valide ; contrôle de publication ordinaire bloqué comme attendu sur les informations réelles et contrats manquants. Aucun changement de `commercialReleaseEnabled` pour masquer ce blocage.
+
+Les résultats navigateur et CI du commit publié sont consignés ci-dessous après leur exécution. Les anciennes sections restent un historique daté, pas le statut du dernier commit.
+
+- Typage TypeScript et build Next.js de production finaux : réussis sous Node 24, après correction des labels de sélection et du rendu des longues références de brouillons sur mobile.
+- Chromium sur le build final : **39 passages publics** (13 routes, largeurs 1440/768/390 px), **cinq configurations métier** (Business/Premium/Core sur ordinateur, Business tablette/mobile), et contrôle de consentement réussis. Les nouveaux parcours de dépôt d’une demande de droits et de saisie des mentions d’émission sont inclus. Les API sont des fixtures explicites ; ces vérifications ne prétendent pas valider une infrastructure ou un prestataire réel.
+- Inventaire OpenAPI régénéré : **489 opérations HTTP** déclarées. La déclaration de sécurité et l’existence d’une route ne constituent pas, à elles seules, une preuve de conformité ou de bon fonctionnement.
+- Diff contrôlé sans erreur de whitespace ; compilation Python réussie. Résultats et logs locaux conservés hors Git dans `/workspace/audits/radar-legal-2026-11-13` ; le résultat distant est à vérifier pour le SHA publié dans la PR.
+
+## Finalisation opérationnelle B2B — 13 novembre 2026
+
+Voir [LEGAL-COMPLETION.md](LEGAL-COMPLETION.md). Nouvelle tête de migrations : **056**. Aucun contrat client réel n'a été publié ou accepté pendant ces contrôles ; aucune production n'a été modifiée.
+
+- **201 tests backend réussis** sur PostgreSQL jetable. Ils couvrent les versions contractuelles immuables, l'identité publique configurée, les acceptations explicites et leur portée, les approbations de plan rattachées à une preuve, l'export isolé sans champs secrets connus, les références incohérentes entre organisations, les limites de volume, les avoirs totaux idempotents, les montants figés, l'absence de remboursement automatique et l'exclusion des brouillons des totaux émis. Les 2 408 avertissements de dépréciation/configuration restent une dette technique ; ils ne sont pas présentés comme corrigés.
+- Après l'ajout des versions contractuelles acceptées dans l'archive et des empreintes sur les références externes/README : **10 tests ciblés réussis**. Le contrôle ciblé des clés structurées de connexion a également été relancé après renforcement de leur masquage.
+- **Six parcours Alembic** vers 056 réussis, avec sentinelles et second upgrade sans effet. Recette réelle de login/projet/événement/facture/paiement/PDF sur schéma migré réussie ; l'appel Google de dossier est explicitement neutralisé. Les tests des downgrades 055 et 056 refusent la suppression de preuves.
+- Environnement Python neuf installé depuis les requirements exacts ; `pip check` ne signale aucun conflit. Compilation Python, typage TypeScript et build de production Next.js réussis. Nouveaux fichiers formatés sans ajout de dépendance de production.
+- Chromium : **45 passages publics** (15 routes sur 1440/768/390 px), **cinq configurations métier** (plans et tailles), contrôle du consentement, et **deux configurations des nouveaux parcours juridiques** (1440/390 px) réussis. Ce dernier script vérifie lecture/téléchargement des textes, acceptation explicite, archive, inventaire, avoir PDF, décision rattachée et publication opérateur. Toutes ses réponses API sont des fixtures explicites ; il ne publie aucun vrai contrat et ne corrige aucune facture client.
+- CI étendue à `legal_ui_smoke.py`. Inventaire OpenAPI : **502 opérations HTTP**. Existence et déclaration des opérations ne sont pas une certification de bon fonctionnement de tous les fournisseurs.
+- Six projets contractuels générés hors ligne et relus dans leur format JSON : champs manquants explicites, `reviewed_for_publication: false`, aucun appel réseau ni écrasement. Registres CSV vérifiés structurellement ; les faits de production restent à compléter.
+- Le contrôle commercial ordinaire reste bloqué comme attendu ; le mode de structure passe et n'autorise pas la mise en vente. Le résultat distant doit être vérifié pour le commit publié dans la PR. Les preuves locales sont conservées hors Git dans `/workspace/audits/radar-operations-2026-11-13`.
+
+La recette juridique attend explicitement la disparition de l'action de paiement après le rafraîchissement d'une facture couverte par avoir. Le retour GET est volontairement retardé dans la fixture pour vérifier l'état final asynchrone, sans assertion immédiate dépendante de la vitesse du navigateur. Les deux tailles ont été revérifiées avec ce retard.

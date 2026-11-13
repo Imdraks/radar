@@ -1,8 +1,9 @@
 """
 Spotify API Client pour récupérer les données d'artistes
-Intègre le scraping Viberate pour monthly listeners et social stats réels
+Utilise la page publique Spotify pour les auditeurs, Viberate pour les enrichissements complémentaires.
 """
 import logging
+import asyncio
 from typing import Optional, Dict, Any
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -195,21 +196,19 @@ class SpotifyClient:
                 'image_url': artist['images'][0]['url'] if artist['images'] else None,
             }
             
-            # Tenter d'obtenir monthly listeners + social stats via Viberate
-            monthly_listeners = None
+            from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
+            observed = scrape_spotify_artist(artist_id)
+            monthly_listeners = observed.get("monthly_listeners") if observed else None
             social_stats = None
-            source = "estimated"
+            source = "spotify_public" if observed else "unavailable"
+            if observed:
+                artist_data.update({key: observed[key] for key in ("source_url", "collected_at", "precision")})
             
             if self._enrichment_service:
                 try:
                     import asyncio
-                    # Récupérer monthly listeners + social stats réels via Viberate
+                    # Enrichissement complémentaire des réseaux sociaux via Viberate
                     enriched = asyncio.run(self._enrichment_service.enrich(artist_id, force_refresh=False))
-                    if enriched.monthly_listeners.value:
-                        monthly_listeners = enriched.monthly_listeners.value
-                        source = "viberate"
-                        logger.info(f"✅ Real monthly listeners from Viberate: {monthly_listeners:,}")
-                    
                     # Récupérer les social stats
                     if enriched.social_stats:
                         social_stats = {
@@ -222,23 +221,15 @@ class SpotifyClient:
                 except Exception as e:
                     logger.debug(f"Could not get data from Viberate: {e}")
             
-            # Fallback sur estimation si enrichissement non disponible
-            if monthly_listeners is None:
-                monthly_listeners = self._estimate_monthly_listeners(
-                    artist['followers']['total'], 
-                    artist['popularity']
-                )
-                logger.debug(f"Using estimated monthly listeners: {monthly_listeners:,}")
-            
             artist_data['monthly_listeners'] = monthly_listeners
             artist_data['monthly_listeners_source'] = source
-            artist_data['estimated_monthly_listeners'] = monthly_listeners  # Pour compatibilité
+            artist_data['estimated_monthly_listeners'] = None  # Deprecated: no fabricated observations
             
             # Ajouter les social stats si disponibles
             if social_stats:
                 artist_data['social_stats'] = social_stats
             
-            logger.info(f"✅ Found Spotify artist: {artist_data['name']} - {artist_data['followers']:,} followers, {monthly_listeners:,} monthly listeners ({source})")
+            logger.info(f"✅ Found Spotify artist: {artist_data['name']} - {artist_data['followers']:,} followers, {monthly_listeners} monthly listeners ({source})")
             return artist_data
             
         except Exception as e:
@@ -278,15 +269,18 @@ class SpotifyClient:
                 'image_url': artist['images'][0]['url'] if artist['images'] else None,
             }
             
+            from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
+            observed = await asyncio.to_thread(scrape_spotify_artist, artist_id)
+            artist_data['monthly_listeners'] = observed.get('monthly_listeners') if observed else None
+            artist_data['monthly_listeners_source'] = 'spotify_public' if observed else 'unavailable'
+            if observed:
+                artist_data.update({key: observed[key] for key in ('source_url', 'collected_at', 'precision')})
+
             # Enrichissement async
             if use_enrichment and self._enrichment_service:
                 try:
                     enriched = await self._enrichment_service.enrich(artist_id, force_refresh=False)
                     
-                    # Monthly listeners réels
-                    if enriched.monthly_listeners.value:
-                        artist_data['monthly_listeners'] = enriched.monthly_listeners.value
-                        artist_data['monthly_listeners_source'] = 'viberate'
                     
                     # Label principal
                     if enriched.labels.principal:
@@ -296,20 +290,12 @@ class SpotifyClient:
                     if enriched.management.value:
                         artist_data['management'] = enriched.management.value
                     
-                    logger.info(f"✅ Enriched data: {artist_data['name']} - {artist_data.get('monthly_listeners', 0):,} listeners")
+                    logger.info(f"✅ Enriched data: {artist_data['name']} - {artist_data.get('monthly_listeners')} listeners")
                 except Exception as e:
-                    logger.debug(f"Enrichment failed, using estimates: {e}")
+                    logger.debug(f"Complementary enrichment unavailable: {e}")
             
-            # Fallback sur estimation
-            if 'monthly_listeners' not in artist_data:
-                artist_data['monthly_listeners'] = self._estimate_monthly_listeners(
-                    artist['followers']['total'],
-                    artist['popularity']
-                )
-                artist_data['monthly_listeners_source'] = 'estimated'
-            
-            artist_data['estimated_monthly_listeners'] = artist_data['monthly_listeners']
-            
+            artist_data['estimated_monthly_listeners'] = None
+
             return artist_data
             
         except Exception as e:
@@ -364,42 +350,10 @@ class SpotifyClient:
             return []
     
     def get_monthly_listeners(self, artist_id: str) -> Optional[int]:
-        """
-        Tente de récupérer le nombre d'auditeurs mensuels
-        Note: Cette donnée n'est pas directement disponible dans l'API standard
-        On peut l'estimer avec popularité et followers
-        
-        Args:
-            artist_id: ID Spotify de l'artiste
-            
-        Returns:
-            Estimation des auditeurs mensuels ou None
-        """
-        # L'API Spotify ne fournit pas directement les monthly listeners
-        # On peut estimer avec une formule basée sur popularité et followers
-        try:
-            artist = self.client.artist(artist_id)
-            followers = artist['followers']['total']
-            popularity = artist['popularity']
-            
-            # Formule d'estimation (basée sur observations)
-            # Plus l'artiste est populaire, plus le ratio listeners/followers est élevé
-            if popularity >= 80:
-                ratio = 10  # Très populaire
-            elif popularity >= 60:
-                ratio = 6   # Populaire
-            elif popularity >= 40:
-                ratio = 3   # Moyenne
-            else:
-                ratio = 1.5 # Émergent
-            
-            estimated_listeners = int(followers * ratio)
-            logger.debug(f"Estimated monthly listeners: {estimated_listeners:,} (followers={followers:,}, popularity={popularity})")
-            return estimated_listeners
-            
-        except Exception as e:
-            logger.error(f"Error estimating monthly listeners: {e}")
-            return None
+        """Read the public published count without API credentials or estimation."""
+        from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
+        observed = scrape_spotify_artist(artist_id)
+        return observed.get("monthly_listeners") if observed else None
 
 
 # Instance globale

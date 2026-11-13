@@ -869,10 +869,10 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
                 image_url=profile.image_url,  # Photo de l'artiste
                 
                 # Social metrics
-                spotify_monthly_listeners=profile.spotify_monthly_listeners,
-                youtube_subscribers=profile.youtube_subscribers,
-                instagram_followers=profile.instagram_followers,
-                tiktok_followers=profile.tiktok_followers,
+                spotify_monthly_listeners=profile.spotify_monthly_listeners or None,
+                youtube_subscribers=profile.youtube_subscribers or None,
+                instagram_followers=profile.instagram_followers or None,
+                tiktok_followers=profile.tiktok_followers or None,
                 total_followers=profile.total_followers,
                 
                 # Fees
@@ -949,14 +949,14 @@ def analyze_artist_task(self, artist_name: str, force_refresh: bool = False, use
                     artist_name=profile.name,
                     artist_name_normalized=ArtistSnapshot.normalize_name(profile.name),
                     workspace_id=workspace_id,
-                    spotify_monthly_listeners=profile.spotify_monthly_listeners,
-                    spotify_followers=0,  # Not yet tracked
-                    tiktok_followers=profile.tiktok_followers,
-                    youtube_subscribers=profile.youtube_subscribers,
-                    instagram_followers=profile.instagram_followers,
-                    concerts_next_30d=0,  # Could be enhanced with concert data
-                    source_quality_score=profile.confidence_score * 100 if profile.confidence_score else 50.0,
-                    sources_used=", ".join(profile.sources_scanned) if profile.sources_scanned else None,
+                    spotify_monthly_listeners=profile.spotify_monthly_listeners or None,
+                    spotify_followers=profile.spotify_followers or None,
+                    tiktok_followers=profile.tiktok_followers or None,
+                    youtube_subscribers=profile.youtube_subscribers or None,
+                    instagram_followers=profile.instagram_followers or None,
+                    concerts_next_30d=None,  # No verified concert observation.
+                    source_quality_score=None,  # Legacy confidence is not calibrated quality.
+                    sources_used=None,  # A scan attempt is not a verified collected source.
                 )
                 db.add(snapshot)
                 db.commit()

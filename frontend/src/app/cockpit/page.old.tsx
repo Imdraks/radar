@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -112,7 +113,7 @@ function CockpitContent() {
     try {
       const token = localStorage.getItem('access_token');
       
-      const dashboardRes = await fetch('/api/v1/agency/dashboard', {
+      const dashboardRes = await workspaceFetch('/api/v1/agency/dashboard', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -122,7 +123,7 @@ function CockpitContent() {
       
       let userWorkspaces: UserWorkspace[] = [];
       try {
-        const wsRes = await fetch('/api/v1/workspaces', {
+        const wsRes = await workspaceFetch('/api/v1/workspaces', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (wsRes.ok) {
@@ -143,7 +144,7 @@ function CockpitContent() {
       try {
         const workspaceId = localStorage.getItem('current_workspace_id');
         if (workspaceId && userWorkspaces.some(ws => ws.id.toString() === workspaceId)) {
-          const inboxRes = await fetch(`/api/v1/inbox?workspace_id=${workspaceId}&limit=5`, {
+          const inboxRes = await workspaceFetch(`/api/v1/inbox?workspace_id=${workspaceId}&limit=5`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
           if (inboxRes.ok) {

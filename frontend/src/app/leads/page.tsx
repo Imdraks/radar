@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -128,10 +129,10 @@ function LeadsContent() {
     queryKey: ["favorites"],
     queryFn: async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         if (!token) return new Set<number>();
         
-        const response = await fetch("/api/v1/favorites", {
+        const response = await workspaceFetch("/api/v1/favorites", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -163,8 +164,8 @@ function LeadsContent() {
     setFavorites(newFavorites);
     
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/v1/favorites/opportunity/${id}`, {
+      const token = localStorage.getItem("access_token");
+      await workspaceFetch(`/api/v1/favorites/opportunity/${id}`, {
         method: isFav ? "DELETE" : "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -658,17 +659,7 @@ function LeadCard({ lead, isSelected, isFavorite, onToggleSelect, onToggleFavori
                   </Badge>
                 )}
                 
-                {/* Example Tags (mock) */}
-                {lead.id % 3 === 0 && (
-                  <Badge className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 border-blue-200">
-                    Priorité haute
-                  </Badge>
-                )}
-                {lead.id % 5 === 0 && (
-                  <Badge className="text-[10px] sm:text-xs bg-green-100 text-green-700 border-green-200">
-                    Prospect chaud
-                  </Badge>
-                )}
+
               </div>
 
               {/* Meta Info */}
@@ -698,13 +689,7 @@ function LeadCard({ lead, isSelected, isFavorite, onToggleSelect, onToggleFavori
                   </span>
                 )}
                 
-                {/* Comments count (mock) */}
-                {lead.id % 4 === 0 && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <MessageSquare className="h-3 w-3" />
-                    {(lead.id % 7) + 1}
-                  </span>
-                )}
+
               </div>
             </div>
           </div>

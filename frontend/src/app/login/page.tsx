@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Target, Loader2, Shield, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { RadarLogo, RadarMark, RadarField } from "@/components/brand/RadarBrand";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,18 +89,7 @@ function LoginContent() {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      // Check role from token to redirect appropriately
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.role === 'admin') {
-            router.push("/admin");
-            return;
-          }
-        } catch (e) {}
-      }
-      router.push("/today");
+      router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -180,18 +171,7 @@ function LoginContent() {
         return;
       }
       
-      // Redirect based on role
-      const token = localStorage.getItem('access_token');
-      let redirectPath = "/today";
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.role === 'admin') {
-            redirectPath = "/admin";
-          }
-        } catch (e) {}
-      }
-      router.push(redirectPath);
+      router.push(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string | object } } };
       const detail = error?.response?.data?.detail;
@@ -219,18 +199,7 @@ function LoginContent() {
       const result = await login(savedCredentials.email, savedCredentials.password, rememberMe, totpCode);
       
       if (result.success) {
-        // Redirect based on role
-        const token = localStorage.getItem('access_token');
-        let redirectPath = "/today";
-        if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.role === 'admin') {
-              redirectPath = "/admin";
-            }
-          } catch (e) {}
-        }
-        router.push(redirectPath);
+        router.push(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string | object } } };
@@ -268,27 +237,15 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 dark:from-gray-900 dark:via-gray-950 dark:to-primary/5 p-4 safe-top safe-bottom">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse-soft" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse-soft animate-delay-500" />
-      </div>
-      
-      <Card className="w-full max-w-md relative animate-fade-in-up shadow-xl border-0 dark:border dark:border-gray-800">
+    <div className="radar-auth safe-top safe-bottom">
+      <aside className="radar-auth-story">
+        <RadarField className="pointer-events-none absolute -left-20 -top-24 h-[540px] w-[540px] opacity-40" />
+        <div className="relative"><Link href="/" aria-label="Radar — Accueil"><RadarLogo /></Link><p className="radar-kicker mt-16">Un point de repère commun</p><h2 className="radar-display mt-5">Votre agence.<br />Toute la perspective.</h2><p className="mt-6 max-w-sm text-base leading-relaxed text-muted-foreground">Retrouvez vos projets, vos artistes et votre équipe. Reprenez là où les choses avancent.</p><div className="mt-10 flex gap-5 text-xs text-muted-foreground"><span>Organisation</span><span>Création</span><span>Activité</span></div></div>
+      </aside>
+      <Card className="radar-auth-card">
         <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30 animate-bounce-soft">
-              {show2FA ? (
-                <Shield className="h-8 w-8 text-primary-foreground" />
-              ) : (
-                <Target className="h-8 w-8 text-primary-foreground" />
-              )}
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-            {show2FA ? "Vérification 2FA" : "Radar"}
-          </CardTitle>
+          <div className="mb-6 flex justify-center"><Link href="/" aria-label="Radar — Accueil"><RadarLogo compact /></Link></div>
+          <CardTitle className="text-2xl font-semibold tracking-tight">{show2FA ? "Vérification 2FA" : "Bienvenue dans votre espace"}</CardTitle>
           <CardDescription className="text-muted-foreground">
             {show2FA 
               ? "Entrez le code de votre application d'authentification" 
@@ -366,7 +323,7 @@ function LoginContent() {
             </div>
           ) : (
             <>
-              {/* SSO Buttons - Always show */}
+              {ssoProviders.some(provider => provider.id === 'google' && provider.enabled) && <>
               <div className="space-y-3">
                 {/* Google SSO */}
                 <Button
@@ -383,15 +340,6 @@ function LoginContent() {
               Continuer avec Google
             </Button>
             
-            {/* Apple SSO - Coming Soon */}
-            <Button
-              variant="outline"
-              className="w-full h-12 text-base font-medium opacity-50 cursor-not-allowed"
-              disabled={true}
-            >
-              <AppleIcon className="mr-3 h-5 w-5" />
-              Apple — Prochainement
-            </Button>
           </div>
             
           <div className="relative">
@@ -405,6 +353,7 @@ function LoginContent() {
             </div>
           </div>
           
+          </>}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm animate-fade-in flex items-center gap-2">
@@ -420,7 +369,7 @@ function LoginContent() {
               <Input
                 id="email"
                 type="email"
-                placeholder="vous@example.com"
+                placeholder="vous@agence.fr"
                 className="h-12 text-base"
                 {...register("email")}
                 disabled={isLoading}
@@ -485,7 +434,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center animate-pulse">
-            <Target className="h-8 w-8 text-primary" />
+            <RadarMark className="h-12 w-12 text-primary" />
           </div>
         </div>
       </div>

@@ -3,7 +3,6 @@ Source Health API - Quality and stability monitoring
 """
 from datetime import datetime, timedelta, date
 from typing import Optional, List
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -76,7 +75,7 @@ def get_recommendation(avg_score: float, error_rate: float, items: int) -> Optio
 def get_sources_health(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
-    source_id: Optional[UUID] = None,
+    source_id: Optional[int] = None,
     min_score: Optional[int] = None,
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -214,7 +213,7 @@ def get_sources_health_overview(
 
 @router.get("/health/{source_id}", response_model=List[SourceHealthMetrics])
 def get_source_health_history(
-    source_id: UUID,
+    source_id: int,
     days: int = Query(default=30, ge=1, le=90),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
@@ -254,9 +253,9 @@ def get_source_health_history(
     ]
 
 
-@router.patch("/{source_id}")
+# Retained legacy helper; configuration writes use api/sources.py.
 def update_source(
-    source_id: UUID,
+    source_id: int,
     data: SourceUpdateRequest,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin_user),
@@ -284,7 +283,7 @@ def update_source(
     }
 
 
-@router.get("")
+# Retained legacy helper; configuration lists use api/sources.py.
 def list_sources(
     is_active: Optional[bool] = None,
     db: Session = Depends(get_db),

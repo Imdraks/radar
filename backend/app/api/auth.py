@@ -3,8 +3,11 @@ Authentication endpoints
 """
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from secrets import compare_digest
+from app.core.config import settings
 from pydantic import BaseModel, EmailStr
 
 from app.db import get_db
@@ -28,6 +31,7 @@ class SetupCheck(BaseModel):
     """Response for setup check"""
     needs_setup: bool
     user_count: int
+    setup_enabled: bool
 
 
 class InitialSetup(BaseModel):
@@ -43,16 +47,26 @@ def check_needs_setup(db: Session = Depends(get_db)):
     user_count = db.query(User).count()
     return SetupCheck(
         needs_setup=user_count == 0,
-        user_count=user_count
+        user_count=user_count,
+        setup_enabled=bool(settings.bootstrap_token),
     )
 
 
 @router.post("/setup", response_model=UserResponse)
 def initial_setup(
     data: InitialSetup,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    bootstrap_token: str = Header(default="", alias="X-Radar-Bootstrap-Token"),
 ):
     """Create the first admin account (only works if no users exist)"""
+    if not settings.bootstrap_token or not compare_digest(bootstrap_token, settings.bootstrap_token):
+        raise HTTPException(403, "Initialisation réservée à l’opérateur de la plateforme")
+    return create_initial_admin(db, data)
+
+
+def create_initial_admin(db: Session, data: InitialSetup):
+    # Serialize setup across workers; the second concurrent attempt observes the first commit.
+    db.execute(text("SELECT pg_advisory_xact_lock(7243321801)"))
     # Check if any users exist
     user_count = db.query(User).count()
     if user_count > 0:
@@ -371,11 +385,14 @@ def disable_2fa(
 def verify_2fa_code(
     data: TwoFactorVerifyRequest,
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Verify 2FA code during login (called after password verification).
     """
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot verify another account")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(

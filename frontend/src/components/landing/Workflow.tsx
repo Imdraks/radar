@@ -28,14 +28,14 @@ const steps = [
     step: "04",
     icon: FileText,
     title: "Facturer",
-    description: "Devis → Facture → Paiement en quelques clics. PDF conforme, sauvegarde Drive automatique.",
+    description: "Devis, factures et suivi manuel des paiements. Export PDF et liaison Drive selon configuration.",
     color: "from-green-500 to-emerald-500",
   },
   {
     step: "05",
     icon: BarChart3,
     title: "Analyser",
-    description: "Cockpit temps réel, veille concurrentielle, carte événements et prédictions de performance.",
+    description: "Projets, échéances, événements et sélections artistiques dans un espace commun.",
     color: "from-indigo-500 to-purple-500",
   },
 ];

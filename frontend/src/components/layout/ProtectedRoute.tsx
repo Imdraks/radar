@@ -37,18 +37,10 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   useEffect(() => {
     if (!mounted || isLoading || !isAuthenticated || !user) return;
     
-    const adminPages = ['/admin', '/workspaces', '/users', '/settings', '/sources', '/source-health', '/profiles', '/scoring', '/predictions'];
-    const isAdminPage = adminPages.some(p => pathname === p || pathname.startsWith(p + '/'));
-    const isAdmin = user.role === 'admin';
-    
-    // Admin trying to access non-admin pages → redirect to admin dashboard
-    if (isAdmin && !isAdminPage) {
-      router.push("/admin");
-      return;
-    }
-    
+    const isAdmin = user.is_superuser === true;
+
     // Non-admin trying to access admin-only pages → redirect to today
-    const adminOnlyPages = ['/admin', '/workspaces', '/users'];
+    const adminOnlyPages = ['/admin', '/workspaces', '/users', '/sources', '/source-health'];
     const isAdminOnlyPage = adminOnlyPages.some(p => pathname === p || pathname.startsWith(p + '/'));
     if (!isAdmin && isAdminOnlyPage) {
       router.push("/today");
@@ -79,6 +71,12 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   // Require authentication
   if (!isAuthenticated) {
+    return null;
+  }
+
+  const platformPage = ['/admin', '/workspaces', '/users', '/sources', '/source-health'].some(p => pathname === p || pathname.startsWith(p + '/'));
+  if ((platformPage && user?.is_superuser !== true) ||
+      (requiredRoles?.length && user && !requiredRoles.includes(user.role))) {
     return null;
   }
 

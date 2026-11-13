@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -115,7 +116,7 @@ export default function QuotesPage() {
       if (search) params.append('search', search);
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       
-      const res = await fetch(`/api/v1/billing/quotes?${params}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -132,7 +133,7 @@ export default function QuotesPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -161,7 +162,7 @@ export default function QuotesPage() {
       const validityDate = new Date();
       validityDate.setDate(validityDate.getDate() + newQuote.validity_days);
       
-      const res = await fetch('/api/v1/billing/quotes', {
+      const res = await workspaceFetch('/api/v1/billing/quotes', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -195,7 +196,7 @@ export default function QuotesPage() {
   const updateStatus = async (quoteId: number, status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -221,7 +222,7 @@ export default function QuotesPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -244,7 +245,7 @@ export default function QuotesPage() {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 30);
       
-      const res = await fetch(`/api/v1/billing/quotes/${quoteId}/convert`, {
+      const res = await workspaceFetch(`/api/v1/billing/quotes/${quoteId}/convert`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,11 +288,11 @@ export default function QuotesPage() {
   return (
     <ProtectedRoute>
       <AppLayoutWithOnboarding>
-        <div className="p-6 space-y-6">
+        <div className="space-y-7">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-[28px] font-semibold tracking-tight text-foreground dark:text-white flex items-center gap-2">
                 <Receipt className="h-6 w-6 text-blue-600" />
                 Devis
               </h1>

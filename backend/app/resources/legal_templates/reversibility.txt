@@ -1,0 +1,18 @@
+PROJET — RÉVERSIBILITÉ ET CHANGEMENT DE FOURNISSEUR
+Éditeur : [[EDITEUR]]. Version : [[VERSION_CONTRACTUELLE]]. Périmètre et qualification Data Act : [[DATA_ACT_SCOPE_VALIDATED]].
+
+1. Trois démarches
+L'accès aux données personnelles, la fin du contrat et le changement de fournisseur relèvent de périmètres et délais distincts. Une demande d'effacement personnelle ne supprime pas automatiquement un workspace ou des factures ; un transfert de service ne vaut pas suppression immédiate.
+
+2. Données et actifs
+L'archive métier Radar contient les données attribuées au workspace selon une liste de tables et champs revue, au format JSON UTF-8, avec manifeste et empreintes SHA-256. Les montants décimaux sont représentés en chaînes pour conserver la précision. Les mots de passe, secrets OAuth, clés et données d'autres organisations ne sont pas inclus. Les dossiers personnels de droits et journaux globaux font l'objet d'un examen séparé. Les données historiques sans attribution et liens incohérents nécessitent rapprochement. La liste contractuelle complète des données et actifs exportables, exclusions justifiées et formats convenus est : [[EXPORT_SCOPE_VALIDATED]].
+
+3. Fichiers et services externes
+Les références Drive et autres fichiers figurent dans un manifeste ; les binaires ne sont pas téléchargés par cet export. Il faut vérifier l'autorité du client, les comptes propriétaires, droits des tiers, accès aux originaux, formats et méthode de transfert, puis contrôler leur réception. Prestataires et procédure effectivement retenus : [[EXTERNAL_FILES_HANDOVER]]. Une archive applicative ne remplace pas une sauvegarde PostgreSQL ni tous les actifs du service.
+
+4. Assistance et délais
+Lorsque le chapitre VI du Data Act s'applique, les dispositions impératives gouvernent le changement : notamment préavis maximal de deux mois, phase de transition normalement limitée à trente jours calendaires sous les exceptions prévues, et période de récupération d'au moins trente jours après la transition. Les modalités d'assistance, continuité, contacts, vérification, prolongations justifiées et information doivent être fixées sans faire obstacle au changement : [[SWITCHING_PROCESS_VALIDATED]]. Les délais de réponse du portail ne remplacent pas ces engagements.
+
+5. Coûts et clôture
+Aucun prix nouveau n'est institué ici. Les frais de changement de fournisseur interdits à compter du 12 janvier 2027 ne peuvent être imposés. Avant cette date, seuls les frais réduits autorisés par le règlement sont envisageables lorsqu'il s'applique. Les redevances normales et éventuelles indemnités licites de résiliation anticipée sont distinctes, doivent être convenues et ne peuvent servir à contourner les garanties impératives. Conditions particulières validées : [[SWITCHING_COSTS_VALIDATED]].
+Après contrôle de la restitution, organiser la fin des accès, le sort des données actives, copies, sauvegardes et preuves légalement conservées, avec les instructions et durées de l'annexe conservation. Une décision de clôture et ses résultats sont documentés : [[HANDOVER_AND_CLOSURE_EVIDENCE]].

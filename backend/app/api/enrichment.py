@@ -78,7 +78,7 @@ async def get_enriched_artist(
     """
     Get enriched artist data (with optional refresh)
     
-    **Production Endpoint - GET variant**
+    **Legacy unavailable endpoint - GET variant**
     """
     try:
         result = await enrichment_service.enrich(artist_id, force_refresh=refresh)
@@ -98,7 +98,7 @@ async def refresh_artist(
     """
     Force refresh artist data (bypasses cache)
     
-    **Production Endpoint - Explicit refresh**
+    **Legacy unavailable endpoint - Explicit refresh**
     """
     try:
         result = await enrichment_service.enrich(artist_id, force_refresh=True)
@@ -119,7 +119,7 @@ async def enrich_artists_batch(
     """
     Enrich multiple artists in batch
     
-    **Production Endpoint - Batch processing**
+    **Legacy unavailable endpoint - Batch processing**
     
     For large batches, consider using background jobs:
     - Returns immediately with job ID
@@ -147,7 +147,7 @@ async def get_enrichment_metrics(
     """
     Get enrichment service metrics
     
-    **Production Endpoint - Monitoring**
+    **Legacy unavailable endpoint - Monitoring**
     
     Returns:
     - Success/failure rates per provider
@@ -160,7 +160,7 @@ async def get_enrichment_metrics(
 
 # =====  BACKGROUND JOB ENDPOINTS (for production batch) =====
 
-@router.post("/jobs/batch/start")
+@router.post("/jobs/batch/start", include_in_schema=False)
 async def start_batch_job(
     request: BatchEnrichmentRequest,
     background_tasks: BackgroundTasks,
@@ -170,7 +170,7 @@ async def start_batch_job(
     """
     Start background batch enrichment job
     
-    **Production Endpoint - Async batch**
+    **Legacy unavailable endpoint - Async batch**
     
     Returns job_id immediately, process in background
     """
@@ -180,7 +180,7 @@ async def start_batch_job(
     raise HTTPException(501, "Background jobs not implemented - use /artists/batch/enrich")
 
 
-@router.get("/jobs/{job_id}/status")
+@router.get("/jobs/{job_id}/status", include_in_schema=False)
 async def get_job_status(
     job_id: str,
     current_user: User = Depends(get_current_user)
@@ -188,13 +188,13 @@ async def get_job_status(
     """
     Get status of batch enrichment job
     
-    **Production Endpoint - Job tracking**
+    **Legacy unavailable endpoint - Job tracking**
     """
     # TODO: Query job status from Redis/DB
     raise HTTPException(501, "Background jobs not implemented")
 
 
-@router.get("/jobs/{job_id}/results")
+@router.get("/jobs/{job_id}/results", include_in_schema=False)
 async def get_job_results(
     job_id: str,
     current_user: User = Depends(get_current_user)
@@ -202,7 +202,7 @@ async def get_job_results(
     """
     Get results of completed batch job
     
-    **Production Endpoint - Results retrieval**
+    **Legacy unavailable endpoint - Results retrieval**
     """
     # TODO: Retrieve results from storage
     raise HTTPException(501, "Background jobs not implemented")

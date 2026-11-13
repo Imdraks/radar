@@ -1,0 +1,1607 @@
+{
+  "version": "radar-workspace-v1",
+  "tables": {
+    "accounts": {
+      "exclude": "Authentication and OAuth credentials, never exported."
+    },
+    "activity_logs": {
+      "exclude": "Global user activity can involve other organizations; manual scoped review required."
+    },
+    "agency_tasks": {
+      "parents": [
+        "project_id",
+        "deal_id"
+      ],
+      "columns": [
+        "id",
+        "project_id",
+        "deal_id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "due_date",
+        "assignee_id",
+        "is_auto_generated",
+        "auto_type",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "approvals": {
+      "parents": [
+        "deliverable_id"
+      ],
+      "columns": [
+        "id",
+        "deliverable_id",
+        "status",
+        "feedback",
+        "requested_at",
+        "decided_at",
+        "decided_by"
+      ],
+      "excluded_columns": []
+    },
+    "artist_analyses": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "artist_name",
+        "real_name",
+        "genre",
+        "image_url",
+        "spotify_monthly_listeners",
+        "youtube_subscribers",
+        "instagram_followers",
+        "tiktok_followers",
+        "total_followers",
+        "fee_min",
+        "fee_max",
+        "market_tier",
+        "popularity_score",
+        "record_label",
+        "management",
+        "booking_agency",
+        "booking_email",
+        "market_trend",
+        "confidence_score",
+        "ai_score",
+        "ai_tier",
+        "growth_trend",
+        "predicted_listeners_30d",
+        "predicted_listeners_90d",
+        "predicted_listeners_180d",
+        "growth_rate_monthly",
+        "strengths",
+        "weaknesses",
+        "opportunities",
+        "threats",
+        "optimal_fee",
+        "negotiation_power",
+        "best_booking_window",
+        "event_type_fit",
+        "territory_strength",
+        "seasonal_demand",
+        "risk_score",
+        "risk_factors",
+        "opportunity_score",
+        "key_opportunities",
+        "best_platforms",
+        "engagement_rate",
+        "viral_potential",
+        "content_recommendations",
+        "ai_summary",
+        "ai_recommendations",
+        "full_data",
+        "ai_report",
+        "sources_scanned",
+        "analyzed_by_user_id",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "artist_events": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "artist_id",
+        "external_id",
+        "source",
+        "artist_name",
+        "artist_image",
+        "artist_genres",
+        "artist_score",
+        "monthly_listeners",
+        "event_name",
+        "event_type",
+        "event_url",
+        "event_image",
+        "venue",
+        "city",
+        "country",
+        "lat",
+        "lng",
+        "event_date",
+        "on_sale_date",
+        "price_min",
+        "price_max",
+        "currency",
+        "capacity",
+        "status",
+        "promoter",
+        "segment",
+        "genre_classification",
+        "raw_data",
+        "fetched_at",
+        "created_at",
+        "updated_at",
+        "is_deleted"
+      ],
+      "excluded_columns": []
+    },
+    "artist_snapshots": {
+      "direct": true,
+      "columns": [
+        "id",
+        "artist_name",
+        "artist_name_normalized",
+        "workspace_id",
+        "snapshot_date",
+        "spotify_monthly_listeners",
+        "spotify_followers",
+        "spotify_popularity",
+        "tiktok_followers",
+        "tiktok_likes",
+        "youtube_subscribers",
+        "youtube_views_30d",
+        "youtube_total_views",
+        "instagram_followers",
+        "concerts_next_30d",
+        "concerts_next_90d",
+        "source_quality_score",
+        "sources_used",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "assets": {
+      "direct": true,
+      "columns": [
+        "id",
+        "project_id",
+        "workspace_id",
+        "kind",
+        "asset_type",
+        "name",
+        "url",
+        "type",
+        "version",
+        "status",
+        "drive_file_id",
+        "drive_folder_id",
+        "created_at",
+        "created_by",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "audit_logs": {
+      "exclude": "Global operator audit; manual scoped review required."
+    },
+    "banking_accounts": {
+      "direct": true,
+      "columns": [
+        "id",
+        "connection_id",
+        "workspace_id",
+        "account_name",
+        "account_number_masked",
+        "provider_account_id",
+        "account_type",
+        "currency",
+        "balance",
+        "available_balance",
+        "balance_updated_at",
+        "is_active",
+        "is_visible",
+        "display_color",
+        "display_order",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": [
+        "bank_metadata",
+        "iban_encrypted"
+      ]
+    },
+    "banking_connections": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "bank_name",
+        "bank_code",
+        "bank_logo_url",
+        "bank_country",
+        "provider",
+        "provider_connection_id",
+        "status",
+        "status_message",
+        "connected_at",
+        "last_sync_at",
+        "next_sync_at",
+        "consent_expires_at",
+        "auto_sync_enabled",
+        "sync_frequency_hours",
+        "connected_by_id",
+        "audit_log",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": [
+        "access_token_encrypted",
+        "bank_metadata",
+        "refresh_token_encrypted"
+      ]
+    },
+    "banking_consents": {
+      "direct": true,
+      "columns": [
+        "id",
+        "connection_id",
+        "workspace_id",
+        "consent_type",
+        "status",
+        "provider_consent_id",
+        "granted_at",
+        "expires_at",
+        "revoked_at",
+        "scope",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "banking_sync_logs": {
+      "direct": true,
+      "columns": [
+        "id",
+        "connection_id",
+        "workspace_id",
+        "status",
+        "trigger",
+        "started_at",
+        "completed_at",
+        "duration_ms",
+        "accounts_synced",
+        "transactions_fetched",
+        "error_code",
+        "error_message",
+        "triggered_by_id",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "billing_clients": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "crm_client_id",
+        "name",
+        "email",
+        "phone",
+        "contact_first_name",
+        "contact_last_name",
+        "contact_email",
+        "contact_phone",
+        "contact_role",
+        "address_line1",
+        "address_line2",
+        "city",
+        "postal_code",
+        "country",
+        "company_name",
+        "siret",
+        "vat_number",
+        "bic",
+        "bank_name",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": [
+        "iban_encrypted"
+      ]
+    },
+    "billing_counters": {
+      "direct": true,
+      "columns": [
+        "workspace_id",
+        "year",
+        "kind",
+        "last_number"
+      ],
+      "excluded_columns": []
+    },
+    "briefs": {
+      "parents": [
+        "entity_id"
+      ],
+      "columns": [
+        "id",
+        "entity_id",
+        "objective",
+        "timeframe_days",
+        "overview",
+        "contacts_ranked",
+        "useful_facts",
+        "timeline",
+        "sources_used",
+        "document_count",
+        "contact_count",
+        "completeness_score",
+        "generated_at",
+        "expires_at"
+      ],
+      "excluded_columns": []
+    },
+    "calendar_events": {
+      "parents": [
+        "project_id"
+      ],
+      "columns": [
+        "id",
+        "project_id",
+        "title",
+        "type",
+        "start",
+        "end",
+        "all_day",
+        "location",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "clients": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "contacts",
+        "address_line1",
+        "address_line2",
+        "city",
+        "postal_code",
+        "country",
+        "siret",
+        "vat_number",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "collection_logs": {
+      "parents": [
+        "collection_id"
+      ],
+      "columns": [
+        "id",
+        "collection_id",
+        "ts",
+        "level",
+        "message",
+        "context"
+      ],
+      "excluded_columns": []
+    },
+    "collection_results": {
+      "parents": [
+        "collection_id"
+      ],
+      "columns": [
+        "id",
+        "collection_id",
+        "lead_item_id",
+        "is_new",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "collection_runs": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "objective",
+        "entities_requested",
+        "secondary_keywords",
+        "timeframe_days",
+        "require_contact",
+        "budget_min",
+        "budget_max",
+        "region",
+        "city",
+        "status",
+        "started_at",
+        "finished_at",
+        "source_count",
+        "sources_success",
+        "sources_failed",
+        "documents_new",
+        "documents_updated",
+        "contacts_found",
+        "brief_id",
+        "error_summary",
+        "source_runs"
+      ],
+      "excluded_columns": []
+    },
+    "collections": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "type",
+        "status",
+        "name",
+        "params",
+        "started_at",
+        "finished_at",
+        "created_by",
+        "stats",
+        "error",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "comments": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "user_id",
+        "content",
+        "is_internal",
+        "parent_id",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "contact_finder_results": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "status",
+        "contact_email",
+        "contact_phone",
+        "contact_name",
+        "contact_role",
+        "evidence_url",
+        "evidence_snippet",
+        "evidence_domain",
+        "searched_urls",
+        "search_method",
+        "search_duration_ms",
+        "pages_crawled",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "contacts": {
+      "parents": [
+        "entity_id"
+      ],
+      "columns": [
+        "id",
+        "entity_id",
+        "contact_type",
+        "value",
+        "label",
+        "source_url",
+        "source_name",
+        "reliability_score",
+        "is_verified",
+        "verified_at",
+        "first_seen_at",
+        "last_seen_at"
+      ],
+      "excluded_columns": []
+    },
+    "credit_notes": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "invoice_id",
+        "reference",
+        "idempotency_key",
+        "issue_date",
+        "reason",
+        "subtotal",
+        "tax_amount",
+        "total",
+        "snapshot",
+        "created_by",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "custom_opportunity_tags": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "opportunity_id",
+        "tag_id",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "daily_shortlists": {
+      "parents": [
+        "profile_id"
+      ],
+      "columns": [
+        "id",
+        "date",
+        "profile_id",
+        "items",
+        "total_candidates",
+        "items_count",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "deadline_alerts": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "alert_type",
+        "scheduled_for",
+        "status",
+        "sent_at",
+        "error_message",
+        "channels",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "deals": {
+      "parents": [
+        "client_id"
+      ],
+      "columns": [
+        "id",
+        "client_id",
+        "title",
+        "status",
+        "value",
+        "next_action_date",
+        "last_contact_at",
+        "owner_id",
+        "source",
+        "tags",
+        "notes",
+        "legacy_opportunity_id",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "deliverables": {
+      "parents": [
+        "project_id"
+      ],
+      "columns": [
+        "id",
+        "project_id",
+        "name",
+        "type",
+        "status",
+        "due_date",
+        "link",
+        "drive_file_id",
+        "notes",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_artists": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "canonical_name",
+        "normalized_name",
+        "viberate_url",
+        "spotify_artist_id",
+        "instagram_url",
+        "tiktok_url",
+        "youtube_url",
+        "image_url",
+        "genres",
+        "country",
+        "created_at",
+        "updated_at",
+        "last_enriched_at",
+        "data_quality",
+        "last_quality_reason",
+        "is_deleted"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_candidates": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "artist_id",
+        "candidate_type",
+        "rank_score",
+        "reasons",
+        "computed_at",
+        "ttl_expires_at",
+        "segment_key"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_comparison_items": {
+      "parents": [
+        "list_id"
+      ],
+      "columns": [
+        "list_id",
+        "artist_id",
+        "added_at",
+        "order_index"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_comparison_lists": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "created_by",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_computed_metrics": {
+      "parents": [
+        "artist_id"
+      ],
+      "columns": [
+        "id",
+        "artist_id",
+        "computed_at",
+        "score",
+        "timing_bucket",
+        "recommendation",
+        "drivers",
+        "penalties",
+        "monthly_listeners_series",
+        "velocity",
+        "acceleration",
+        "signals",
+        "patterns",
+        "fee_estimate_min",
+        "fee_estimate_max",
+        "confidence_index",
+        "data_quality",
+        "last_updated_by_source",
+        "algo_version",
+        "monthly_listeners",
+        "spotify_followers",
+        "instagram_followers",
+        "tiktok_followers",
+        "youtube_subscribers",
+        "total_social_followers"
+      ],
+      "excluded_columns": []
+    },
+    "discovery_enrichment_jobs": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "requested_by",
+        "input_type",
+        "input_value",
+        "artist_id",
+        "status",
+        "current_step",
+        "progress_pct",
+        "error_code",
+        "error_message",
+        "created_at",
+        "updated_at",
+        "started_at",
+        "completed_at"
+      ],
+      "excluded_columns": [
+        "celery_task_id",
+        "logs_ref"
+      ]
+    },
+    "discovery_snapshots": {
+      "parents": [
+        "artist_id"
+      ],
+      "columns": [
+        "id",
+        "artist_id",
+        "source",
+        "fetched_at",
+        "ttl_expires_at",
+        "status",
+        "error_code",
+        "error_message",
+        "raw_payload",
+        "parser_version"
+      ],
+      "excluded_columns": []
+    },
+    "documents": {
+      "parents": [
+        "entity_id"
+      ],
+      "columns": [
+        "id",
+        "entity_id",
+        "source_config_id",
+        "source_name",
+        "source_url",
+        "title",
+        "url",
+        "snippet",
+        "full_content",
+        "fingerprint",
+        "published_at",
+        "fetched_at",
+        "is_processed",
+        "processed_at"
+      ],
+      "excluded_columns": []
+    },
+    "dossier_evidence": {
+      "parents": [
+        "dossier_id"
+      ],
+      "columns": [
+        "id",
+        "dossier_id",
+        "field_key",
+        "value",
+        "provenance",
+        "evidence_type",
+        "evidence_ref",
+        "source_document_id",
+        "evidence_snippet",
+        "confidence",
+        "source_url",
+        "retrieved_at",
+        "retrieval_method",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "dossiers": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "state",
+        "summary_short",
+        "summary_long",
+        "key_points",
+        "action_checklist",
+        "extracted_fields",
+        "confidence_plus",
+        "quality_flags",
+        "missing_fields",
+        "sources_used",
+        "score_final",
+        "gpt_model_used",
+        "tokens_used",
+        "processing_time_ms",
+        "last_error",
+        "retry_count",
+        "created_at",
+        "updated_at",
+        "processed_at",
+        "enriched_at"
+      ],
+      "excluded_columns": []
+    },
+    "dossiers_v2": {
+      "parents": [
+        "lead_item_id"
+      ],
+      "columns": [
+        "id",
+        "lead_item_id",
+        "objective",
+        "target_entities",
+        "state",
+        "sections",
+        "summary",
+        "key_findings",
+        "recommendations",
+        "quality_score",
+        "quality_breakdown",
+        "tokens_used",
+        "model_used",
+        "processing_time_ms",
+        "error_message",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "drive_folder_map": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "folder_type",
+        "project_id",
+        "drive_folder_id",
+        "drive_parent_id",
+        "folder_name",
+        "folder_path",
+        "created_at",
+        "updated_at",
+        "last_verified_at"
+      ],
+      "excluded_columns": [
+        "google_account_id"
+      ]
+    },
+    "entities": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "normalized_name",
+        "entity_type",
+        "aliases",
+        "official_urls",
+        "description",
+        "image_url",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "evidence": {
+      "parents": [
+        "lead_item_id",
+        "dossier_id"
+      ],
+      "columns": [
+        "id",
+        "lead_item_id",
+        "dossier_id",
+        "source_document_id",
+        "field_name",
+        "value",
+        "quote",
+        "url",
+        "provenance",
+        "confidence",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "extracts": {
+      "parents": [
+        "document_id"
+      ],
+      "columns": [
+        "id",
+        "document_id",
+        "summary",
+        "contacts_found",
+        "entities_found",
+        "event_signals",
+        "opportunity_type",
+        "confidence",
+        "raw_json",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "favorites": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "user_id",
+        "opportunity_id",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "inbox_items": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "created_by",
+        "text",
+        "link",
+        "type",
+        "tags",
+        "status",
+        "due_date",
+        "triaged_to_type",
+        "triaged_to_id",
+        "triaged_at",
+        "triaged_by",
+        "mentioned_client",
+        "mentioned_project",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "ingestion_runs": {
+      "exclude": "Shared ingestion monitoring, not workspace-owned."
+    },
+    "invoice_items": {
+      "parents": [
+        "invoice_id"
+      ],
+      "columns": [
+        "id",
+        "invoice_id",
+        "position",
+        "description",
+        "quantity",
+        "unit",
+        "unit_price",
+        "line_total"
+      ],
+      "excluded_columns": []
+    },
+    "invoices": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "reference",
+        "client_id",
+        "opportunity_id",
+        "source_quote_id",
+        "credited_at",
+        "status",
+        "issue_date",
+        "due_date",
+        "paid_date",
+        "title",
+        "description",
+        "subtotal",
+        "tax_rate",
+        "tax_amount",
+        "total",
+        "amount_paid",
+        "payment_method",
+        "discount_percent",
+        "discount_amount",
+        "drive_doc_id",
+        "drive_pdf_id",
+        "drive_web_view_link",
+        "drive_folder_id",
+        "audit_log",
+        "legal_details",
+        "issued_at",
+        "issued_snapshot",
+        "sent_at",
+        "sent_to_email",
+        "terms",
+        "notes",
+        "created_by_id",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "lead_items": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "kind",
+        "title",
+        "description",
+        "organization_name",
+        "url_primary",
+        "source_id",
+        "source_name",
+        "source_type",
+        "published_at",
+        "deadline_at",
+        "location_city",
+        "location_region",
+        "location_country",
+        "budget_min",
+        "budget_max",
+        "budget_currency",
+        "contact_email",
+        "contact_phone",
+        "contact_url",
+        "contact_name",
+        "score_base",
+        "score_breakdown",
+        "status",
+        "tags",
+        "assigned_to",
+        "canonical_hash",
+        "metadata",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "legal_acceptances": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "bundle_id",
+        "accepted_by",
+        "representative",
+        "workspace_name",
+        "plan",
+        "commercial_reference",
+        "content_hash",
+        "accepted_at"
+      ],
+      "excluded_columns": []
+    },
+    "legal_bundles": {
+      "exclude": "Only published versions accepted by this workspace are included in accepted_contract_versions; other platform versions are excluded."
+    },
+    "opportunities": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "external_id",
+        "source_type",
+        "source_name",
+        "source_config_id",
+        "title",
+        "category",
+        "organization",
+        "description",
+        "snippet",
+        "url_primary",
+        "urls_all",
+        "published_at",
+        "deadline_at",
+        "location_city",
+        "location_region",
+        "location_country",
+        "budget_amount",
+        "budget_currency",
+        "budget_hint",
+        "contact_email",
+        "contact_phone",
+        "contact_url",
+        "score",
+        "score_breakdown",
+        "status",
+        "assigned_to_user_id",
+        "possible_duplicate",
+        "duplicate_of_id",
+        "raw_content_hash",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_cluster_members": {
+      "parents": [
+        "cluster_id"
+      ],
+      "columns": [
+        "id",
+        "cluster_id",
+        "opportunity_id",
+        "similarity_score",
+        "match_type",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_clusters": {
+      "parents": [
+        "canonical_opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "canonical_opportunity_id",
+        "cluster_score",
+        "member_count",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_notes": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "author_id",
+        "content",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_profile_scores": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "profile_id",
+        "fit_score",
+        "reasons",
+        "computed_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_tag_associations": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "opportunity_id",
+        "tag_id"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_tags": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "color",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "opportunity_tasks": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "assigned_to_id",
+        "title",
+        "description",
+        "due_date",
+        "status",
+        "created_at",
+        "updated_at",
+        "completed_at"
+      ],
+      "excluded_columns": []
+    },
+    "privacy_requests": {
+      "exclude": "Personal rights requests are not a shared workspace dataset; personal export remains separate."
+    },
+    "production_event_artists": {
+      "parents": [
+        "event_id"
+      ],
+      "columns": [
+        "id",
+        "event_id",
+        "artist_id"
+      ],
+      "excluded_columns": []
+    },
+    "production_event_expenses": {
+      "parents": [
+        "event_id"
+      ],
+      "columns": [
+        "id",
+        "event_id",
+        "description",
+        "amount"
+      ],
+      "excluded_columns": []
+    },
+    "production_events": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "project_id",
+        "name",
+        "venue",
+        "starts_at",
+        "ends_at",
+        "forecast_budget",
+        "archived"
+      ],
+      "excluded_columns": []
+    },
+    "profiles": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "description",
+        "is_active",
+        "keywords_include",
+        "keywords_exclude",
+        "regions",
+        "cities",
+        "budget_min",
+        "budget_max",
+        "objectives",
+        "weights",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "project_activity_logs": {
+      "parents": [
+        "project_id"
+      ],
+      "columns": [
+        "id",
+        "project_id",
+        "message",
+        "activity_type",
+        "created_at",
+        "created_by"
+      ],
+      "excluded_columns": []
+    },
+    "projects": {
+      "direct": true,
+      "columns": [
+        "id",
+        "client_id",
+        "deal_id",
+        "name",
+        "status",
+        "deadline",
+        "budget",
+        "owner_id",
+        "workspace_id",
+        "description",
+        "drive_folder_id",
+        "brief_doc_id",
+        "report_sheet_id",
+        "drive_folder_assets",
+        "drive_folder_brief",
+        "drive_folder_production",
+        "drive_folder_postprod",
+        "drive_folder_exports",
+        "drive_folder_admin",
+        "drive_folder_livrables",
+        "drive_folder_archive",
+        "next_action_text",
+        "next_action_due_date",
+        "blocked_reason",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "quote_items": {
+      "parents": [
+        "quote_id"
+      ],
+      "columns": [
+        "id",
+        "quote_id",
+        "position",
+        "description",
+        "quantity",
+        "unit",
+        "unit_price",
+        "line_total"
+      ],
+      "excluded_columns": []
+    },
+    "quotes": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "reference",
+        "client_id",
+        "opportunity_id",
+        "status",
+        "issue_date",
+        "validity_date",
+        "title",
+        "description",
+        "subtotal",
+        "tax_rate",
+        "tax_amount",
+        "total",
+        "discount_percent",
+        "discount_amount",
+        "terms",
+        "notes",
+        "invoice_id",
+        "drive_doc_id",
+        "drive_pdf_id",
+        "drive_web_view_link",
+        "drive_folder_id",
+        "audit_log",
+        "sent_at",
+        "sent_to_email",
+        "created_by_id",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": []
+    },
+    "scoring_rules": {
+      "exclude": "Platform configuration, not workspace-owned."
+    },
+    "source_configs": {
+      "exclude": "Shared source configuration may contain provider credentials."
+    },
+    "source_documents": {
+      "parents": [
+        "opportunity_id"
+      ],
+      "columns": [
+        "id",
+        "opportunity_id",
+        "doc_type",
+        "raw_text",
+        "raw_html",
+        "raw_metadata",
+        "source_url",
+        "fetched_at",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "source_documents_v2": {
+      "parents": [
+        "lead_item_id",
+        "collection_id",
+        "dossier_id"
+      ],
+      "columns": [
+        "id",
+        "lead_item_id",
+        "collection_id",
+        "dossier_id",
+        "source_id",
+        "url",
+        "doc_type",
+        "raw_html",
+        "raw_text",
+        "storage_path",
+        "content_hash",
+        "fetched_at",
+        "metadata",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "source_health": {
+      "exclude": "Shared provider monitoring, not workspace-owned."
+    },
+    "spotify_search_jobs": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "query",
+        "limit",
+        "status",
+        "current_step",
+        "progress_pct",
+        "results_count",
+        "started_at",
+        "completed_at",
+        "error_message",
+        "error_code"
+      ],
+      "excluded_columns": [
+        "celery_task_id"
+      ]
+    },
+    "spotify_search_results": {
+      "parents": [
+        "job_id"
+      ],
+      "columns": [
+        "id",
+        "job_id",
+        "spotify_id",
+        "name",
+        "image_url",
+        "spotify_url",
+        "followers",
+        "popularity",
+        "monthly_listeners",
+        "monthly_listeners_source",
+        "genres",
+        "label",
+        "management",
+        "social_stats",
+        "rank",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "subscription_requests": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "requested_by",
+        "kind",
+        "requested_value",
+        "status",
+        "created_at",
+        "decided_by",
+        "decided_at",
+        "authorization_reference",
+        "contract_acceptance_id",
+        "previous_plan"
+      ],
+      "excluded_columns": []
+    },
+    "tags": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "color",
+        "icon",
+        "user_id",
+        "is_system",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "users": {
+      "exclude": "Global accounts; only a minimal workspace member directory is included separately."
+    },
+    "web_enrichment_runs": {
+      "parents": [
+        "dossier_id"
+      ],
+      "columns": [
+        "id",
+        "dossier_id",
+        "status",
+        "target_fields",
+        "fields_found",
+        "fields_not_found",
+        "actors_used",
+        "urls_consulted",
+        "started_at",
+        "completed_at",
+        "duration_ms",
+        "errors"
+      ],
+      "excluded_columns": []
+    },
+    "workspace_invites": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "email",
+        "role",
+        "invited_by",
+        "claimed",
+        "claimed_at",
+        "claimed_by_user_id",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "workspace_members": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "user_id",
+        "role",
+        "invited_by",
+        "invited_at",
+        "accepted_at",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "workspaces": {
+      "workspace_record": true,
+      "columns": [
+        "id",
+        "name",
+        "owner_user_id",
+        "drive_root_folder_id",
+        "templates_folder_id",
+        "brief_template_doc_id",
+        "report_template_sheet_id",
+        "devis_template_doc_id",
+        "facture_template_doc_id",
+        "calendar_id",
+        "legal_name",
+        "legal_address",
+        "legal_city",
+        "legal_postal_code",
+        "legal_country",
+        "legal_phone",
+        "legal_email",
+        "siret",
+        "vat_number",
+        "forme_juridique",
+        "capital_social",
+        "rcs_city",
+        "tva_franchise",
+        "logo_drive_file_id",
+        "payment_info",
+        "plan",
+        "enabled_packs",
+        "addons",
+        "max_seats",
+        "billing_email",
+        "plan_expires_at",
+        "created_at",
+        "updated_at"
+      ],
+      "excluded_columns": [
+        "settings",
+        "stripe_customer_id",
+        "stripe_subscription_id"
+      ]
+    }
+  }
+}

@@ -26,7 +26,7 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 # Association table for opportunity-tags many-to-many
 # Use extend_existing to avoid conflicts if already defined elsewhere
 opportunity_tags = Table(
-    'opportunity_tags',
+    'custom_opportunity_tags',
     Base.metadata,
     Column('opportunity_id', Integer, ForeignKey('opportunities.id', ondelete='CASCADE'), primary_key=True),
     Column('tag_id', Integer, ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True),
@@ -41,6 +41,7 @@ class Tag(Base):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     color = Column(String(20), default="#3B82F6")  # Tailwind blue-500
     icon = Column(String(50), nullable=True)  # Optional emoji or icon name
@@ -84,6 +85,7 @@ class Favorite(Base):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     opportunity_id = Column(Integer, ForeignKey("opportunities.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -96,13 +98,13 @@ class Favorite(Base):
 class TagCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     color: str = Field(default="#3B82F6", pattern=r"^#[0-9A-Fa-f]{6}$")
-    icon: Optional[str] = None
+    icon: Optional[str] = Field(None, max_length=50)
 
 
 class TagUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     color: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
-    icon: Optional[str] = None
+    icon: Optional[str] = Field(None, max_length=50)
 
 
 class TagResponse(BaseModel):
@@ -152,7 +154,7 @@ def list_tags(
     
     result = []
     for tag in tags:
-        count = len(tag.opportunities) if tag.opportunities else 0
+        count = tag.opportunities.count()
         result.append({
             "id": tag.id,
             "name": tag.name,
@@ -188,7 +190,8 @@ def create_tag(
         name=data.name,
         color=data.color,
         icon=data.icon,
-        user_id=current_user.id
+        user_id=current_user.id,
+        workspace_id=db.info["workspace_id"],
     )
     db.add(tag)
     db.commit()
@@ -238,7 +241,7 @@ def update_tag(
         "color": tag.color,
         "icon": tag.icon,
         "is_system": tag.is_system,
-        "opportunities_count": len(tag.opportunities)
+        "opportunities_count": tag.opportunities.count()
     }
 
 
@@ -285,8 +288,8 @@ def add_tag_to_opportunity(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    if tag not in opportunity.tags:
-        opportunity.tags.append(tag)
+    if tag not in opportunity.opportunity_tags_rel:
+        opportunity.opportunity_tags_rel.append(tag)
         db.commit()
     
     return {"status": "added"}
@@ -311,8 +314,8 @@ def remove_tag_from_opportunity(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    if tag in opportunity.tags:
-        opportunity.tags.remove(tag)
+    if tag in opportunity.opportunity_tags_rel:
+        opportunity.opportunity_tags_rel.remove(tag)
         db.commit()
     
     return {"status": "removed"}
@@ -330,7 +333,7 @@ def get_opportunity_tags(
         raise HTTPException(status_code=404, detail="Opportunity not found")
     
     # Filter to user's tags only
-    user_tags = [t for t in opportunity.tags if t.user_id == current_user.id]
+    user_tags = [t for t in opportunity.opportunity_tags_rel if t.user_id == current_user.id]
     
     return [
         {
@@ -490,6 +493,8 @@ def get_comments_count(
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, int]:
     """Get comment count for an opportunity"""
+    if not db.query(Opportunity.id).filter(Opportunity.id == opportunity_id).first():
+        raise HTTPException(status_code=404, detail="Opportunity not found")
     count = db.query(Comment).filter(
         Comment.opportunity_id == opportunity_id
     ).count()
@@ -538,7 +543,8 @@ def add_favorite(
     
     favorite = Favorite(
         user_id=current_user.id,
-        opportunity_id=opportunity_id
+        opportunity_id=opportunity_id,
+        workspace_id=db.info["workspace_id"],
     )
     db.add(favorite)
     db.commit()

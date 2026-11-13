@@ -1,0 +1,16 @@
+connector_or_category,observed_in_repository,production_activation,legal_role,actual_contracting_entity,countries_and_remote_access,contract_and_transfer_evidence,required_action
+Hosting and PostgreSQL,Next.js FastAPI PostgreSQL Docker deployment,unknown,To qualify,Not provided,Not provided,Not provided,Choose infrastructure and document actual hosting backup support and security
+Google Drive Calendar OAuth,Google integration services and workspace models,unknown,To qualify by processing,Not provided,Not provided,Not provided,Identify account owners scopes DPA transfers retention revocation and file handover
+OpenAI,openai_api_key and AI services,unknown,To qualify,Not provided,Not provided,Not provided,Identify data sent model terms retention training settings DPA and transfers
+Groq,groq_api_key configuration,unknown,To qualify,Not provided,Not provided,Not provided,Confirm whether used before listing as an active provider
+Tavily,tavily_api_key configuration and enrichment,unknown,To qualify,Not provided,Not provided,Not provided,Confirm search payloads recipient role contract retention and transfers
+Resend,email service and resend_api_key,unknown,To qualify,Not provided,Not provided,Not provided,Choose actual email entity contract countries recipient and delivery error tests
+Spotify,artist search and collection services,unknown,Data source or other role to qualify,Not provided,Not provided,Not provided,Review access terms reuse permissions artist information and actual collected data
+YouTube Google API,youtube_api_key and collection services,unknown,To qualify,Not provided,Not provided,Not provided,Confirm API access terms purposes and retention
+Instagram TikTok,public social collection and profile services,unknown,Data source or other role to qualify,Not provided,Not provided,Not provided,Review lawful access public personal data information objections and supplier conditions
+Deezer MusicBrainz,artist enrichment services,unknown,Data source or other role to qualify,Not provided,Not provided,Not provided,Review license terms provenance data fields and retention
+Ticketmaster,ticketmaster_api_key and event collection,unknown,To qualify,Not provided,Not provided,Not provided,Review data license reuse personal data and collection failures
+Google Analytics,consent-gated frontend script,unknown,To qualify,Not provided,Not provided,Not provided,Confirm activation consent data flows contract transfer safeguards and real network audit
+Payment provider,administrative activation and manual payment declarations only,Not demonstrated,To qualify,Not provided,Not provided,Not provided,Do not claim real collection until provider chosen and webhooks verified
+Approved e-invoicing platform,provider-neutral JSON dossier only,Not connected,To qualify,Not provided,Not provided,Not provided,Select approved provider and validate actual adapter regulatory formats statuses and archiving
+Banking connections,existing code commercially disabled,Disabled in public offer,To qualify if later enabled,Not provided,Not provided,Not provided,Keep disabled until need authorization security integration and tests validated

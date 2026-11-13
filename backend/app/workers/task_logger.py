@@ -246,10 +246,7 @@ def on_task_prerun(task_id, task, args, kwargs, **rest):
     task_name = task.name.split('.')[-1]  # Juste le nom court
     print(f"\n{Colors.BLUE}{'='*60}{Colors.RESET}", flush=True)
     print(format_log(LogLevel.INFO, "celery", f"▶️  TASK START: {task_name}", task_id), flush=True)
-    if args:
-        print(f"{Colors.GRAY}   Args: {args}{Colors.RESET}", flush=True)
-    if kwargs:
-        print(f"{Colors.GRAY}   Kwargs: {kwargs}{Colors.RESET}", flush=True)
+    # Payloads can contain customer data, credentials and URLs. Log metadata only.
 
 
 @task_postrun.connect  
@@ -267,23 +264,21 @@ def on_task_success(sender, result, **kwargs):
     task_id = sender.request.id
     task_name = sender.name.split('.')[-1]
     print(format_log(LogLevel.SUCCESS, "celery", f"✅ {task_name} terminé avec succès", task_id), flush=True)
-    if result and isinstance(result, dict):
-        for k, v in result.items():
-            print(f"{Colors.GRAY}   └─ {k}: {v}{Colors.RESET}", flush=True)
+    # Never print task result bodies into shared worker logs.
 
 
 @task_failure.connect
 def on_task_failure(task_id, exception, traceback, einfo, **kwargs):
     """Log échec d'une tâche"""
     print(f"\n{Colors.BG_RED}{Colors.WHITE}{Colors.BOLD} ❌ TASK FAILED {Colors.RESET}", flush=True)
-    print(format_log(LogLevel.ERROR, "celery", f"Exception: {exception}", task_id), flush=True)
-    print(f"{Colors.RED}{traceback}{Colors.RESET}", flush=True)
+    print(format_log(LogLevel.ERROR, "celery", f"Exception category: {type(exception).__name__}", task_id), flush=True)
+    # Error payloads may embed credentials/SQL bind values; correlate using task_id.
 
 
 @task_retry.connect
 def on_task_retry(request, reason, einfo, **kwargs):
     """Log retry d'une tâche"""
-    print(format_log(LogLevel.WARNING, "celery", f"🔄 RETRY: {reason}", request.id), flush=True)
+    print(format_log(LogLevel.WARNING, "celery", f"🔄 RETRY category: {type(reason).__name__}", request.id), flush=True)
 
 
 # ================================================================
