@@ -299,3 +299,16 @@ async def test_legacy_scan_does_not_shortcut_to_static_artist_numbers(monkeypatc
     assert result.spotify_monthly_listeners == 0
     assert result.sources_scanned == []
     assert "Base de données artistes FR" not in result.sources_scanned
+
+
+def test_vat_exempt_issuer_cannot_issue_taxed_invoice(
+    client, db_session, actors, headers, invoice
+):
+    actors[1][0].tva_franchise = True
+    db_session.commit()
+    url = f"/api/v1/billing/invoices/{invoice['id']}"
+    assert client.post(url + "/send", headers=headers()).status_code == 422
+    updated = client.patch(url, headers=headers(), json={"tax_rate": "0"})
+    assert updated.status_code == 200
+    assert updated.json()["total"] == "100.00"
+    assert client.post(url + "/send", headers=headers()).status_code == 200

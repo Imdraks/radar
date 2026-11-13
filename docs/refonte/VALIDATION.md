@@ -69,7 +69,7 @@ Les collectes réelles Instagram et TikTok, leurs limites de précision et le bl
 Voir [COMMERCIAL-HARDENING.md](COMMERCIAL-HARDENING.md) et [RELEASE-RECOVERY.md](RELEASE-RECOVERY.md).
 
 - Installation complète des dépendances Python dans un venv neuf : réussie ; `pip check` ne signale aucun conflit. Celery 5.7.0, Kombu 5.7.0, Redis client 8.1.0 et python-dateutil 2.9.0.post0 sont compatibles. L’ancien assemblage Redis client 5.0.1/Kombu 5.7.0 échouait réellement au démarrage du worker.
-- Suite backend : **167 cas passent** sur PostgreSQL jetable avec les dépendances finales. Les avertissements de dépréciation restent une dette technique ; les clés faibles signalées appartiennent exclusivement à la configuration TESTING.
+- Suite backend : **168 cas passent** sur PostgreSQL jetable avec les dépendances finales. Les avertissements de dépréciation restent une dette technique ; les clés faibles signalées appartiennent exclusivement à la configuration TESTING.
 - Six chemins Alembic testés : base vide, 020 inbox, 010 billing, 032, 043 et 050 vers la tête 052. Données sentinelles et template conservés, second upgrade idempotent, présence des tables/colonnes mappées vérifiée.
 - La base construite par Alembic fait aussi l’objet d’une recette API : vrai login local, projet et détail, événement, émission/paiement/PDF d’une facture et rejet du retour en brouillon. L’appel Google de création de dossier est neutralisé explicitement ; aucune intégration Google n’est déclarée validée.
 - Quatre échanges réels de tâches de test avec worker et Redis jetables réussis : celery, dossier_builder_gpt, ingestion_standard, web_enrichment. Aucun fournisseur externe invoqué.

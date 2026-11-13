@@ -6,7 +6,7 @@ def ready_to_issue(db, workspace, invoice_id):
     from app.db.models.billing import Invoice
     workspace.legal_name='TEST — Agency'; workspace.legal_address='1 rue de test'
     workspace.legal_city='Paris';workspace.legal_postal_code='75001';workspace.legal_country='France'
-    workspace.siret='12345678901234';workspace.tva_franchise=True;workspace.vat_number='FR12345678901'
+    workspace.siret='12345678901234';workspace.tva_franchise=False;workspace.vat_number='FR12345678901'
     client=BillingClient(workspace_id=workspace.id,name='TEST customer',address_line1='2 rue de test',city='Paris',postal_code='75002',country='France')
     db.add(client);db.flush()
     invoice=db.get(Invoice,invoice_id);invoice.client_id=client.id;db.commit()

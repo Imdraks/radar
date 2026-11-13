@@ -41,7 +41,8 @@ def run(engine):
             legal_postal_code="75001",
             legal_country="France",
             siret="12345678901234",
-            tva_franchise=True,
+            tva_franchise=False,
+            vat_number="FR12345678901",
         )
         db.add(ws)
         db.flush()

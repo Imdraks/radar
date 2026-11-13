@@ -114,6 +114,10 @@ def issue(db, invoice, user_id, email=None):
             for f in ("name", "address_line1", "city", "postal_code", "country")
             if not getattr(client, f, None)
         ]
+    if workspace and workspace.tva_franchise and invoice.tax_rate != 0:
+        raise HTTPException(
+            422, "La franchise de TVA impose un taux nul avant émission"
+        )
     if not invoice.items:
         missing.append("lignes")
     if missing:
