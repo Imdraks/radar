@@ -15,7 +15,8 @@ import api from "@/lib/api";
 
 const setupSchema = z.object({
   email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Minimum 6 caractères"),
+  password: z.string().min(8, "Minimum 8 caractères, avec majuscule, minuscule, chiffre et symbole"),
+  bootstrapToken: z.string().min(1, "Jeton d’initialisation requis"),
   confirmPassword: z.string(),
   full_name: z.string().min(2, "Nom requis"),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -47,15 +48,18 @@ export default function SetupPage() {
   const checkSetup = async () => {
     try {
       const response = await api.get("/auth/setup-check");
-      if (response.data.needs_setup) {
+      if (response.data.needs_setup && !response.data.setup_enabled) {
+        setError("L’administrateur doit être créé par l’opérateur de la plateforme avant l’ouverture du service.");
+        setNeedsSetup(false);
+      } else if (response.data.needs_setup) {
         setNeedsSetup(true);
       } else {
         // Setup already done, redirect to login
         router.push("/login");
       }
     } catch (err) {
-      // If API not available, still show setup
-      setNeedsSetup(true);
+      setNeedsSetup(false);
+      setError("Impossible de vérifier la disponibilité de l’initialisation.");
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +72,7 @@ export default function SetupPage() {
         email: data.email,
         password: data.password,
         full_name: data.full_name,
-      });
+      }, { headers: { "X-Radar-Bootstrap-Token": data.bootstrapToken } });
       setSuccess(true);
       setTimeout(() => {
         router.push("/login");
@@ -87,7 +91,7 @@ export default function SetupPage() {
   }
 
   if (!needsSetup) {
-    return null;
+    return <main className="mx-auto max-w-xl p-8"><h1>Initialisation Radar</h1><p role="alert">{error || "Initialisation déjà effectuée."}</p></main>;
   }
 
   if (success) {
@@ -120,6 +124,11 @@ export default function SetupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bootstrapToken">Jeton d’initialisation</Label>
+              <Input id="bootstrapToken" type="password" autoComplete="off" {...register("bootstrapToken")} />
+              {errors.bootstrapToken && <p role="alert">{errors.bootstrapToken.message}</p>}
+            </div>
             {error && (
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
                 {error}

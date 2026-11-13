@@ -240,7 +240,8 @@ export default function InvoicesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount_paid: parseFloat(payment.amount),
+          amount_paid: (Number(selectedInvoice?.amount_paid || 0) + Number(payment.amount)).toFixed(2),
+          expected_amount_paid: Number(selectedInvoice?.amount_paid || 0).toFixed(2),
           payment_method: payment.method,
         }),
       });
@@ -306,6 +307,7 @@ export default function InvoicesPage() {
     <ProtectedRoute>
       <AppLayoutWithOnboarding>
         <div className="space-y-7">
+          <p role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Les paiements sont déclarés manuellement. La transmission à une plateforme agréée de facturation électronique n’est pas activée. Une facture émise est figée ; conservez son original.</p>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>

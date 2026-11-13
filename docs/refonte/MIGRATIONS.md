@@ -30,15 +30,25 @@ Les champs legacy restent stockés pour l’historique et les intégrations ; il
 
 Ces garde-fous sont intentionnels : un downgrade ne doit pas effacer silencieusement les données métier ni les preuves d’autorisation. Les tests exécutent les upgrades et retours arrière possibles sur une base jetable.
 
-## Blocage historique constaté
+## Réparation du blocage historique — 13 novembre 2026
 
-Un `alembic upgrade head` sur une base PostgreSQL entièrement neuve échoue avant les nouvelles migrations, dans **032_billing_enhancements** : `devis_template_doc_id` existe déjà depuis 020. Un essai de diagnostic avec garde sur les colonnes a ensuite mis en évidence que `quotes` n’existait pas encore : 032 ne dépend pas de la branche 010_billing. Ces modifications de diagnostic ne sont pas conservées.
+La demande de correction de l’audit autorise désormais la réparation sur la branche de travail. Aucun schéma de production n’a été modifié. Les identifiants et parents `down_revision` restent identiques :
 
-La réparation envisagée pour revue est : rendre l’ajout de colonnes de 032 compatible avec celles déjà créées en 020, imposer la création de workspaces avant 010_billing et celle des tables de facturation avant 032, puis vérifier le graphe et les chemins des installations déjà migrées. **Aucun de ces changements historiques n’est inclus.**
+- 010 déclare une dépendance sur `020_workspace_inbox`, qui crée workspaces avant ses clés étrangères.
+- 032 dépend de 010 ; ses ajouts de colonnes sont conditionnels, car 020 possède déjà certaines colonnes. Aucune valeur existante n’est écrasée.
+- Le graphe est acyclique, avec une seule tête. Six parcours — vide, 020 inbox, 010 billing, 032, 043 et 050 — sont testés dans de nouvelles bases avec conservation d’un propriétaire, workspace et identifiant de template. Un second upgrade est sans effet.
+- Le downgrade de 032 refuse de retirer les colonnes communes à 020 : une restauration vérifiée et revue est nécessaire pour revenir derrière cette étape sans perdre de données.
 
-La revue automatique a rejeté la réécriture de ces dépendances historiques, jugeant le risque élevé pour les déploiements existants et demandant une autorisation spécifique. Il faut cette autorisation avant de reprendre cette réparation. Les migrations additives et leurs tests restent indépendants de cette décision.
-
+Ces tests couvrent des états reconstruits depuis les migrations. Ils ne garantissent pas l’état d’un ancien serveur modifié manuellement ; restaurer et examiner sa sauvegarde avant toute reprise. Ne pas changer arbitrairement les révisions enregistrées avec `stamp`.
 
 ## 050 — Propriété des collectes historiques
 
 Ajout nullable de `collection_runs.workspace_id`, index et clé étrangère. Les anciens runs sont conservés sans attribution inventée ; les API d’agence les masquent tant qu’un rapprochement fiable n’a pas été effectué. Les nouveaux runs portent le workspace authentifié. Les workers refusent les runs non attribués. Downgrade automatique uniquement avant toute attribution ; ensuite, archivage et procédure manuelle nécessaires pour conserver la propriété. Cette migration ne répare ni ne réécrit le graphe historique bloqué.
+
+## 051 — Photographie des factures émises
+
+Ajoute `invoices.issued_at` et `issued_snapshot`, nullables. Les nouveaux documents photographient émetteur et client au passage en SENT. Les anciens documents restent présents sans photographie inventée ; leur régénération est refusée, leur original reste la référence. Le downgrade refuse de supprimer une preuve d’émission existante.
+
+## 052 — Alignement du schéma historique
+
+Ajoute si absents `collection_runs.brief_id` (UUID nullable, lien vers briefs) et `comments.is_internal` (booléen, true pour préserver la confidentialité historique). Aucun lien historique n’est deviné. Les champs sont conservés au downgrade ; celui-ci refuse si des liens ou visibilités personnalisées devraient être archivés. Ce retour est volontairement non destructeur et ne reconstitue donc pas à l’identique l’ancien schéma physique.

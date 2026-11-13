@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import legal from "@/config/legal.json";
 import { RadarLogo } from "@/components/brand/RadarBrand";
 import { ArrowLeft, Shield, Database, Settings, Globe, Lock, UserCheck, Cookie, Mail, RefreshCw } from "lucide-react";
 
@@ -86,8 +87,7 @@ export default function PrivacyPage() {
             ))}
           </div>
           <p className="mt-3">
-            Nous n&apos;accédons qu&apos;aux données strictement nécessaires et ne partageons jamais
-            vos données avec des tiers.
+            Les intégrations que vous activez transmettent les données nécessaires aux prestataires concernés. Les services, finalités, lieux de traitement et garanties applicables doivent figurer dans l’accord de traitement des données de votre organisation.
           </p>
         </>
       ),
@@ -98,7 +98,7 @@ export default function PrivacyPage() {
       title: "Stockage et sécurité",
       content: (
         <p>
-          Vos données sont stockées sur des <strong className="text-gray-900">serveurs sécurisés situés en Europe</strong>.
+          Le lieu d’hébergement et les sous-traitants sont précisés dans les informations contractuelles de l’instance. Aucun hébergement en Europe n’est garanti par cette version de validation.
           Nous utilisons le chiffrement SSL/TLS pour toutes les communications
           et appliquons les meilleures pratiques de sécurité pour protéger vos informations.
         </p>
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
             ))}
           </div>
           <p className="mt-3">
-            Pour exercer ces droits : <strong className="text-gray-900">contact@radarapp.fr</strong>
+            Pour exercer ces droits : <strong className="text-gray-900">{legal.privacyContact || legal.contactEmail || "Contact à renseigner"}</strong>
           </p>
         </>
       ),
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             <div className="flex flex-col rounded-lg bg-gray-50 p-3">
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Email</span>
-              <span className="text-sm text-gray-900 mt-1">contact@radarapp.fr</span>
+              <span className="text-sm text-gray-900 mt-1">{legal.privacyContact || legal.contactEmail || "Contact à renseigner"}</span>
             </div>
             <div className="flex flex-col rounded-lg bg-gray-50 p-3">
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Site</span>

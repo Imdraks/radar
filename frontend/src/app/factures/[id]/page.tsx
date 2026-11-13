@@ -442,7 +442,8 @@ export default function InvoiceDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount_paid: parseFloat(payment.amount),
+          amount_paid: (Number(invoice?.amount_paid || 0) + Number(payment.amount)).toFixed(2),
+          expected_amount_paid: Number(invoice?.amount_paid || 0).toFixed(2),
           payment_method: payment.method,
         }),
       });
@@ -485,7 +486,7 @@ export default function InvoiceDetailPage() {
     return null;
   }
 
-  const isEditable = invoice.status !== 'PAID' && invoice.status !== 'CANCELLED';
+  const isEditable = invoice.status === 'DRAFT';
   const remaining = Number(invoice.total) - Number(invoice.amount_paid);
   const paymentProgress = Number(invoice.total) > 0 
     ? (Number(invoice.amount_paid) / Number(invoice.total)) * 100 

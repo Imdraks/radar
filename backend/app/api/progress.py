@@ -20,14 +20,11 @@ router = APIRouter(prefix="/progress", tags=["Progress"])
 
 
 def progress_identity(
-    token: Optional[str] = Query(None),
     workspace_id: Optional[int] = Query(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ):
-    # EventSource cannot set Authorization; query tokens are accepted only on this router.
-    if credentials is None and token:
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    # Streaming fetch sends Authorization. Query strings never authenticate a stream.
     user = get_current_user(credentials, db)
     return user.id, resolve_workspace_id(db, user, workspace_id)
 

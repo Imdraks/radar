@@ -50,7 +50,7 @@ class ArtistSnapshot(Base):
     concerts_next_90d = Column(Integer, default=0)
     
     # === Qualité des données ===
-    source_quality_score = Column(Float, default=50.0)  # 0-100
+    source_quality_score = Column(Float, nullable=True)  # Optional empirical calibration; never invent a default
     sources_used = Column(String(500), nullable=True)  # Comma-separated
     
     # Métadonnées

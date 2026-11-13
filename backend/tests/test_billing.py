@@ -1,4 +1,17 @@
 from decimal import Decimal
+from app.db.models.billing import BillingClient
+
+
+def ready_to_issue(db, workspace, invoice_id):
+    from app.db.models.billing import Invoice
+    workspace.legal_name='TEST — Agency'; workspace.legal_address='1 rue de test'
+    workspace.legal_city='Paris';workspace.legal_postal_code='75001';workspace.legal_country='France'
+    workspace.siret='12345678901234';workspace.tva_franchise=True;workspace.vat_number='FR12345678901'
+    client=BillingClient(workspace_id=workspace.id,name='TEST customer',address_line1='2 rue de test',city='Paris',postal_code='75002',country='France')
+    db.add(client);db.flush()
+    invoice=db.get(Invoice,invoice_id);invoice.client_id=client.id;db.commit()
+    return client
+
 
 
 def test_quote_invoice_payment_lifecycle_and_tenant_isolation(client, db_session, actors, headers):
@@ -23,6 +36,8 @@ def test_quote_invoice_payment_lifecycle_and_tenant_isolation(client, db_session
     duplicate = client.post(f"/api/v1/billing/quotes/{quote['id']}/convert", headers=headers(), json={})
     assert duplicate.status_code == 400
     assert client.post(f"/api/v1/billing/invoices/{invoice['id']}/payment", headers=headers(1), json={'amount_paid':'240'}).status_code == 404
+    ready_to_issue(db_session, actors[1][0], invoice['id'])
+    assert client.post(f"/api/v1/billing/invoices/{invoice['id']}/send", headers=headers()).status_code == 200
     paid = client.post(f"/api/v1/billing/invoices/{invoice['id']}/payment", headers=headers(), json={'amount_paid':'240'})
     assert paid.status_code == 200, paid.text
     assert paid.json()['status'].lower() == 'paid'

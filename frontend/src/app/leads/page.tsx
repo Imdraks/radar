@@ -659,17 +659,7 @@ function LeadCard({ lead, isSelected, isFavorite, onToggleSelect, onToggleFavori
                   </Badge>
                 )}
                 
-                {/* Example Tags (mock) */}
-                {lead.id % 3 === 0 && (
-                  <Badge className="text-[10px] sm:text-xs bg-blue-100 text-blue-700 border-blue-200">
-                    Priorité haute
-                  </Badge>
-                )}
-                {lead.id % 5 === 0 && (
-                  <Badge className="text-[10px] sm:text-xs bg-green-100 text-green-700 border-green-200">
-                    Prospect chaud
-                  </Badge>
-                )}
+
               </div>
 
               {/* Meta Info */}
@@ -699,13 +689,7 @@ function LeadCard({ lead, isSelected, isFavorite, onToggleSelect, onToggleFavori
                   </span>
                 )}
                 
-                {/* Comments count (mock) */}
-                {lead.id % 4 === 0 && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <MessageSquare className="h-3 w-3" />
-                    {(lead.id % 7) + 1}
-                  </span>
-                )}
+
               </div>
             </div>
           </div>

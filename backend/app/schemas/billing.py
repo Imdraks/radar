@@ -242,8 +242,8 @@ class InvoiceBase(BaseModel):
     description: Optional[str] = None
     issue_date: date = Field(default_factory=date.today)
     due_date: Optional[date] = None
-    tax_rate: Decimal = Decimal("20.00")
-    discount_percent: Decimal = Decimal("0")
+    tax_rate: Decimal = Field(Decimal("20.00"), ge=0, le=100)
+    discount_percent: Decimal = Field(Decimal("0"), ge=0, le=100)
     terms: Optional[str] = None
     notes: Optional[str] = None
 
@@ -263,8 +263,8 @@ class InvoiceUpdate(BaseModel):
     opportunity_id: Optional[int] = None
     issue_date: Optional[date] = None
     due_date: Optional[date] = None
-    tax_rate: Optional[Decimal] = None
-    discount_percent: Optional[Decimal] = None
+    tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    discount_percent: Optional[Decimal] = Field(None, ge=0, le=100)
     terms: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[InvoiceStatus] = None
@@ -272,7 +272,8 @@ class InvoiceUpdate(BaseModel):
 
 class InvoicePaymentUpdate(BaseModel):
     """Update payment info"""
-    amount_paid: Decimal = Field(ge=0)
+    amount_paid: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    expected_amount_paid: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     payment_method: Optional[PaymentMethod] = None
     paid_date: Optional[date] = None
 

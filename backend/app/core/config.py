@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
     
+    # Optional one-time bootstrap secret. Empty disables public administrator setup.
+    bootstrap_token: str = Field(default="", repr=False)
+
     # Database
     database_url: str = "postgresql://radar:radar_password@localhost:5432/opportunities_radar"
     

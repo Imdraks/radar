@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import legal from "@/config/legal.json";
 import { RadarLogo } from "@/components/brand/RadarBrand";
 import { ArrowLeft, Building2, Server, Shield, Cookie, Scale, Gavel, Mail } from "lucide-react";
 
@@ -32,7 +33,7 @@ export default function LegalPage() {
             Mentions Légales
           </h1>
           <p className="mt-4 text-gray-500 text-sm">
-            Dernière mise à jour : 9 avril 2026
+            Informations de l’instance Radar
           </p>
         </div>
 
@@ -49,20 +50,20 @@ export default function LegalPage() {
             <p className="text-gray-600 mb-4">
               Le site <strong className="text-gray-900">https://radarapp.fr</strong> est édité par :
             </p>
+            {!legal.commercialReleaseEnabled && <p role="status" className="mb-4 rounded-lg bg-amber-50 p-3 text-amber-900">Version de validation : les informations de l’éditeur doivent être renseignées avant toute ouverture commerciale.</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "Raison sociale", value: "[À compléter] — SASU" },
-                { label: "Siège social", value: "[À compléter]" },
-                { label: "SIRET", value: "[À compléter]" },
-                { label: "RCS", value: "[À compléter]" },
-                { label: "Capital social", value: "[À compléter]" },
-                { label: "Président", value: "[À compléter]" },
-                { label: "Directeur de publication", value: "[À compléter]" },
-                { label: "Email", value: "contact@radarapp.fr" },
+                {label:"Raison sociale",value:[legal.companyName,legal.legalForm].filter(Boolean).join(" — ")},
+                {label:"Siège social",value:legal.address},
+                {label:"SIRET",value:legal.siret},
+                {label:"RCS",value:legal.rcs},
+                {label:"Capital social",value:legal.capital},
+                {label:"Directeur de publication",value:legal.publicationDirector},
+                {label:"Email",value:legal.contactEmail},
               ].map((item) => (
                 <div key={item.label} className="flex flex-col rounded-lg bg-gray-50 p-3">
                   <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{item.label}</span>
-                  <span className="text-sm text-gray-900 mt-1">{item.value}</span>
+                  <span className="text-sm text-gray-900 mt-1">{item.value || "Non renseigné"}</span>
                 </div>
               ))}
             </div>
@@ -77,17 +78,10 @@ export default function LegalPage() {
               <h2 className="text-xl font-bold text-gray-900">Hébergeur</h2>
             </div>
             <div className="rounded-lg bg-gray-50 p-4">
-              <p className="font-semibold text-gray-900">OVH SAS</p>
-              <p className="text-sm text-gray-600 mt-1">2 rue Kellermann — 59100 Roubaix, France</p>
-              <p className="text-sm text-gray-600">Téléphone : 1007</p>
-              <a
-                href="https://www.ovhcloud.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-purple-600 hover:text-purple-700 mt-1 inline-block"
-              >
-                www.ovhcloud.com →
-              </a>
+              <p className="font-semibold text-gray-900">{legal.hostingName || "Hébergeur à confirmer"}</p>
+              <p className="text-sm text-gray-600 mt-1">{legal.hostingAddress || "Adresse non renseignée"}</p>
+              <p className="text-sm text-gray-600">{legal.hostingContact || "Contact non renseigné"}</p>
+
             </div>
           </section>
 
@@ -134,7 +128,7 @@ export default function LegalPage() {
                 </Link>.
               </p>
               <p>
-                Pour exercer vos droits : <strong className="text-gray-900">contact@radarapp.fr</strong>
+                Pour exercer vos droits : <strong className="text-gray-900">{legal.privacyContact || legal.contactEmail || "Contact à renseigner"}</strong>
               </p>
             </div>
           </section>
@@ -202,9 +196,9 @@ export default function LegalPage() {
               Conditions Générales d&apos;Utilisation
             </Link>
             <span className="text-gray-300">•</span>
-            <a href="mailto:contact@radarapp.fr" className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 font-medium">
+            <a href={legal.contactEmail ? `mailto:${legal.contactEmail}` : undefined} className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 font-medium">
               <Mail className="h-3.5 w-3.5" />
-              contact@radarapp.fr
+              {legal.contactEmail || "Contact à renseigner"}
             </a>
           </div>
         </div>

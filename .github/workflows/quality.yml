@@ -19,6 +19,9 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U radar_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
     env:
       TESTING: 'true'
       PYTHONPATH: backend
@@ -33,6 +36,10 @@ jobs:
       - run: python -m pip install pip==26.2.1 && pip install -r backend/requirements.txt
       - run: python -m compileall -q backend/app backend/alembic
       - run: pytest backend/tests -q
+      - run: python scripts/check_task_queues.py
+        env:
+          CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+          CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
       - run: cd backend && alembic heads
   frontend:
     runs-on: ubuntu-latest
@@ -43,16 +50,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
+      - run: python ../scripts/check_release.py --check-template
       - run: npm run type-check
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - run: pip install playwright==1.49.1
+      - run: python -m playwright install --with-deps chromium
+      - name: Browser regression (explicit API fixtures)
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 > /tmp/radar-ui-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/login >/dev/null; then break; fi
+            sleep 1
+          done
+          python ../scripts/brand_ui_smoke.py
+          python ../scripts/ui_smoke.py
+          python ../scripts/consent_ui_smoke.py
+        env:
+          TESTING: 'true'
+          RADAR_UI_BASE_URL: http://127.0.0.1:3000
   migration-history:
-    name: Historical migration chain (known blocker)
+    name: Historical migration chain
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -74,5 +100,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install pip==26.2.1 && pip install -r backend/requirements.txt
-      # Deliberately reports the inherited blocker instead of masking it as a success.
-      - run: cd backend && alembic upgrade head
+      - run: python scripts/check_migration_history.py
+        env:
+          PYTHONPATH: backend
+          RADAR_TEST_DATABASE_URL: postgresql://radar_test:radar_test@localhost:5432/radar_history

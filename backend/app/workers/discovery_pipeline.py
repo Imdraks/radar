@@ -779,6 +779,17 @@ def step_compute(db: Session, job: DiscoveryEnrichmentJob, viberate_ok: bool, sp
 
     # --- Create ArtistSnapshot for prediction service (EWMA) ---
     from app.db.models.artist_snapshot import ArtistSnapshot as SnapModel
+    collected_sources = set()
+    if spotify_snapshot and spotify_snapshot.status == "OK" and any(spot_data.get(k) is not None for k in ("monthly_listeners", "followers_total", "deezer_fans")):
+        if spot_data.get("monthly_listeners") is not None or spot_data.get("followers_total") is not None:
+            collected_sources.add("spotify")
+        if spot_data.get("deezer_fans") is not None:
+            collected_sources.add("deezer")
+    if viberate_snapshot and viberate_snapshot.status == "OK" and vib_data:
+        collected_sources.add("viberate")
+    for platform, observation in social.items():
+        if observation.get("status") == "collected" and observation.get("value") is not None:
+            collected_sources.add("viberate" if observation.get("precision") == "third_party_unspecified" else platform)
     snap = SnapModel(
         artist_name=artist.canonical_name,
         artist_name_normalized=SnapModel.normalize_name(artist.canonical_name),
@@ -789,8 +800,8 @@ def step_compute(db: Session, job: DiscoveryEnrichmentJob, viberate_ok: bool, sp
         tiktok_followers=tiktok_followers,
         youtube_subscribers=youtube_subscribers,
         instagram_followers=instagram_followers,
-        source_quality_score=80.0 if data_quality == "HIGH" else 50.0,
-        sources_used="deezer,spotify,musicbrainz",
+        source_quality_score=None,  # No empirical calibration available.
+        sources_used=",".join(sorted(collected_sources)) or None,
     )
     db.add(snap)
     logger.info(f"Created snapshot for {artist.canonical_name} (ml={monthly_listeners})")

@@ -165,6 +165,7 @@ DELETE,/api/v1/banking/revolut/disconnect,True,revolut_disconnect_endpoint_api_v
 GET,/api/v1/banking/revolut/status,True,revolut_status_api_v1_banking_revolut_status_get
 POST,/api/v1/banking/revolut/sync,True,revolut_sync_api_v1_banking_revolut_sync_post
 GET,/api/v1/banking/revolut/transactions,True,revolut_transactions_api_v1_banking_revolut_transactions_get
+GET,/api/v1/billing/capabilities,True,billing_capabilities_api_v1_billing_capabilities_get
 GET,/api/v1/billing/clients,True,list_clients_api_v1_billing_clients_get
 POST,/api/v1/billing/clients,True,create_client_api_v1_billing_clients_post
 POST,/api/v1/billing/clients/sync-crm,True,sync_crm_clients_api_v1_billing_clients_sync_crm_post
@@ -310,9 +311,6 @@ POST,/api/v1/enrichment/artists/batch/enrich,True,enrich_artists_batch_api_v1_en
 POST,/api/v1/enrichment/artists/enrich,True,enrich_artist_api_v1_enrichment_artists_enrich_post
 GET,/api/v1/enrichment/artists/{artist_id},True,get_enriched_artist_api_v1_enrichment_artists__artist_id__get
 POST,/api/v1/enrichment/artists/{artist_id}/refresh,True,refresh_artist_api_v1_enrichment_artists__artist_id__refresh_post
-POST,/api/v1/enrichment/jobs/batch/start,True,start_batch_job_api_v1_enrichment_jobs_batch_start_post
-GET,/api/v1/enrichment/jobs/{job_id}/results,True,get_job_results_api_v1_enrichment_jobs__job_id__results_get
-GET,/api/v1/enrichment/jobs/{job_id}/status,True,get_job_status_api_v1_enrichment_jobs__job_id__status_get
 GET,/api/v1/enrichment/metrics,True,get_enrichment_metrics_api_v1_enrichment_metrics_get
 GET,/api/v1/events,True,list_events_api_v1_events_get
 POST,/api/v1/events,True,create_event_api_v1_events_post

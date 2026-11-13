@@ -63,3 +63,19 @@ Suite backend : 69 tests passent sur PostgreSQL jetable (995 avertissements de d
 142 tests backend réussis sur PostgreSQL jetable. Typage TypeScript, build Next.js et compilation Python réussis. `social_ui_smoke.py` valide l’affichage des arrondis, la configuration YouTube manquante, la sauvegarde des profils et le rafraîchissement réel des observations dans le navigateur (statuts DONE et PARTIAL) à 1440 et 390 pixels, avec API explicitement simulées. Contrôle de régression du catalogue, de la navigation et de l’erreur événement à 1440, 768 et 390 pixels réussi. Les tests attendent l’initialisation asynchrone du catalogue avant les interactions et désactivent le tutoriel de bienvenue dans leurs fixtures pour tester ce parcours précis.
 
 Les collectes réelles Instagram et TikTok, leurs limites de précision et le blocage de validation réelle YouTube sont détaillés dans SOCIAL-AUDIENCE.md. YouTube : fixtures validées, clé API gratuite à configurer, aucune collecte réelle annoncée comme réussie. Aucun changement de données de production ni migration nouvelle.
+
+## Corrections de préparation commerciale — 13 novembre 2026
+
+Voir [COMMERCIAL-HARDENING.md](COMMERCIAL-HARDENING.md) et [RELEASE-RECOVERY.md](RELEASE-RECOVERY.md).
+
+- Installation complète des dépendances Python dans un venv neuf : réussie ; `pip check` ne signale aucun conflit. Celery 5.7.0, Kombu 5.7.0, Redis client 8.1.0 et python-dateutil 2.9.0.post0 sont compatibles. L’ancien assemblage Redis client 5.0.1/Kombu 5.7.0 échouait réellement au démarrage du worker.
+- Suite backend : **166 cas passent** sur PostgreSQL jetable avec les dépendances finales. Les avertissements de dépréciation restent une dette technique ; les clés faibles signalées appartiennent exclusivement à la configuration TESTING.
+- Six chemins Alembic testés : base vide, 020 inbox, 010 billing, 032, 043 et 050 vers la tête 052. Données sentinelles et template conservés, second upgrade idempotent, présence des tables/colonnes mappées vérifiée.
+- La base construite par Alembic fait aussi l’objet d’une recette API : vrai login local, projet et détail, événement, émission/paiement/PDF d’une facture et rejet du retour en brouillon. L’appel Google de création de dossier est neutralisé explicitement ; aucune intégration Google n’est déclarée validée.
+- Quatre échanges réels de tâches de test avec worker et Redis jetables réussis : celery, dossier_builder_gpt, ingestion_standard, web_enrichment. Aucun fournisseur externe invoqué.
+- Sauvegarde custom via la fonction réelle de deploy.sh, checksum, restauration dans une seconde base et conservation d’enregistrements sentinelles : réussis. Ce n’est pas une restauration des données de l’ancien serveur.
+- Typage TypeScript et build Next.js de production : réussis sous Node 24.19.0. Audits npm production et pip-audit des requirements finaux : **aucune vulnérabilité connue remontée** au jour du contrôle.
+- Recette Chromium locale du build : pages publiques sur 1440/768/390 px, navigation et abonnements Core/Premium/Business, scripts de consentement. Les suites UI utilisent des fixtures API explicites, séparées de la recette backend réelle.
+- CI enrichie : contrôle npm, Node 24, parcours historiques des migrations, échanges worker/broker et régressions navigateur. Les résultats distants doivent être observés pour le commit publié ; un résultat local ne remplace pas la CI.
+
+Le contrôle commercial `python scripts/check_release.py` est **volontairement bloquant** tant que les informations publiques réelles et références contractuelles ne sont pas fournies. Son mode `--check-template` valide la structure et ne donne pas d’autorisation de publication. Le prestataire de facturation électronique, l’infrastructure de production, la récupération de l’ancien serveur et les intégrations réelles restent à recetter ; aucune opération sur une base client n’a été effectuée.

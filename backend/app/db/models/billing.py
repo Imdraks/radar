@@ -243,6 +243,9 @@ class Invoice(Base):
     # Audit log
     audit_log = Column(JSON, default=list)
     
+    issued_at = Column(DateTime, nullable=True)
+    issued_snapshot = Column(JSON, nullable=True)
+
     # Sent tracking
     sent_at = Column(DateTime, nullable=True)
     sent_to_email = Column(String(255), nullable=True)

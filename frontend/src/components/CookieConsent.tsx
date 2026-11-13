@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Script from "next/script";
 
 type ConsentChoice = "granted" | "denied";
 
@@ -23,7 +24,8 @@ function updateGTMConsent(consent: ConsentState) {
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [analytics, setAnalytics] = useState(true);
+  const [analytics, setAnalytics] = useState(false);
+  const [consent, setConsent] = useState<ConsentState | null>(null);
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export default function CookieConsent() {
     } else {
       try {
         const consent: ConsentState = JSON.parse(saved);
+        if (!["granted", "denied"].includes(consent.analytics) || !["granted", "denied"].includes(consent.marketing)) throw new Error("Invalid consent");
+        setConsent(consent);
         updateGTMConsent(consent);
       } catch {
         setVisible(true);
@@ -41,7 +45,24 @@ export default function CookieConsent() {
   }, []);
 
   const saveConsent = (consent: ConsentState) => {
+    const previouslyGranted = localStorage.getItem("cookie-consent")?.includes("granted");
     localStorage.setItem("cookie-consent", JSON.stringify(consent));
+    setConsent(consent);
+    if (previouslyGranted && consent.analytics === "denied") {
+      for (const cookie of document.cookie.split(";")) {
+        const name = cookie.split("=")[0].trim();
+        if (/^(_ga|_gid|_gat)/.test(name)) {
+          const labels = window.location.hostname.split(".");
+          const domains = ["", window.location.hostname, ...labels.slice(0,-1).map((_,i) => "." + labels.slice(i).join("."))];
+          for (const domain of domains) {
+            document.cookie = `${name}=; Max-Age=0; path=/` + (domain ? `; domain=${domain}` : "");
+          }
+        }
+      }
+      updateGTMConsent(consent);
+      window.location.reload();
+      return;
+    }
     updateGTMConsent(consent);
     setVisible(false);
   };
@@ -61,7 +82,10 @@ export default function CookieConsent() {
     });
   };
 
-  if (!visible) return null;
+  if (!visible) return <>
+    <ConsentAnalytics consent={consent} />
+    <button type="button" onClick={() => { setAnalytics(consent?.analytics === "granted"); setMarketing(consent?.marketing === "granted"); setVisible(true); }} className="fixed bottom-2 right-3 z-50 rounded bg-white px-2 py-1 text-xs text-slate-600 shadow-sm">Préférences cookies</button>
+  </>;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 sm:p-6">
@@ -180,4 +204,20 @@ export default function CookieConsent() {
       </div>
     </div>
   );
+}
+
+// No third-party request occurs until an explicit choice. No GTM container can load extra tags.
+function ConsentAnalytics({consent}: {consent: ConsentState | null}) {
+  const id = process.env.NEXT_PUBLIC_GA_ID;
+  if (consent?.analytics !== "granted" || !id || !/^G-[A-Z0-9]+$/.test(id)) return null;
+  return <>
+    <Script id="radar-consent-config" strategy="afterInteractive">{`
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){window.dataLayer.push(arguments)};
+      window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
+      window.gtag('js', new Date());
+      window.gtag('config', '${id}', {allow_google_signals:false,allow_ad_personalization_signals:false});
+    `}</Script>
+    <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />
+  </>;
 }

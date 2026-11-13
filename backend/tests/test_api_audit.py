@@ -64,14 +64,14 @@ def test_websocket_rejects_inactive_and_missing_accounts(client, db_session, act
     for subject in (str(user.id), '2147483647', 'bad'):
         token = create_access_token({'sub':subject})
         with pytest.raises(WebSocketDisconnect) as error:
-            with client.websocket_connect(f'/ws/notifications?token={token}'):
+            with client.websocket_connect('/ws/notifications', subprotocols=['radar', f'bearer.{token}']):
                 pass
         assert error.value.code == 4001
 
 
 def test_websocket_active_account_connects(client, actors):
     token = create_access_token({'sub':str(actors[0][0].id)})
-    with client.websocket_connect(f'/ws/notifications?token={token}') as websocket:
+    with client.websocket_connect('/ws/notifications', subprotocols=['radar', f'bearer.{token}']) as websocket:
         assert websocket.receive_json()['type'] == 'connected'
         websocket.send_text('ping')
         assert websocket.receive_json()['type'] == 'pong'
@@ -100,14 +100,15 @@ def test_progress_enforces_owner_and_selected_workspace(client, actors, headers,
     cache.aclose.assert_awaited()
 
 
-def test_progress_query_auth_and_unavailable_service(client, actors, progress_redis):
+def test_progress_query_auth_and_unavailable_service(client, actors, headers, progress_redis):
     assert client.get('/api/v1/progress/task/job').status_code == 401
     token = create_access_token({'sub':str(actors[0][0].id)})
     progress_redis.get.side_effect = ConnectionError('internal.redis:6379 secret')
-    response = client.get(f'/api/v1/progress/task/job?token={token}')
+    assert client.get(f'/api/v1/progress/task/job?token={token}').status_code == 401
+    response = client.get('/api/v1/progress/task/job', headers=headers())
     assert response.status_code == 503
     assert 'internal.redis' not in response.text and 'secret' not in response.text
-    assert client.get(f'/api/v1/progress/task/job?token={token}&workspace_id={actors[1][1].id}').status_code == 403
+    assert client.get(f'/api/v1/progress/task/job?workspace_id={actors[1][1].id}', headers=headers()).status_code == 403
 
 
 def test_contact_results_are_integer_identified_and_tenant_scoped(client, db_session, actors, headers):
@@ -200,7 +201,7 @@ def test_pending_2fa_token_never_authenticates_api_or_realtime(client, actors):
     token = create_access_token({'sub':str(actors[0][0].id), '2fa_pending':True})
     assert client.get('/api/v1/auth/me', headers={'Authorization':f'Bearer {token}'}).status_code == 401
     with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect(f'/ws/notifications?token={token}'):
+        with client.websocket_connect('/ws/notifications', subprotocols=['radar', f'bearer.{token}']):
             pass
     assert client.post(f'/api/v1/auth/2fa/verify?user_id={actors[0][0].id}', json={'code':'123456'}).status_code == 401
 
