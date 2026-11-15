@@ -113,3 +113,14 @@ Voir [LEGAL-COMPLETION.md](LEGAL-COMPLETION.md). Nouvelle tête de migrations : 
 - Le contrôle commercial ordinaire reste bloqué comme attendu ; le mode de structure passe et n'autorise pas la mise en vente. Le résultat distant doit être vérifié pour le commit publié dans la PR. Les preuves locales sont conservées hors Git dans `/workspace/audits/radar-operations-2026-11-13`.
 
 La recette juridique attend explicitement la disparition de l'action de paiement après le rafraîchissement d'une facture couverte par avoir. Le retour GET est volontairement retardé dans la fixture pour vérifier l'état final asynchrone, sans assertion immédiate dépendante de la vitesse du navigateur. Les deux tailles ont été revérifiées avec ce retard.
+
+## Démarrage complet Codespaces — 15 novembre 2026
+
+- **205 tests backend réussis**, dont les contrôles des identifiants privés, du refus d'une base étrangère, de la conservation des données et des ajouts de colonnes connus, des secrets fournisseur réservés aux variables `RADAR_TEST_*`, de leur exclusion du processus Next.js et du chargement des modèles dans un interpréteur neuf. Les avertissements de dépréciation restent présents.
+- Le démarrage à froid enregistre aussi les anciens modèles déclarés dans les API (commentaires, tags, favoris). Sans cet enregistrement, les tests qui avaient déjà importé l'application masquaient un schéma incomplet dans une nouvelle préversion.
+- Recette native réelle de la pile : PostgreSQL et Redis jetables, API Uvicorn, Next.js Node 24, worker quatre files et Celery Beat. Connexion réellement effectuée via le proxy du frontend, lecture de l'abonnement, tâche réellement traitée sur chacune des quatre files, planificateur actif. Un adaptateur de test temporaire remplace exclusivement les hôtes Compose par les ports loopback des services jetables ; la cible Codespaces de production du lanceur reste littérale et non configurable. Ce test n'est pas présenté comme un Codespace GitHub déjà ouvert.
+- Redémarrage sur la même base marquée : données conservées ; les tables et colonnes connues sont réparées de façon additive, puis contrôlées avant succès. Aucune réinitialisation ni marquage Alembic fictif. Les réparations de cette préversion ne migrent pas une base client.
+- JSON devcontainer, syntaxe Python et shell, configuration Compose et diff contrôlés. Le conteneur utilise Node 24 et attend `postStartCommand`. Aucun changement de dépendance applicative.
+- Fournisseurs externes : configuration absente signalée sans valeur secrète et sans faux succès. Les clés de production héritées ne sont pas utilisées. Aucune connexion OAuth réelle, collecte payante, transmission financière ou livraison d'email n'est annoncée validée. Le guide CODESPACES.md précise les clés, autorisations et callbacks nécessaires.
+
+Les résultats de CI doivent être vérifiés pour le SHA publié dans la PR. Preuves de recette hors Git : `/workspace/audits/radar-codespaces-2026-11-15`.

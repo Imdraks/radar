@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 cd "$(dirname "$0")/.."
 if [[ "${RADAR_CODESPACES_SANDBOX:-}" != "1" ]]; then
   echo "Cette installation est réservée au conteneur de test Radar." >&2

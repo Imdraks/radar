@@ -1,4 +1,5 @@
 """Safety and real authentication for the disposable Codespaces bootstrap."""
+
 import importlib.util
 from pathlib import Path
 import os
@@ -12,17 +13,28 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 
-spec = importlib.util.spec_from_file_location("radar_codespaces", Path(__file__).resolve().parents[2] / ".devcontainer/radar.py")
+spec = importlib.util.spec_from_file_location(
+    "radar_codespaces", Path(__file__).resolve().parents[2] / ".devcontainer/radar.py"
+)
 preview = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(preview)
 
 
 def test_artist_history_registered_without_api_or_worker_imports():
     # A fresh interpreter prevents other test modules from masking lazy imports.
-    subprocess.run([sys.executable, "-c", "from app.db import models; from app.db.base import Base; assert 'artist_snapshots' in Base.metadata.tables"], check=True)
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from app.db import models; from app.db.base import Base; assert 'artist_snapshots' in Base.metadata.tables",
+        ],
+        check=True,
+    )
 
 
-def test_preview_config_requires_container_and_keeps_private_credentials(tmp_path, monkeypatch):
+def test_preview_config_requires_container_and_keeps_private_credentials(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(preview, "STATE", tmp_path / "state")
     monkeypatch.delenv("RADAR_CODESPACES_SANDBOX", raising=False)
     with pytest.raises(RuntimeError):
@@ -40,7 +52,13 @@ def test_preview_ignores_inherited_production_database_and_mail(monkeypatch):
     monkeypatch.setenv("SMTP_PASSWORD", "test-inherited-secret")
     monkeypatch.setenv("OPENAI_API_KEY", "test-inherited-secret")
     monkeypatch.setenv("CODESPACE_NAME", "radar-test")
-    env = preview.environment({"secret_key": "test-secret", "jwt_secret_key": "test-jwt", "password": "test-password"})
+    env = preview.environment(
+        {
+            "secret_key": "test-secret",
+            "jwt_secret_key": "test-jwt",
+            "password": "test-password",
+        }
+    )
     assert env["DATABASE_URL"] == preview.DATABASE_URL
     assert env["FRONTEND_URL"] == "https://radar-test-3000.app.github.dev"
     assert "SMTP_PASSWORD" not in env and "OPENAI_API_KEY" not in env
@@ -52,7 +70,9 @@ def test_preview_ignores_inherited_production_database_and_mail(monkeypatch):
 def empty_preview_engine():
     url = os.environ.get("RADAR_TEST_DATABASE_URL")
     if not url:
-        pytest.fail("RADAR_TEST_DATABASE_URL must identify a disposable PostgreSQL database")
+        pytest.fail(
+            "RADAR_TEST_DATABASE_URL must identify a disposable PostgreSQL database"
+        )
     schema = "radar_preview_" + uuid4().hex
     admin = create_engine(url)
     with admin.begin() as conn:
@@ -67,11 +87,14 @@ def empty_preview_engine():
         admin.dispose()
 
 
-def test_preview_initialization_login_and_repeat_preserve_user_data(empty_preview_engine, tmp_path, monkeypatch):
+def test_preview_initialization_login_and_repeat_preserve_user_data(
+    empty_preview_engine, tmp_path, monkeypatch
+):
     from app.main import app
     from app.db.session import get_db
     from app.db.models.user import User
     from app.db.models.workspace import Workspace
+
     monkeypatch.setenv("RADAR_CODESPACES_SANDBOX", "1")
     monkeypatch.setattr(preview, "STATE", tmp_path)
     data = preview.configuration()
@@ -85,13 +108,18 @@ def test_preview_initialization_login_and_repeat_preserve_user_data(empty_previe
         assert db.query(User).count() == 1
         assert db.query(User).one().is_superuser is False
         assert db.query(Workspace).one().name == "TEST — nom modifié par utilisateur"
+
     def database():
         with Session(empty_preview_engine) as db:
             yield db
+
     app.dependency_overrides[get_db] = database
     try:
         with TestClient(app) as client:
-            response = client.post("/api/v1/auth/login", json={"email": data["email"], "password": data["password"]})
+            response = client.post(
+                "/api/v1/auth/login",
+                json={"email": data["email"], "password": data["password"]},
+            )
             assert response.status_code == 200, response.text
             token = response.json()["access_token"]
             headers = {"Authorization": "Bearer " + token}
@@ -99,7 +127,17 @@ def test_preview_initialization_login_and_repeat_preserve_user_data(empty_previe
             assert response.status_code == 200, response.text
             assert response.json()["plan"] == "business"
             assert client.get("/health/detailed", headers=headers).status_code == 403
-            assert client.post("/api/v1/auth/setup", json={"email": data["email"], "password": data["password"], "full_name": "test"}).status_code == 403
+            assert (
+                client.post(
+                    "/api/v1/auth/setup",
+                    json={
+                        "email": data["email"],
+                        "password": data["password"],
+                        "full_name": "test",
+                    },
+                ).status_code
+                == 403
+            )
     finally:
         app.dependency_overrides.clear()
 
@@ -109,24 +147,36 @@ def test_preview_refuses_unrecognized_nonempty_database(empty_preview_engine):
         conn.execute(text("CREATE TABLE existing_customer_data (value TEXT)"))
         conn.execute(text("INSERT INTO existing_customer_data VALUES ('preserve me')"))
     with pytest.raises(RuntimeError, match="non reconnue"):
-        preview.initialize_database(empty_preview_engine, {"instance_id": "another-instance"})
+        preview.initialize_database(
+            empty_preview_engine, {"instance_id": "another-instance"}
+        )
     with empty_preview_engine.connect() as conn:
-        assert conn.execute(text("SELECT value FROM existing_customer_data")).scalar_one() == "preserve me"
+        assert (
+            conn.execute(text("SELECT value FROM existing_customer_data")).scalar_one()
+            == "preserve me"
+        )
 
 
 def test_preview_refuses_other_instance(empty_preview_engine):
     with empty_preview_engine.begin() as conn:
-        conn.execute(text(f"CREATE TABLE {preview.MARKER} (instance_id TEXT PRIMARY KEY)"))
+        conn.execute(
+            text(f"CREATE TABLE {preview.MARKER} (instance_id TEXT PRIMARY KEY)")
+        )
         conn.execute(text(f"INSERT INTO {preview.MARKER} VALUES ('original-instance')"))
     with pytest.raises(RuntimeError, match="autre préversion"):
-        preview.initialize_database(empty_preview_engine, {"instance_id": "new-instance"})
+        preview.initialize_database(
+            empty_preview_engine, {"instance_id": "new-instance"}
+        )
 
 
-def test_preview_repairs_missing_history_and_preserves_existing_data(empty_preview_engine, tmp_path, monkeypatch):
+def test_preview_repairs_missing_history_and_preserves_existing_data(
+    empty_preview_engine, tmp_path, monkeypatch
+):
     from sqlalchemy import inspect
     from app.db.models import ArtistSnapshot
     from app.db.models.user import User
     from app.db.models.workspace import Workspace
+
     monkeypatch.setenv("RADAR_CODESPACES_SANDBOX", "1")
     monkeypatch.setattr(preview, "STATE", tmp_path)
     data = preview.configuration()
@@ -142,7 +192,13 @@ def test_preview_repairs_missing_history_and_preserves_existing_data(empty_previ
     ArtistSnapshot.__table__.drop(empty_preview_engine)
     assert preview.initialize_database(empty_preview_engine, data) is False
     with Session(empty_preview_engine) as db:
-        db.add(ArtistSnapshot(artist_name="TEST — artiste", artist_name_normalized="test artiste", workspace_id=workspace_id))
+        db.add(
+            ArtistSnapshot(
+                artist_name="TEST — artiste",
+                artist_name_normalized="test artiste",
+                workspace_id=workspace_id,
+            )
+        )
         db.commit()
         saved_id = db.query(ArtistSnapshot).one().id
         assert db.query(User).one().hashed_password == user_hash
@@ -152,3 +208,84 @@ def test_preview_repairs_missing_history_and_preserves_existing_data(empty_previ
     with Session(empty_preview_engine) as db:
         assert db.query(ArtistSnapshot).one().id == saved_id
         assert db.query(ArtistSnapshot).one().spotify_monthly_listeners is None
+
+
+def test_preview_only_accepts_explicit_test_provider_secrets(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "NEVER_PRODUCTION")
+    monkeypatch.setenv("YOUTUBE_API_KEY", "NEVER_PRODUCTION")
+    monkeypatch.setenv("APIFY_TOKEN", "NEVER_PRODUCTION")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "NEVER_PRODUCTION")
+    monkeypatch.setenv("RADAR_TEST_YOUTUBE_API_KEY", "TEST_YOUTUBE")
+    monkeypatch.setenv("RADAR_TEST_GOOGLE_CLIENT_ID", "TEST_GOOGLE_ID")
+    monkeypatch.setenv("RADAR_TEST_GOOGLE_CLIENT_SECRET", "TEST_GOOGLE_SECRET")
+    monkeypatch.setenv("CODESPACE_NAME", "radar-test")
+    monkeypatch.setenv("TESTING", "true")
+    env = preview.environment(
+        {
+            "secret_key": "test-secret",
+            "jwt_secret_key": "test-jwt",
+            "password": "test-password",
+        }
+    )
+    assert env["YOUTUBE_API_KEY"] == "TEST_YOUTUBE"
+    assert env["GOOGLE_CLIENT_ID"] == "TEST_GOOGLE_ID"
+    assert "OPENAI_API_KEY" not in env and "TESTING" not in env
+    assert "APIFY_TOKEN" not in env and "AWS_ACCESS_KEY_ID" not in env
+    assert not any(k.startswith("RADAR_TEST_") for k in env)
+    assert env["BACKEND_URL"] == "https://radar-test-3000.app.github.dev"
+    assert env["INTERNAL_API_URL"] == "http://127.0.0.1:8000"
+
+
+def test_preview_repairs_recent_missing_columns_without_changing_records(
+    empty_preview_engine, tmp_path, monkeypatch
+):
+    from sqlalchemy import inspect
+    from app.db.models.workspace import Workspace
+
+    monkeypatch.setenv("RADAR_CODESPACES_SANDBOX", "1")
+    monkeypatch.setattr(preview, "STATE", tmp_path)
+    data = preview.configuration()
+    preview.initialize_database(empty_preview_engine, data)
+    with empty_preview_engine.begin() as conn:
+        conn.execute(text("UPDATE workspaces SET name='TEST preserve updated name'"))
+        conn.execute(text("ALTER TABLE invoices DROP COLUMN credited_at"))
+        conn.execute(text("ALTER TABLE invoices DROP COLUMN legal_details"))
+        conn.execute(
+            text("ALTER TABLE subscription_requests DROP COLUMN contract_acceptance_id")
+        )
+    assert preview.initialize_database(empty_preview_engine, data) is False
+    assert {"credited_at", "legal_details"} <= {
+        c["name"] for c in inspect(empty_preview_engine).get_columns("invoices")
+    }
+    assert "contract_acceptance_id" in {
+        c["name"]
+        for c in inspect(empty_preview_engine).get_columns("subscription_requests")
+    }
+    with Session(empty_preview_engine) as db:
+        assert db.query(Workspace).one().name == "TEST preserve updated name"
+
+
+def test_provider_credentials_never_reach_next_process():
+    env = {
+        "OPENAI_API_KEY": "TEST_SECRET",
+        "GOOGLE_CLIENT_SECRET": "TEST_SECRET",
+        "JWT_SECRET_KEY": "TEST_SECRET",
+        "DATABASE_URL": "TEST_DATABASE",
+        "INTERNAL_API_URL": "http://127.0.0.1:8000",
+        "PATH": "/usr/bin",
+    }
+    clean = preview.frontend_environment(env)
+    assert clean == {"INTERNAL_API_URL": "http://127.0.0.1:8000", "PATH": "/usr/bin"}
+    assert env["OPENAI_API_KEY"] == "TEST_SECRET"
+
+
+def test_cold_preview_registers_api_declared_tables():
+    path = str(Path(__file__).resolve().parents[2] / ".devcontainer/radar.py")
+    code = (
+        "import importlib.util; "
+        f"s=importlib.util.spec_from_file_location('preview',{path!r}); "
+        "m=importlib.util.module_from_spec(s);s.loader.exec_module(m); "
+        "b=m.register_preview_models(); "
+        "assert {'comments','tags','favorites','legal_bundles','credit_notes'} <= set(b.metadata.tables)"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)
