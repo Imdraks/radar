@@ -268,7 +268,7 @@ class SSOService:
         
         return user, is_new_user
     
-    def create_session_tokens(self, user: User) -> Dict[str, Any]:
+    def create_session_tokens(self, user: User, request=None) -> Dict[str, Any]:
         """Create JWT access and refresh tokens for the user"""
         from app.core import mfa
         user = mfa.lock_user(self.db, user.id)
@@ -277,7 +277,7 @@ class SSOService:
             self.db.commit()
             return {'requires_2fa': True, 'temp_token': token}
         from app.api.auth import finish_login
-        return finish_login(self.db, user, None).model_dump(exclude_none=True)
+        return finish_login(self.db, user, request).model_dump(exclude_none=True)
     
 
     def get_user_accounts(self, user_id: UUID) -> list:

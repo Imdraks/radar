@@ -23,6 +23,7 @@ async def main():
             context = await browser.new_context(viewport={'width': width, 'height': height}, locale='fr-FR')
             await context.add_init_script("localStorage.setItem('opportunities-radar-welcome-shown-v2','true');localStorage.setItem('current_workspace_id','1')")
             calls = []
+            sessions = [{'id': 'current', 'label': 'TEST Chrome', 'created_at': '2026-11-16T12:00:00Z', 'expires_at': '2026-11-23T12:00:00Z', 'is_current': True}, {'id': 'other', 'label': 'TEST Firefox', 'created_at': '2026-11-16T11:00:00Z', 'expires_at': '2026-11-23T11:00:00Z', 'is_current': False}]
             active = ['totp', 'recovery']
             send_failure = True
             async def api(route):
@@ -41,6 +42,12 @@ async def main():
                 elif path.endswith('/auth/mfa/complete'):
                     if body['code'] == '000000': status, data = 401, {'detail': 'TEST — code refusé'}
                     else: data = {'access_token': 'explicit-fixture-access', 'refresh_token': 'explicit-fixture-refresh'}
+                elif path.endswith('/auth/mfa/trusted/complete'): data = {'trusted': False}
+                elif path.endswith('/auth/sessions'): data = {'items': sessions.copy()}
+                elif path.endswith('/auth/sessions/revoke-others'):
+                    sessions[:] = [row for row in sessions if row['is_current']]
+                    data = {'revoked': 1}
+                elif path.endswith('/auth/trusted-devices'): data = {'items': []}
                 elif path.endswith('/auth/mfa/options'): data = {'methods': ['totp', 'recovery'], 'destinations': {}, 'available': {'totp': True}}
                 elif path.endswith('/auth/mfa/status'): data = {'enabled': bool(active), 'methods': active.copy(), 'available': {'totp': True, 'email': True, 'sms': False}, 'destinations': {'email': 'm•••@example.com'}, 'has_backup_codes': bool(active)}
                 elif path.endswith('/auth/mfa/reauth/start'):
@@ -83,22 +90,35 @@ async def main():
             assert await page.get_by_text('Code envoyé', exact=False).count() == 0
             await page.get_by_role('button', name='Envoyer un code', exact=True).click()
             await page.get_by_role('status').filter(has_text='Code envoyé').wait_for()
+            trust = page.get_by_role('checkbox', name='Faire confiance à cet appareil pendant 30 jours', exact=False)
+            assert not await trust.is_checked()
             await page.get_by_label('Code à 6 chiffres', exact=True).fill('000000')
             await page.get_by_role('button', name='Vérifier', exact=True).click()
             await page.get_by_role('alert').filter(has_text='TEST — code refusé').wait_for()
             assert await page.evaluate("localStorage.getItem('access_token')") is None
             await page.get_by_label('Méthode de vérification', exact=True).select_option('recovery')
+            if width == 1440: await trust.check()
             await page.get_by_label('Code de secours', exact=True).fill(CODES[0])
             await page.screenshot(path=str(ARTIFACTS / f'login-{width}.png'), full_page=True)
             await page.get_by_role('button', name='Vérifier', exact=True).click()
             await page.wait_for_url('**/today')
             assert len([call for call in calls if call[0].endswith('/auth/login')]) == 1
             completions = [call[1] for call in calls if call[0].endswith('/auth/mfa/complete')]
-            assert all(set(body) == {'challenge_token', 'method', 'code'} for body in completions)
+            assert all(set(body) == {'challenge_token', 'method', 'code', 'trust_device'} for body in completions)
+            assert completions[0]['trust_device'] is False
+            assert completions[-1]['trust_device'] is (width == 1440)
 
             await page.goto(BASE + '/settings', wait_until='networkidle')
             await page.get_by_role('tab', name='Sécurité', exact=True).click()
             await page.get_by_role('heading', name='Authentification à deux facteurs', exact=True).wait_for()
+            await page.get_by_text('TEST Firefox', exact=True).wait_for()
+            assert await page.get_by_role('button', name='Fermer la session', exact=True).count() == 1
+            page.once('dialog', lambda dialog: dialog.accept())
+            await page.get_by_role('button', name='Fermer toutes les autres sessions', exact=True).click()
+            await page.get_by_text('TEST Firefox', exact=True).wait_for(state='detached')
+            assert await page.get_by_text('Session actuelle', exact=True).is_visible()
+            assert await page.get_by_role('button', name='Fermer toutes les autres sessions', exact=True).is_disabled()
+            await page.screenshot(path=str(ARTIFACTS / f'sessions-{width}.png'), full_page=True)
             sms = page.locator('article').filter(has=page.get_by_role('heading', name='Code par SMS', exact=True))
             assert await sms.get_by_role('button', name='Configurer', exact=True).is_disabled()
             email = page.locator('article').filter(has=page.get_by_role('heading', name='Code par e-mail', exact=True))

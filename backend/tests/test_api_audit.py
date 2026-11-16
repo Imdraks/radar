@@ -69,8 +69,8 @@ def test_websocket_rejects_inactive_and_missing_accounts(client, db_session, act
         assert error.value.code == 4001
 
 
-def test_websocket_active_account_connects(client, actors):
-    token = create_access_token({'sub':str(actors[0][0].id)})
+def test_websocket_active_account_connects(client, actors, headers):
+    token = headers()["Authorization"].removeprefix("Bearer ")
     with client.websocket_connect('/ws/notifications', subprotocols=['radar', f'bearer.{token}']) as websocket:
         assert websocket.receive_json()['type'] == 'connected'
         websocket.send_text('ping')

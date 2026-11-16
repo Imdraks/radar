@@ -206,7 +206,7 @@ async def google_sso_callback(
         )
         
         # Create session tokens
-        session_tokens = sso_service.create_session_tokens(user)
+        session_tokens = sso_service.create_session_tokens(user, request=request)
         
         if session_tokens.get('requires_2fa'):
             return RedirectResponse(url=f"{settings.frontend_url}/login#" + urlencode({'mfa_token': session_tokens['temp_token']}))
@@ -353,7 +353,7 @@ async def apple_sso_callback(
         )
         
         # Create session tokens
-        session_tokens = sso_service.create_session_tokens(user)
+        session_tokens = sso_service.create_session_tokens(user, request=request)
         
         if session_tokens.get('requires_2fa'):
             return RedirectResponse(url=f"{settings.frontend_url}/login#" + urlencode({'mfa_token': session_tokens['temp_token']}))

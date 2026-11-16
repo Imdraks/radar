@@ -117,7 +117,7 @@ def login(
     """Authenticate user and return tokens"""
     user = db.query(User).filter(User.email == credentials.email).with_for_update().first()
     
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -139,7 +139,8 @@ def login(
     
     from app.core import mfa
     user = mfa.lock_user(db, user.id)
-    if mfa.methods(user):
+    from app.core.login_sessions import trusted
+    if mfa.methods(user) and not trusted(db, user, request):
         token, challenge = mfa.create_challenge(db, user, 'login')
         if not credentials.totp_code:
             db.commit()
@@ -166,7 +167,7 @@ def finish_login(db, user, request):
         raise HTTPException(401, 'La sécurité du compte a changé. Recommencez la connexion.')
     from app.core.mfa import issue_tokens, methods
     user.last_login_at = datetime.utcnow()
-    tokens = issue_tokens(user)
+    tokens = issue_tokens(user, request=request)
     ActivityLogger.log(db=db, user=user, action=Actions.LOGIN,
         details={'email': user.email, '2fa_used': bool(methods(user))}, request=request)
     # Defer Drive provisioning until after every required login factor succeeds.
@@ -200,7 +201,9 @@ def refresh_session(data: RefreshRequest, db: Session = Depends(get_db)):
     payload = decode_token(data.refresh_token) or {}
     if not user or not user.is_active or not (user.is_whitelisted or user.is_superuser) or payload.get('mfa_ver', 0) != (user.mfa_version or 0):
         raise HTTPException(401, 'Session expirée. Reconnectez-vous.')
-    return issue_tokens(user, auth_time=payload.get('auth_time', 0))
+    from app.core.login_sessions import require_session
+    session = require_session(db, user, payload, lock=True)
+    return issue_tokens(user, auth_time=payload.get('auth_time', 0), session=session)
 
 
 @router.get("/me", response_model=UserResponse)

@@ -186,10 +186,23 @@ async def send_code(db, user, row, method):
             'expires_at': row.expires_at}
 
 
-def issue_tokens(user, auth_time=None):
+def issue_tokens(user, auth_time=None, session=None, request=None):
+    from sqlalchemy.orm import object_session
+    from app.db.models.login_session import UserSession
+    from app.core.login_sessions import browser
+    from app.core.config import settings
+    db = object_session(user)
+    if session is None:
+        session = UserSession(user_id=user.id, auth_version=user.mfa_version or 0,
+            label=browser(request), expires_at=datetime.utcnow() + timedelta(days=settings.jwt_refresh_token_expire_days))
+        db.add(session)
+        db.flush()
+    remaining = session.expires_at - datetime.utcnow()
+    if remaining.total_seconds() <= 0 or session.revoked_at:
+        raise HTTPException(401, 'Session expirée ou révoquée.')
     authenticated_at = int(time.time()) if auth_time is None else auth_time
     data = {'sub': str(user.id), 'email': user.email,
             'role': user.role.value if hasattr(user.role, 'value') else str(user.role),
-            'mfa_ver': user.mfa_version or 0, 'auth_time': authenticated_at}
-    return {'access_token': create_access_token(data),
-            'refresh_token': create_refresh_token({'sub': str(user.id), 'mfa_ver': user.mfa_version or 0, 'auth_time': authenticated_at}), 'token_type': 'bearer'}
+            'mfa_ver': user.mfa_version or 0, 'auth_time': authenticated_at, 'sid': str(session.id)}
+    return {'access_token': create_access_token(data, expires_delta=min(remaining, timedelta(minutes=settings.jwt_access_token_expire_minutes))),
+            'refresh_token': create_refresh_token({key: data[key] for key in ('sub', 'mfa_ver', 'auth_time', 'sid')}, expires_delta=remaining), 'token_type': 'bearer'}

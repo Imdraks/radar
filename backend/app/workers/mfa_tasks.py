@@ -7,6 +7,9 @@ from app.db.models.mfa import MFAChallenge
 
 def purge_challenges(db):
     count = db.query(MFAChallenge).filter(MFAChallenge.expires_at < datetime.utcnow() - timedelta(hours=24)).delete(synchronize_session=False)
+    from app.db.models.login_session import UserSession, TrustedDevice
+    for model in (UserSession, TrustedDevice):
+        count += db.query(model).filter(model.expires_at < datetime.utcnow() - timedelta(hours=24)).delete(synchronize_session=False)
     db.commit()
     return count
 

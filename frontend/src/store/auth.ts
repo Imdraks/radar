@@ -25,7 +25,7 @@ interface AuthState {
   lastLoginEmail: string | null;
   pending2FA: PendingMFA | null;
   setPending2FA: (value: PendingMFA) => void;
-  complete2FA: (method: string, code: string) => Promise<void>;
+  complete2FA: (method: string, code: string, trustDevice?: boolean) => Promise<void>;
   
   // Actions
   login: (email: string, password: string, rememberMe?: boolean, totpCode?: string) => Promise<LoginResult>;
@@ -101,15 +101,18 @@ export const useAuthStore = create<AuthState>()(
         set({ pending2FA: null });
       },
       setPending2FA: value => set({ pending2FA: value, user: null, isAuthenticated: false, isLoading: false }),
-      complete2FA: async (method, code) => {
+      complete2FA: async (method, code, trustDevice = false) => {
         const pending = get().pending2FA;
         if (!pending) throw new Error('Vérification expirée. Reconnectez-vous.');
-        const result = await authApi.mfaComplete(pending.tempToken, method, code);
+        const result = await authApi.mfaComplete(pending.tempToken, method, code, trustDevice);
         await get().setTokens(result.access_token, result.refresh_token);
         set({ pending2FA: null });
       },
 
       logout: () => {
+        // Revoke with the captured credential before local storage is cleared.
+        const token = localStorage.getItem("access_token");
+        if (token) void fetch("/api/v1/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` }, keepalive: true }).catch(() => undefined);
         useSubscriptionStore.getState().reset();
         localStorage.removeItem("radar-subscription");
         localStorage.removeItem("access_token");

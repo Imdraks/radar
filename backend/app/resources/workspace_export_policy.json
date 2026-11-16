@@ -1605,6 +1605,12 @@
         "stripe_customer_id",
         "stripe_subscription_id"
       ]
+    },
+    "user_sessions": {
+      "exclude": "Account authentication and browser authorization records; never included in workspace exports."
+    },
+    "trusted_devices": {
+      "exclude": "Account authentication and browser authorization records; never included in workspace exports."
     }
   }
 }

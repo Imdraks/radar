@@ -79,10 +79,17 @@ function LoginContent() {
     ssoMfaRef.current = true;
     window.history.replaceState(null, '', window.location.pathname);
     localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token');
-    authApi.mfaOptions(token).then(options => {
+    authApi.mfaTrustedComplete(token).then(async result => {
+      if (result.trusted) {
+        await useAuthStore.getState().setTokens(result.access_token, result.refresh_token);
+        ssoMfaRef.current = false;
+        router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
+        return;
+      }
+      const options = await authApi.mfaOptions(token);
       setPending2FA({ tempToken: token, methods: options.methods, destinations: options.destinations || {} });
     }).catch(error => { setError(mfaError(error)); ssoMfaRef.current = false; });
-  }, [setPending2FA]);
+  }, [setPending2FA, router]);
 
   const {
     register,
@@ -236,8 +243,8 @@ function LoginContent() {
           {show2FA && pending2FA ? (
             <MfaChallenge key={pending2FA.tempToken} token={pending2FA.tempToken}
               methods={pending2FA.methods} destinations={pending2FA.destinations}
-              onBack={handleBack} onVerify={async (method, code) => {
-                await complete2FA(method, code);
+              allowTrust onBack={handleBack} onVerify={async (method, code, trustDevice) => {
+                await complete2FA(method, code, trustDevice);
                 ssoMfaRef.current = false;
                 router.push(useAuthStore.getState().user?.is_superuser ? '/admin' : '/today');
               }} />

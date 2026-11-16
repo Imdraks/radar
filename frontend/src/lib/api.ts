@@ -131,7 +131,8 @@ api.interceptors.response.use(
 export const authApi = {
   mfaOptions: async (challengeToken: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/options`, { challenge_token: challengeToken })).data,
   mfaSend: async (challengeToken: string, method: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/send`, { challenge_token: challengeToken, method })).data,
-  mfaComplete: async (challengeToken: string, method: string, code: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/complete`, { challenge_token: challengeToken, method, code })).data,
+  mfaTrustedComplete: async (challengeToken: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/trusted/complete`, { challenge_token: challengeToken })).data,
+  mfaComplete: async (challengeToken: string, method: string, code: string, trustDevice = false) => (await axios.post(`${API_URL}/api/v1/auth/mfa/complete`, { challenge_token: challengeToken, method, code, trust_device: trustDevice })).data,
   login: async (email: string, password: string, totpCode?: string) => {
     const response = await axios.post(`${API_URL}/api/v1/auth/login`, {
       email,

@@ -66,8 +66,13 @@ def actors(db_session):
 
 
 @pytest.fixture
-def headers(actors):
-    return lambda index=0: {"Authorization": f"Bearer {create_access_token({'sub': str(actors[0][index].id)})}"}
+def headers(actors, db_session):
+    from app.core.mfa import issue_tokens
+    def header(index=0):
+        tokens = issue_tokens(actors[0][index])
+        db_session.commit()
+        return {"Authorization": "Bearer " + tokens['access_token']}
+    return header
 
 
 @pytest.fixture

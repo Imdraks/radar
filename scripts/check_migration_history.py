@@ -93,7 +93,15 @@ def run():
             if start is None:
                 from check_migrated_api import run as check_api
 
+                # Check a truly unused schema before API logins create sessions.
+                migrate('057_multichannel_mfa', direction='downgrade')
+                migrate('head')
                 check_api(engine)
+                migrate('057_multichannel_mfa', direction='downgrade', expected_failure='Downgrade automatique refusé')
+                # Only disposable harness records are removed for the legacy MFA check.
+                with engine.begin() as conn:
+                    conn.execute(text('DELETE FROM user_sessions'))
+                    conn.execute(text('DELETE FROM trusted_devices'))
                 # A clean MFA schema can roll back. Upgrading a legacy enabled
                 # TOTP account preserves its secret and revokes old sessions.
                 migrate('056_full_credit_notes', direction='downgrade')

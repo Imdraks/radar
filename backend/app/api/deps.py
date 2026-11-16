@@ -45,6 +45,8 @@ def get_current_user(
     if (decode_token(token) or {}).get('mfa_ver', 0) != (user.mfa_version or 0):
         raise HTTPException(status_code=401, detail='Sécurité du compte modifiée. Reconnectez-vous.')
     
+    from app.core.login_sessions import require_session
+    require_session(db, user, decode_token(token) or {})
     return user
 
 

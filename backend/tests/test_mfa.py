@@ -224,10 +224,11 @@ def test_sso_session_cannot_bypass_enabled_mfa(client, db_session, account):
     assert 'access_token' not in result and 'refresh_token' not in result
 
 
-def test_legacy_refresh_does_not_turn_into_recent_sso_proof(client, db_session, account):
+def test_old_authentication_does_not_turn_into_recent_sso_proof(client, db_session, account):
     account.hashed_password = None
     db_session.commit()
-    refresh = create_refresh_token({'sub': str(account.id)})
+    refresh = mfa.issue_tokens(account, auth_time=0)['refresh_token']
+    db_session.commit()
     response = client.post('/api/v1/auth/refresh', json={'refresh_token': refresh})
     assert response.status_code == 200
     headers = {'Authorization': 'Bearer ' + response.json()['access_token']}

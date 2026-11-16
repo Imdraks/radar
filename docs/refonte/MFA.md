@@ -187,3 +187,21 @@ dans ce banc de test. Aucun courriel ou SMS réel n'a été envoyé. Aucun nouve
 code, schéma, fournisseur ou patch MCP n'a été installé sur le VPS pendant ce
 travail. Les tests ne constituent pas une certification d'authentification ni une
 attestation de conformité juridique.
+
+## Sessions révocables et autorisation de 30 jours (migration 058)
+
+Chaque connexion complète crée une session `user_sessions`. Les jetons d’accès et de renouvellement portent son identifiant `sid`. API, renouvellement et contrôles de connexion temps réel refusent les sessions révoquées, expirées, appartenant à un autre compte ou à une ancienne révision de sécurité. Le renouvellement conserve l’identifiant, la date d’authentification et l’expiration absolue (durée de renouvellement configurée, sept jours par défaut). Les modifications A2F préservent uniquement la session actuelle en mettant sa révision à jour.
+
+Dans **Paramètres → Sécurité**, l’utilisateur voit ses sessions valides (pas une présence en temps réel), peut en révoquer une autre ou toutes les autres. Le serveur déduit la session actuelle du jeton validé ; le client ne choisit jamais une session à préserver. La déconnexion normale demande aussi sa révocation au serveur, sans supprimer l’autorisation de navigateur explicitement accordée.
+
+Une A2F activée est demandée à chaque nouvelle connexion, sauf autorisation explicite du navigateur après un code valide : case décochée par défaut. Le cookie `__Secure-radar_mfa_device`, opaque, HttpOnly, Secure, SameSite=Lax, limité à `/api/v1/auth`, expire après 30 jours fixes. Seule son empreinte est conservée en base avec l’utilisateur, la révision de sécurité et l’empreinte du User-Agent. Aucun identifiant matériel ni adresse IP n’est collecté pour cette fonction. Un mot de passe/SSO reste nécessaire ; le cookie seul n’authentifie jamais. L’autorisation ne dispense pas des preuves exigées pour modifier l’A2F. Les comptes sans A2F configurée ne sont pas automatiquement inscrits à un facteur inexistant.
+
+Pour le SSO (notamment le POST Apple), le callback ne tente pas de lire un cookie Lax en contexte tiers : la page de connexion réalise une vérification même origine du challenge provisoire à usage unique. Les autorisations peuvent être retirées individuellement ou toutes ensemble. Cette action exige de nouveau l’A2F aux prochaines connexions mais ne ferme pas les sessions ouvertes : utiliser les deux listes si nécessaire. Modifier le mot de passe, l’e-mail ou l’A2F invalide aussi les anciennes autorisations par révision.
+
+Les deux tables sont exclues des exports de workspace. La tâche de purge existante retire les enregistrements expirés depuis plus de 24 heures. Les libellés affichent seulement le navigateur et le système déduits du User-Agent, qui peut être falsifié : ils ne constituent pas une preuve d’identité.
+
+### Déploiement et retour arrière
+
+Appliquer `alembic upgrade head` avant le redémarrage coordonné du backend et des workers ; déployer également le frontend. **Les anciens jetons sans `sid` sont refusés : tous les utilisateurs et connecteurs devront se reconnecter une fois.** Sauvegarder la base avant migration. Aucune donnée métier n’est supprimée.
+
+La migration 058 est additive et réversible automatiquement tant que les deux tables sont inutilisées. Dès qu’un enregistrement existe, le downgrade refuse de supprimer l’historique de révocation. Un retour à un ancien backend qui ignore `sid` pourrait réhabiliter des jetons encore cryptographiquement valides : il exige une rotation coordonnée de la clé JWT, une fermeture des sessions et une procédure opérateur, pas un simple downgrade. Ne jamais effacer ces tables en production pour contourner cette protection.

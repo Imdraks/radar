@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Literal
 import re
 import time
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
@@ -26,6 +26,10 @@ class ChallengeInput(BaseModel):
 class CodeInput(ChallengeInput):
     method: Method
     code: str = Field(min_length=6, max_length=40)
+
+
+class LoginCodeInput(CodeInput):
+    trust_device: bool = False
 
 
 class SendInput(ChallengeInput):
@@ -66,11 +70,16 @@ async def send(data: SendInput, db: Session = Depends(get_db)):
 
 
 @router.post('/complete')
-def complete(data: CodeInput, request: Request, db: Session = Depends(get_db)):
+def complete(data: LoginCodeInput, request: Request, response: Response, db: Session = Depends(get_db)):
     user, row = mfa.load_challenge(db, data.challenge_token, {'login'})
     mfa.verify(db, user, row, data.method, data.code.strip())
     from app.api.auth import finish_login
-    return finish_login(db, user, request)
+    from app.core.login_sessions import authorize_browser, set_trust_cookie
+    authorization = authorize_browser(db, user, request) if data.trust_device else None
+    result = finish_login(db, user, request)
+    if authorization:
+        set_trust_cookie(response, authorization)
+    return result
 
 
 @router.post('/reauth/start')
@@ -133,7 +142,7 @@ async def enroll_start(data: EnrollmentInput, user: User = Depends(get_current_u
 
 
 @router.post('/enroll/complete')
-def enroll_complete(data: CodeInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def enroll_complete(request: Request, data: CodeInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user, row = mfa.load_challenge(db, data.challenge_token, {'enroll'}, user.id)
     if row.method != data.method or data.method == 'recovery':
         raise HTTPException(422, 'Méthode de confirmation différente.')
@@ -148,13 +157,14 @@ def enroll_complete(data: CodeInput, user: User = Depends(get_current_user), db:
     row.pending_secret = row.destination = None
     codes = mfa.new_recovery(user)
     user.mfa_version = (user.mfa_version or 0) + 1
-    tokens = mfa.issue_tokens(user)
+    from app.core.login_sessions import current_after_security_change
+    tokens = mfa.issue_tokens(user, session=current_after_security_change(db, user, request))
     ActivityLogger.log(db, user, 'mfa.method_enabled', details={'method': data.method})
     return {'enabled': True, 'backup_codes': codes, **tokens}
 
 
 @router.post('/disable')
-def disable(data: ManageInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def disable(request: Request, data: ManageInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user, proof = mfa.load_challenge(db, data.management_token, {'manage_verified'}, user.id)
     if data.method not in mfa.methods(user) or data.method == 'recovery':
         raise HTTPException(422, 'Méthode non activée.')
@@ -168,19 +178,32 @@ def disable(data: ManageInput, user: User = Depends(get_current_user), db: Sessi
     if not any(value != 'recovery' for value in mfa.methods(user)):
         user.backup_codes = None
     user.mfa_version = (user.mfa_version or 0) + 1
-    tokens = mfa.issue_tokens(user)
+    from app.core.login_sessions import current_after_security_change
+    tokens = mfa.issue_tokens(user, session=current_after_security_change(db, user, request))
     ActivityLogger.log(db, user, 'mfa.method_disabled', details={'method': data.method})
     return {'enabled': bool(mfa.methods(user)), **tokens}
 
 
 @router.post('/recovery/regenerate')
-def regenerate(data: ManageInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def regenerate(request: Request, data: ManageInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user, proof = mfa.load_challenge(db, data.management_token, {'manage_verified'}, user.id)
     if not mfa.methods(user):
         raise HTTPException(409, 'Activez d’abord une méthode de vérification.')
     proof.used_at = datetime.utcnow()
     codes = mfa.new_recovery(user)
     user.mfa_version = (user.mfa_version or 0) + 1
-    tokens = mfa.issue_tokens(user)
+    from app.core.login_sessions import current_after_security_change
+    tokens = mfa.issue_tokens(user, session=current_after_security_change(db, user, request))
     ActivityLogger.log(db, user, 'mfa.recovery_regenerated')
     return {'backup_codes': codes, **tokens}
+
+
+@router.post('/trusted/complete')
+def trusted_complete(data: ChallengeInput, request: Request, db: Session = Depends(get_db)):
+    user, row = mfa.load_challenge(db, data.challenge_token, {'login'})
+    from app.core.login_sessions import trusted
+    if not trusted(db, user, request):
+        return {'trusted': False}
+    row.used_at = datetime.utcnow()
+    from app.api.auth import finish_login
+    return {'trusted': True, **finish_login(db, user, request).model_dump()}
