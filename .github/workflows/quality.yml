@@ -6,6 +6,20 @@ on:
 permissions:
   contents: read
 jobs:
+  mcp-artist-patch:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/chatgpt-artist-patch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: integrations/chatgpt-artist-patch/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
   backend:
     runs-on: ubuntu-latest
     services:
