@@ -5,7 +5,7 @@ sous `/opt/radar`, sans dépôt Git. Les fichiers Compose effectifs sont
 `compose.server.yml` et `compose.mcp.yml`, projet `radar`. Les contextes Docker
 backend/frontend/connecteur et les ports locaux ont été confirmés par le propriétaire.
 
-Le script livre uniquement le correctif A2F et sessions de `67e1efa`, comparé à
+Le script livre uniquement le correctif A2F et sessions de `90f6758` (callback Google corrigé), comparé à
 `fea31f4`. Il ne copie pas une nouvelle application complète. Les changements
 locaux hors des contextes du patch sont préservés ; les conflits provoquent un
 arrêt avant toute modification. La variante `auth.py` transmise par le propriétaire
@@ -63,3 +63,8 @@ Tests : `python3 -m unittest discover -s integrations/deploy-mfa -p 'test_*.py' 
 Les tests Docker/orchestration sont simulés ; ils ne prétendent pas qu’un VPS ou
 un fournisseur réel a été contacté. Le patch complet épinglé est réellement
 appliqué dans un répertoire temporaire dépourvu de `.git`.
+
+Le script autonome `fix_google_sso.py --apply` répare uniquement le paramètre
+Request manquant du callback Google sur une installation A2F déjà déployée.
+Il sauvegarde le fichier et l’image backend, reconstruit le backend et redémarre
+backend/worker/scheduler sans migration de base. Le reste du fichier est préservé.

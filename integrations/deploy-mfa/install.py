@@ -17,7 +17,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 BASE = 'fea31f45df4154677febd43bc01412327150490e'
-TARGET = '67e1efa2e888586e44934f7735ebff684e5f3038'
+TARGET = '90f6758bde238ac0d7a4d2f2896012d1a953e05f'
 SERVICES = ['backend', 'worker', 'scheduler', 'mcp', 'frontend']
 
 
