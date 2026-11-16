@@ -59,6 +59,17 @@ Le `/opt/radar` du propriétaire est une copie de fichiers, pas un checkout Git.
 Ne pas y exécuter `git pull` et ne pas remplacer ses fichiers Compose, `.env`,
 stockages OAuth ou configurations locales par ceux du dépôt.
 
+Le paquet de déploiement préparé contient un `frontend.patch` limité aux sources
+publiques, les deux snippets et `deploy.py` (source :
+`scripts/deploy_public_pages.py`). Il vérifie le patch sans approximation, le
+contexte Docker et l'unicité du bloc Nginx d'origine dans les fichiers actifs.
+Sans `--apply`, aucun fichier ni service n'est modifié. Avec `--apply`, il
+sauvegarde les fichiers concernés, construit le frontend pendant que l'ancien
+sert encore, vérifie `/doc` et `/mcp` sur le port 13000, puis valide et recharge
+Nginx. En cas d'échec, il tente de restaurer les fichiers et l'image précédente.
+Il refuse une version locale incompatible au lieu de l'écraser. Ses sept tests
+incluent le retour arrière après échec de build et de validation Nginx.
+
 1. Sauvegarder les fichiers frontend et la configuration Nginx active.
 2. Le propriétaire a confirmé le mapping frontend :
    `3000/tcp -> 127.0.0.1:13000`. Le snippet utilise donc cet upstream.
