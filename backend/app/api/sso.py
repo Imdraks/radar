@@ -126,6 +126,7 @@ async def google_sso_init(request: Request):
 
 @router.get("/google/callback")
 async def google_sso_callback(
+    request: Request,
     code: str,
     state: str,
     db: Session = Depends(get_db),

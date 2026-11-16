@@ -224,5 +224,20 @@ class OrchestrationTests(unittest.TestCase):
         self.exercise('migration')
 
 
+class GoogleRepairTests(unittest.TestCase):
+    def test_pinned_callback_is_repaired_and_preserves_rest_of_file(self):
+        spec = importlib.util.spec_from_file_location('google_repair', Path(__file__).with_name('fix_google_sso.py'))
+        repair = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(repair)
+        repo = Path(__file__).resolve().parents[2]
+        source = subprocess.check_output(['git', 'show', '67e1efa2e888586e44934f7735ebff684e5f3038:backend/app/api/sso.py'], cwd=repo, text=True)
+        result = repair.patched(source)
+        self.assertEqual(result.replace(repair.NEW, repair.OLD, 1), source)
+        self.assertEqual(repair.patched(result), result)
+        compile(result, 'sso.py', 'exec')
+        with self.assertRaisesRegex(RuntimeError, 'non reconnue'):
+            repair.patched(source.replace('google_sso_callback', 'unexpected_callback'))
+
+
 if __name__ == '__main__':
     unittest.main()
