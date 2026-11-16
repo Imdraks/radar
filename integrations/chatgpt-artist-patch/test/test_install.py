@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+import tempfile
 
 spec = importlib.util.spec_from_file_location('artist_install', Path(__file__).resolve().parents[1] / 'install.py')
 installer = importlib.util.module_from_spec(spec)
@@ -21,6 +23,28 @@ export function registerCatalogTools(register, bridge, grantId) {
 
 
 class InstallerTests(unittest.TestCase):
+    def test_docker_checks_stdin_without_network_volumes_or_host_node(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / 'module.mjs'
+            source.write_bytes(b'export const value = 1;\n')
+            with patch.object(installer.subprocess, 'run') as run:
+                installer.check_javascript(source, 'radar-chatgpt:local')
+            run.assert_called_once_with(
+                ['docker', 'run', '--rm', '--pull=never', '--network=none', '-i',
+                 '--entrypoint', 'node', 'radar-chatgpt:local', '--input-type=module', '--check'],
+                input=source.read_bytes(), check=True)
+
+    def test_missing_host_node_has_actionable_error(self):
+        with patch.object(installer.shutil, 'which', return_value=None):
+            with self.assertRaisesRegex(ValueError, '--node-image'):
+                installer.check_javascript(Path('/not/read/on/this/path'))
+
+    def test_native_node_is_kept_when_available(self):
+        with patch.object(installer.shutil, 'which', return_value='/usr/bin/node'):
+            with patch.object(installer.subprocess, 'run') as run:
+                installer.check_javascript(Path('/tmp/test.mjs'))
+            run.assert_called_once_with(['node', '--check', '/tmp/test.mjs'], check=True)
+
     def test_registers_curated_tools_and_filters_duplicate_names(self):
         result = installer.transform(SOURCE)
         self.assertIn('!artistToolNames.has(operation.name)', result)

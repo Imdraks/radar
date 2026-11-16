@@ -43,18 +43,19 @@ Sur le VPS, connecté en `ubuntu` :
 ```bash
 mkdir -p "$HOME/radar-mcp-artistes"
 tar -xzf /tmp/radar-mcp-artistes.tar.gz -C "$HOME/radar-mcp-artistes"
-python3 "$HOME/radar-mcp-artistes/install.py" /opt/radar/chatgpt-connector
+sudo python3 "$HOME/radar-mcp-artistes/install.py" /opt/radar/chatgpt-connector --node-image radar-chatgpt:local
 ```
 
 Cette première commande d'installation vérifie les ancres du code existant et la
 syntaxe JavaScript, sans modifier le connecteur. Une version différente ou un
-module artiste préexistant provoque un refus explicite. Node doit être disponible
-sur le VPS pour ces contrôles. Si ce contrôle réussit, arrêter uniquement le MCP :
+module artiste préexistant provoque un refus explicite. Le contrôle utilise Node dans l’image Docker locale `radar-chatgpt:local`,
+sans démarrer sa commande de service, charger ses secrets ou monter ses volumes.
+Il ne nécessite pas Node sur le VPS et ne télécharge aucune image. Si ce contrôle réussit, arrêter uniquement le MCP :
 
 ```bash
 cd /opt/radar
 sudo docker compose -f compose.server.yml -f compose.mcp.yml stop mcp
-sudo python3 "$HOME/radar-mcp-artistes/install.py" /opt/radar/chatgpt-connector --apply
+sudo python3 "$HOME/radar-mcp-artistes/install.py" /opt/radar/chatgpt-connector --node-image radar-chatgpt:local --apply
 sudo docker compose -f compose.server.yml -f compose.mcp.yml up -d --build --no-deps mcp
 sudo docker compose -f compose.server.yml -f compose.mcp.yml ps mcp
 ```
@@ -110,7 +111,7 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm test
 ```
 
-Résultats locaux : 17 tests d'outils et 4 tests de transformation de l'installateur.
+Résultats locaux : 17 tests d'outils et 7 tests de l'installateur (dont le contrôle Docker sans Node sur l'hôte).
 Quatre tests supplémentaires ont utilisé les fichiers complets fournis et un SDK
 MCP 1.26.0 avec transports mémoire : découverte sans doublons, métadonnées OAuth,
 refus d'écriture sans scope, travail en attente et refus tenant. Le catalogue de

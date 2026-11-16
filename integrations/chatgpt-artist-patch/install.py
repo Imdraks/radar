@@ -14,6 +14,19 @@ import tempfile
 MARKER = "// radar-artist-tools-patch:v1"
 
 
+def check_javascript(file, node_image=None):
+    if node_image:
+        # Use the existing image without its service command, network, volumes,
+        # environment files or grant store. Source is passed only over stdin.
+        subprocess.run(['docker', 'run', '--rm', '--pull=never', '--network=none',
+                        '-i', '--entrypoint', 'node', node_image,
+                        '--input-type=module', '--check'], input=file.read_bytes(), check=True)
+    elif shutil.which('node'):
+        subprocess.run(['node', '--check', str(file)], check=True)
+    else:
+        raise ValueError('Node absent du VPS. Relancez avec sudo et --node-image radar-chatgpt:local pour utiliser l’image MCP existante.')
+
+
 def once(source, old, new):
     if source.count(old) != 1:
         raise ValueError(f"Version du connecteur différente : ancre attendue une fois : {old[:90]}")
@@ -58,6 +71,7 @@ def atomic_write(target, data, ownership):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('connector', type=Path)
+    parser.add_argument('--node-image', help='Image Docker locale contenant Node, sans téléchargement ni montage')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--apply', action='store_true')
     group.add_argument('--rollback', type=Path)
@@ -98,11 +112,14 @@ def main():
                              'pour les enregistrer et enrichir dans Radar, utilisez save_artist puis get_artist_profile avec job_id pour suivre le résultat réel.').encode()
     except ValueError as error:
         parser.error(str(error))
-    with tempfile.TemporaryDirectory(prefix='radar-artist-check-') as folder:
-        for filename, contents in [('catalog-tools.mjs', patched), ('artist-tools.mjs', payload), ('tools.mjs', patched_tools)]:
-            file = Path(folder) / filename
-            file.write_bytes(contents)
-            subprocess.run(['node', '--check', str(file)], check=True)
+    try:
+        with tempfile.TemporaryDirectory(prefix='radar-artist-check-') as folder:
+            for filename, contents in [('catalog-tools.mjs', patched), ('artist-tools.mjs', payload), ('tools.mjs', patched_tools)]:
+                file = Path(folder) / filename
+                file.write_bytes(contents)
+                check_javascript(file, args.node_image)
+    except (ValueError, FileNotFoundError, subprocess.CalledProcessError) as error:
+        parser.error(f'Contrôle JavaScript échoué, aucun fichier modifié : {error}')
     print('Version reconnue et syntaxe JavaScript valide.')
     if not args.apply:
         print('Vérification seule. Arrêtez le service MCP puis relancez avec --apply pour installer.')
