@@ -8,6 +8,8 @@ import { z } from "zod";
 import { Target, Loader2, Shield, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { RadarLogo, RadarMark, RadarField } from "@/components/brand/RadarBrand";
+import { MfaChallenge, mfaError } from '@/components/auth/MfaChallenge';
+import { authApi } from '@/lib/api';
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +57,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, rememberMe, setRememberMe, lastLoginEmail, isAuthenticated, isLoading: authLoading, pending2FA, clearPending2FA } = useAuthStore();
+  const { login, rememberMe, setRememberMe, lastLoginEmail, isAuthenticated, isLoading: authLoading, pending2FA, clearPending2FA, setPending2FA, complete2FA } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
@@ -68,10 +70,19 @@ function LoginContent() {
   }, []);
 
   const [ssoProviders, setSsoProviders] = useState<{ id: string; name: string; enabled: boolean }[]>([]);
-  const [show2FA, setShow2FA] = useState(false);
-  const [totpCode, setTotpCode] = useState("");
-  const [savedCredentials, setSavedCredentials] = useState<{ email: string; password: string } | null>(null);
-  const totpInputRef = useRef<HTMLInputElement>(null);
+  const show2FA = Boolean(pending2FA);
+  const ssoMfaRef = useRef(false);
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get('mfa_token');
+    if (!token) return;
+    ssoMfaRef.current = true;
+    window.history.replaceState(null, '', window.location.pathname);
+    localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token');
+    authApi.mfaOptions(token).then(options => {
+      setPending2FA({ tempToken: token, methods: options.methods, destinations: options.destinations || {} });
+    }).catch(error => { setError(mfaError(error)); ssoMfaRef.current = false; });
+  }, [setPending2FA]);
 
   const {
     register,
@@ -88,10 +99,10 @@ function LoginContent() {
 
   // Auto-redirect if already authenticated
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !pending2FA && !ssoMfaRef.current) {
       router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, pending2FA, router]);
 
   // Pre-fill email if remembered
   useEffect(() => {
@@ -162,12 +173,8 @@ function LoginContent() {
       const result = await login(data.email, data.password, rememberMe);
       
       if (result.requires2FA) {
-        // Show 2FA input
-        setSavedCredentials({ email: data.email, password: data.password });
-        setShow2FA(true);
+        setValue('password', '');
         setIsLoading(false);
-        // Focus on TOTP input after animation
-        setTimeout(() => totpInputRef.current?.focus(), 300);
         return;
       }
       
@@ -189,41 +196,13 @@ function LoginContent() {
     }
   };
   
-  const handleVerify2FA = async () => {
-    if (!savedCredentials || !totpCode) return;
-    
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      const result = await login(savedCredentials.email, savedCredentials.password, rememberMe, totpCode);
-      
-      if (result.success) {
-        router.push(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
-      }
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string | object } } };
-      const detail = error?.response?.data?.detail;
-      if (typeof detail === "string") {
-        setError(detail);
-      } else {
-        setError("Code 2FA invalide");
-      }
-      setTotpCode("");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const handleBack = () => {
-    setShow2FA(false);
-    setTotpCode("");
-    setSavedCredentials(null);
     clearPending2FA();
+    ssoMfaRef.current = false;
     setError(null);
   };
 
-  if (checkingSetup || (!authLoading && isAuthenticated)) {
+  if (checkingSetup || (!authLoading && isAuthenticated && !pending2FA && !ssoMfaRef.current)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4 animate-pulse">
@@ -248,79 +227,20 @@ function LoginContent() {
           <CardTitle className="text-2xl font-semibold tracking-tight">{show2FA ? "Vérification 2FA" : "Bienvenue dans votre espace"}</CardTitle>
           <CardDescription className="text-muted-foreground">
             {show2FA 
-              ? "Entrez le code de votre application d'authentification" 
+              ? "Choisissez une méthode pour confirmer votre identité"
               : "Connectez-vous pour accéder à la plateforme"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 2FA Verification Form */}
-          {show2FA ? (
-            <div className="space-y-4 animate-fade-in">
-              {error && (
-                <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm animate-fade-in flex items-center gap-2">
-                  <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="totp" className="text-sm font-medium">Code à 6 chiffres</Label>
-                <Input
-                  ref={totpInputRef}
-                  id="totp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="000000"
-                  className="h-14 text-center text-2xl font-mono tracking-[0.5em]"
-                  value={totpCode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    setTotpCode(value);
-                    // Auto-submit when 6 digits entered
-                    if (value.length === 6) {
-                      setTimeout(() => handleVerify2FA(), 100);
-                    }
-                  }}
-                  disabled={isLoading}
-                  autoComplete="one-time-code"
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Vous pouvez aussi utiliser un code de récupération
-                </p>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 h-12"
-                  onClick={handleBack}
-                  disabled={isLoading}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Retour
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 h-12 font-semibold"
-                  onClick={handleVerify2FA}
-                  disabled={isLoading || totpCode.length < 6}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Vérification...
-                    </>
-                  ) : (
-                    "Vérifier"
-                  )}
-                </Button>
-              </div>
-            </div>
+          {show2FA && pending2FA ? (
+            <MfaChallenge key={pending2FA.tempToken} token={pending2FA.tempToken}
+              methods={pending2FA.methods} destinations={pending2FA.destinations}
+              onBack={handleBack} onVerify={async (method, code) => {
+                await complete2FA(method, code);
+                ssoMfaRef.current = false;
+                router.push(useAuthStore.getState().user?.is_superuser ? '/admin' : '/today');
+              }} />
           ) : (
             <>
               {ssoProviders.some(provider => provider.id === 'google' && provider.enabled) && <>

@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_use_tls: bool = True
+
+    # SMS MFA stays unavailable until an operator configures a real provider.
+    mfa_sms_provider: str = ''
+    twilio_account_sid: str = Field(default='', repr=False)
+    twilio_auth_token: str = Field(default='', repr=False)
+    twilio_from_number: str = ''
     
     # Webhook Notifications
     discord_webhook_url: Optional[str] = None

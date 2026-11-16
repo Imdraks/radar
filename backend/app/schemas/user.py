@@ -120,7 +120,7 @@ class UserLogin(BaseModel):
     """Login request schema"""
     email: EmailStr
     password: str
-    totp_code: Optional[str] = None  # 2FA code if enabled
+    totp_code: Optional[str] = Field(default=None, max_length=40)  # Legacy TOTP/recovery only.
 
 
 class Token(BaseModel):
@@ -137,6 +137,8 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     requires_2fa: bool = False
     temp_token: Optional[str] = None  # Temporary token to complete 2FA
+    methods: List[str] = []
+    destinations: dict = {}
 
 
 class TokenPayload(BaseModel):

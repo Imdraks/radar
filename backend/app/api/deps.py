@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.db.models.user import User, Role
-from app.core.security import verify_token
+from app.core.security import verify_token, decode_token
 
 security = HTTPBearer(auto_error=False)
 
@@ -42,6 +42,8 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
+    if (decode_token(token) or {}).get('mfa_ver', 0) != (user.mfa_version or 0):
+        raise HTTPException(status_code=401, detail='Sécurité du compte modifiée. Reconnectez-vous.')
     
     return user
 

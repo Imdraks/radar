@@ -111,7 +111,7 @@ def update_user(
     current_user: User = Depends(require_admin),
 ):
     """Update user"""
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).with_for_update().populate_existing().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -119,6 +119,8 @@ def update_user(
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    if 'password' in update_dict or ('email' in update_dict and update_dict['email'] != user.email):
+        user.mfa_version = (user.mfa_version or 0) + 1
     
     # Hash password if provided
     if "password" in update_dict:

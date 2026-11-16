@@ -180,3 +180,4 @@ from .legal_contract import LegalBundle, LegalAcceptance
 
 from .credit_note import CreditNote
 from .artist_event import ArtistEvent
+from .mfa import MFAChallenge

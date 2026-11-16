@@ -120,6 +120,12 @@ rate_limiter = RateLimiter()
 
 # Specific limits for sensitive endpoints (scaled for 10+ concurrent users)
 RATE_LIMITS = {
+    "/api/v1/auth/mfa/complete": {"max": 10, "window": 60},
+    "/api/v1/auth/mfa/send": {"max": 10, "window": 60},
+    "/api/v1/auth/mfa/reauth/start": {"max": 5, "window": 60},
+    "/api/v1/auth/mfa/reauth/complete": {"max": 10, "window": 60},
+    "/api/v1/auth/mfa/enroll/start": {"max": 5, "window": 60},
+    "/api/v1/auth/mfa/enroll/complete": {"max": 10, "window": 60},
     "/api/v1/auth/login": {"max": 10, "window": 60},  # 10 attempts per minute (brute force protection)
     "/api/v1/auth/setup": {"max": 5, "window": 60},  # 5 attempts per minute
     "/api/v1/auth/register": {"max": 5, "window": 300},  # 5 per 5 minutes
@@ -199,6 +205,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         # Referrer policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if request.url.path.startswith('/api/v1/auth/'):
+            response.headers['Cache-Control'] = 'no-store'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Referrer-Policy'] = 'no-referrer'
         
         # HSTS - Force HTTPS (1 year)
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

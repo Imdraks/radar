@@ -35,20 +35,25 @@ def run():
             "TESTING": "true",
         }
 
-        def migrate(revision):
+        def migrate(revision, direction='upgrade', expected_failure=None):
             result = subprocess.run(
-                [sys.executable, "-m", "alembic", "upgrade", revision],
+                [sys.executable, "-m", "alembic", direction, revision],
                 cwd=ROOT / "backend",
                 env=env,
                 capture_output=True,
                 text=True,
             )
             if result.returncode:
+                if expected_failure:
+                    assert expected_failure in result.stderr
+                    return
                 # Alembic failures can include bind values; only fixed exception categories are emitted.
                 Path("/tmp/radar-migration-history-error.log").write_text(result.stderr)
                 raise RuntimeError(
                     "Migration failed; private diagnostic at /tmp/radar-migration-history-error.log"
                 )
+            if expected_failure:
+                raise AssertionError('An unsafe migration unexpectedly succeeded')
 
         try:
             if start:
@@ -89,6 +94,17 @@ def run():
                 from check_migrated_api import run as check_api
 
                 check_api(engine)
+                # A clean MFA schema can roll back. Upgrading a legacy enabled
+                # TOTP account preserves its secret and revokes old sessions.
+                migrate('056_full_credit_notes', direction='downgrade')
+                with engine.begin() as conn:
+                    conn.execute(text("UPDATE users SET two_factor_enabled = true, two_factor_secret = 'JBSWY3DPEHPK3PXP' WHERE email = 'migrated-api@example.com'"))
+                migrate('head')
+                with engine.connect() as conn:
+                    row = conn.execute(text("SELECT mfa_version,two_factor_secret FROM users WHERE email = 'migrated-api@example.com'")).one()
+                    assert row == (1, 'JBSWY3DPEHPK3PXP')
+                migrate('056_full_credit_notes', direction='downgrade', expected_failure='Downgrade automatique refusé')
+                print('PASS MFA migration: clean rollback, legacy preservation, session revocation, unsafe downgrade refused', flush=True)
             # A second upgrade must not renumber or recreate existing records.
             migrate("head")
             print("PASS migration path:", start or "empty database", flush=True)

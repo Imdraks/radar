@@ -64,6 +64,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    // A rejected step-up code is not an expired API session. Never replay an
+    // MFA mutation automatically: it consumes attempts or a one-use proof.
+    if (error.response?.status === 401 && originalRequest?.method?.toUpperCase() === 'POST'
+      && /\/auth\/mfa\//.test(originalRequest.url || '')) {
+      return Promise.reject(error);
+    }
 
     // Handle NO_WORKSPACE_ACCESS - redirect to waiting page
     if (error.response?.status === 403) {
@@ -123,6 +129,9 @@ api.interceptors.response.use(
 
 // Auth API
 export const authApi = {
+  mfaOptions: async (challengeToken: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/options`, { challenge_token: challengeToken })).data,
+  mfaSend: async (challengeToken: string, method: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/send`, { challenge_token: challengeToken, method })).data,
+  mfaComplete: async (challengeToken: string, method: string, code: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/complete`, { challenge_token: challengeToken, method, code })).data,
   login: async (email: string, password: string, totpCode?: string) => {
     const response = await axios.post(`${API_URL}/api/v1/auth/login`, {
       email,

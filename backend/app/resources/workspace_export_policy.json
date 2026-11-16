@@ -1,6 +1,9 @@
 {
   "version": "radar-workspace-v1",
   "tables": {
+    "mfa_challenges": {
+      "exclude": "Short-lived account authentication proofs and encrypted MFA enrollment material; never exported."
+    },
     "accounts": {
       "exclude": "Authentication and OAuth credentials, never exported."
     },

@@ -42,6 +42,10 @@ TEST_SETTINGS = {
     "SMTP_PASSWORD",
     "SMTP_FROM_EMAIL",
     "SMTP_USE_TLS",
+    "MFA_SMS_PROVIDER",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_FROM_NUMBER",
     "IMAP_HOST",
     "IMAP_PORT",
     "IMAP_USER",
@@ -70,6 +74,8 @@ PROVIDERS = {
 # Additive repairs for earlier MODEL-created, explicitly marked disposable previews.
 # No generic ALTER, no Alembic stamp, no production target.
 PREVIEW_COLUMNS = {
+    "mfa_challenges": {"last_attempt_at"},
+    "users": {"mfa_email_enabled", "mfa_email", "mfa_sms_enabled", "mfa_phone", "mfa_version", "mfa_totp_last_step"},
     "invoices": ("issued_at", "issued_snapshot", "legal_details", "credited_at"),
     "subscription_requests": ("contract_acceptance_id",),
     "collection_runs": ("brief_id",),
@@ -242,7 +248,7 @@ def repair_preview_schema(conn):
                 )
             else:
                 column = Base.metadata.tables[name].c[key]
-                if not column.nullable:
+                if not column.nullable and column.server_default is None:
                     raise RuntimeError("Réparation de préversion non additive refusée")
                 ddl = str(CreateColumn(column).compile(dialect=conn.dialect))
                 conn.execute(text(f'ALTER TABLE "{name}" ADD COLUMN {ddl}'))

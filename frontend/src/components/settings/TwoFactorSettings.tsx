@@ -1,495 +1,90 @@
-"use client";
+'use client';
+import { useState } from 'react';
+import Image from 'next/image';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Shield, Smartphone, Mail, MessageSquare, Key, Loader2, Copy } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { MfaChallenge, mfaLabels, mfaError } from '@/components/auth/MfaChallenge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { api } from "@/lib/api";
-import {
-  Shield,
-  ShieldCheck,
-  ShieldOff,
-  QrCode,
-  Key,
-  Copy,
-  CheckCircle,
-  AlertTriangle,
-  Loader2,
-  Smartphone,
-  RefreshCw,
-} from "lucide-react";
-
-interface TwoFactorStatus {
-  enabled: boolean;
-  has_backup_codes: boolean;
-}
-
-interface SetupResponse {
-  secret: string;
-  qr_code: string;
-  backup_codes: string[];
-}
+type Method = 'totp' | 'email' | 'sms';
+type Status = { enabled: boolean; methods: string[]; destinations: Record<string, string>; available: Record<string, boolean>; has_backup_codes: boolean };
+type Challenge = { challenge_token: string; methods: string[]; destinations: Record<string, string> };
+type Enrollment = { challenge_token: string; method: Method; secret?: string; qr_code?: string; sent?: boolean; destination?: string };
+type Action = { kind: 'add' | 'disable'; method: Method } | { kind: 'recovery' };
 
 export function TwoFactorSettings() {
-  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
-  const [disableDialogOpen, setDisableDialogOpen] = useState(false);
-  const [backupCodesDialogOpen, setBackupCodesDialogOpen] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [setupData, setSetupData] = useState<SetupResponse | null>(null);
-  const [newBackupCodes, setNewBackupCodes] = useState<string[]>([]);
-  const [copiedCodes, setCopiedCodes] = useState(false);
-  
-  const queryClient = useQueryClient();
-
-  // Get 2FA status
-  const { data: status, isLoading: statusLoading } = useQuery({
-    queryKey: ["2fa-status"],
-    queryFn: async () => {
-      const response = await api.get("/auth/2fa/status");
-      return response.data as TwoFactorStatus;
-    },
-  });
-
-  // Setup 2FA mutation
-  const setupMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post("/auth/2fa/setup");
-      return response.data as SetupResponse;
-    },
-    onSuccess: (data) => {
-      setSetupData(data);
-    },
-  });
-
-  // Enable 2FA mutation
-  const enableMutation = useMutation({
-    mutationFn: async (code: string) => {
-      const response = await api.post("/auth/2fa/enable", { code });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["2fa-status"] });
-      setSetupDialogOpen(false);
-      setSetupData(null);
-      setVerificationCode("");
-    },
-  });
-
-  // Disable 2FA mutation
-  const disableMutation = useMutation({
-    mutationFn: async (code: string) => {
-      const response = await api.post("/auth/2fa/disable", { code });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["2fa-status"] });
-      setDisableDialogOpen(false);
-      setVerificationCode("");
-    },
-  });
-
-  // Regenerate backup codes mutation
-  const regenerateMutation = useMutation({
-    mutationFn: async (code: string) => {
-      const response = await api.post("/auth/2fa/regenerate-backup-codes", { code });
-      return response.data;
-    },
-    onSuccess: (data) => {
-      setNewBackupCodes(data.backup_codes);
-      setVerificationCode("");
-    },
-  });
-
-  const handleStartSetup = async () => {
-    setSetupDialogOpen(true);
-    await setupMutation.mutateAsync();
+  const cache = useQueryClient();
+  const { setTokens } = useAuthStore();
+  const userId = useAuthStore(state => state.user?.id);
+  const { data: status, isLoading, isError } = useQuery({ queryKey: ['mfa-status', userId], enabled: Boolean(userId), queryFn: async () => (await api.get('/auth/mfa/status')).data as Status });
+  const [action, setAction] = useState<Action | null>(null);
+  const [phase, setPhase] = useState<'password' | 'verify' | 'enroll'>('password');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [codes, setCodes] = useState<string[]>([]);
+  const close = () => { setAction(null); setPassword(''); setPhone(''); setChallenge(null); setEnrollment(null); setError(''); setPhase('password'); };
+  const start = (value: Action) => { close(); setNotice(''); setAction(value); };
+  const changed = async (result: { access_token: string; refresh_token: string; backup_codes?: string[] }, message: string) => {
+    if (result.backup_codes) setCodes(result.backup_codes);
+    await setTokens(result.access_token, result.refresh_token);
+    await cache.invalidateQueries({ queryKey: ['mfa-status'] });
+    close(); setNotice(message);
   };
-
-  const handleEnableSubmit = async () => {
-    if (verificationCode.length === 6) {
-      await enableMutation.mutateAsync(verificationCode);
+  const execute = async (managementToken: string) => {
+    if (!action) return;
+    if (action.kind === 'add') {
+      const result = await api.post('/auth/mfa/enroll/start', { management_token: managementToken, method: action.method, ...(action.method === 'sms' ? { phone } : {}) });
+      setEnrollment(result.data); setPhase('enroll');
+    } else {
+      const result = await api.post(action.kind === 'recovery' ? '/auth/mfa/recovery/regenerate' : '/auth/mfa/disable', { management_token: managementToken, ...(action.kind === 'disable' ? { method: action.method } : {}) });
+      await changed(result.data, action.kind === 'recovery' ? 'Nouveaux codes de secours générés. Les précédents sont invalidés.' : 'Méthode désactivée. Les autres méthodes restent actives.');
     }
   };
-
-  const handleDisableSubmit = async () => {
-    if (verificationCode.length === 6) {
-      await disableMutation.mutateAsync(verificationCode);
-    }
-  };
-
-  const handleCopyBackupCodes = () => {
-    const codes = setupData?.backup_codes || newBackupCodes;
-    navigator.clipboard.writeText(codes.join("\n"));
-    setCopiedCodes(true);
-    setTimeout(() => setCopiedCodes(false), 3000);
-  };
-
-  if (statusLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Authentification à deux facteurs (2FA)
-          </CardTitle>
-          <CardDescription>
-            Ajoutez une couche de sécurité supplémentaire à votre compte
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Status */}
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div className="flex items-center gap-3">
-              {status?.enabled ? (
-                <ShieldCheck className="h-8 w-8 text-green-600" />
-              ) : (
-                <ShieldOff className="h-8 w-8 text-muted-foreground" />
-              )}
-              <div>
-                <p className="font-medium">
-                  {status?.enabled ? "2FA activée" : "2FA désactivée"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {status?.enabled
-                    ? "Votre compte est protégé"
-                    : "Recommandé pour plus de sécurité"}
-                </p>
-              </div>
-            </div>
-            <Badge variant={status?.enabled ? "default" : "secondary"}>
-              {status?.enabled ? "Activée" : "Désactivée"}
-            </Badge>
-          </div>
-
-          {/* Actions */}
-          {status?.enabled ? (
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setBackupCodesDialogOpen(true)}
-              >
-                <Key className="h-4 w-4 mr-2" />
-                Gérer les codes de secours
-              </Button>
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={() => setDisableDialogOpen(true)}
-              >
-                <ShieldOff className="h-4 w-4 mr-2" />
-                Désactiver la 2FA
-              </Button>
-            </div>
-          ) : (
-            <Button className="w-full" onClick={handleStartSetup}>
-              <ShieldCheck className="h-4 w-4 mr-2" />
-              Activer la 2FA
-            </Button>
-          )}
-
-          {/* Info */}
-          <Alert>
-            <Smartphone className="h-4 w-4" />
-            <AlertDescription>
-              Utilisez une application comme Google Authenticator, Authy ou 1Password
-              pour scanner le code QR et générer des codes de vérification.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-
-      {/* Setup Dialog */}
-      <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Configurer la 2FA</DialogTitle>
-            <DialogDescription>
-              Scannez le code QR avec votre application d'authentification
-            </DialogDescription>
-          </DialogHeader>
-
-          {setupMutation.isPending ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : setupData ? (
-            <div className="space-y-4">
-              {/* QR Code */}
-              <div className="flex justify-center">
-                <div className="p-4 bg-white rounded-lg">
-                  <img
-                    src={`data:image/png;base64,${setupData.qr_code}`}
-                    alt="QR Code 2FA"
-                    className="w-48 h-48"
-                  />
-                </div>
-              </div>
-
-              {/* Manual code */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">
-                  Ou entrez ce code manuellement:
-                </p>
-                <code className="px-3 py-1 bg-muted rounded text-sm font-mono">
-                  {setupData.secret}
-                </code>
-              </div>
-
-              {/* Backup codes */}
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-sm">Codes de secours</p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCopyBackupCodes}
-                  >
-                    {copiedCodes ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-1 text-xs font-mono">
-                  {setupData.backup_codes.map((code, i) => (
-                    <span key={i} className="p-1 bg-background rounded">
-                      {code}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Sauvegardez ces codes en lieu sûr
-                </p>
-              </div>
-
-              {/* Verification */}
-              <div className="space-y-2">
-                <p className="text-sm">
-                  Entrez le code à 6 chiffres de votre application:
-                </p>
-                <Input
-                  type="text"
-                  placeholder="000000"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) =>
-                    setVerificationCode(e.target.value.replace(/\D/g, ""))
-                  }
-                  className="text-center text-2xl tracking-widest font-mono"
-                />
-              </div>
-
-              {enableMutation.isError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Code invalide. Vérifiez et réessayez.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSetupDialogOpen(false);
-                setSetupData(null);
-                setVerificationCode("");
-              }}
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleEnableSubmit}
-              disabled={verificationCode.length !== 6 || enableMutation.isPending}
-            >
-              {enableMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Activer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Disable Dialog */}
-      <Dialog open={disableDialogOpen} onOpenChange={setDisableDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Désactiver la 2FA</DialogTitle>
-            <DialogDescription>
-              Entrez un code de vérification pour confirmer
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Attention: Désactiver la 2FA réduit la sécurité de votre compte.
-              </AlertDescription>
-            </Alert>
-
-            <Input
-              type="text"
-              placeholder="Code à 6 chiffres"
-              maxLength={6}
-              value={verificationCode}
-              onChange={(e) =>
-                setVerificationCode(e.target.value.replace(/\D/g, ""))
-              }
-              className="text-center text-2xl tracking-widest font-mono"
-            />
-
-            {disableMutation.isError && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Code invalide.</AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDisableDialogOpen(false);
-                setVerificationCode("");
-              }}
-            >
-              Annuler
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDisableSubmit}
-              disabled={verificationCode.length !== 6 || disableMutation.isPending}
-            >
-              {disableMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Désactiver
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Backup Codes Dialog */}
-      <Dialog open={backupCodesDialogOpen} onOpenChange={setBackupCodesDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Codes de secours</DialogTitle>
-            <DialogDescription>
-              Régénérer de nouveaux codes de secours
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {newBackupCodes.length > 0 ? (
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-sm">Nouveaux codes</p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleCopyBackupCodes}
-                  >
-                    {copiedCodes ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-1 text-xs font-mono">
-                  {newBackupCodes.map((code, i) => (
-                    <span key={i} className="p-1 bg-background rounded">
-                      {code}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Sauvegardez ces codes en lieu sûr
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Entrez votre code 2FA actuel pour générer de nouveaux codes de secours.
-                  Les anciens codes seront invalidés.
-                </p>
-                <Input
-                  type="text"
-                  placeholder="Code à 6 chiffres"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) =>
-                    setVerificationCode(e.target.value.replace(/\D/g, ""))
-                  }
-                  className="text-center text-2xl tracking-widest font-mono"
-                />
-              </>
-            )}
-
-            {regenerateMutation.isError && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Code invalide.</AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setBackupCodesDialogOpen(false);
-                setVerificationCode("");
-                setNewBackupCodes([]);
-              }}
-            >
-              Fermer
-            </Button>
-            {newBackupCodes.length === 0 && (
-              <Button
-                onClick={() => regenerateMutation.mutate(verificationCode)}
-                disabled={verificationCode.length !== 6 || regenerateMutation.isPending}
-              >
-                {regenerateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Régénérer
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+  return <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Shield size={20} />Authentification à deux facteurs</CardTitle><CardDescription>Confirmez votre identité avec une application, un e-mail ou un SMS. Choisissez les méthodes qui vous conviennent.</CardDescription></CardHeader><CardContent className="space-y-6">
+    {isLoading ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="animate-spin" size={16} />Chargement de la sécurité…</p> : isError || !status ? <p role="alert" className="text-sm text-destructive">Impossible de lire les méthodes. Réessayez avant de modifier la sécurité.</p> : <>
+      <p className={`rounded-xl p-4 text-sm ${status.enabled ? 'bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200' : 'bg-primary/5'}`}>{status.enabled ? 'La double authentification est activée sur votre compte.' : 'Votre compte utilise actuellement une seule étape de connexion. Ajoutez une méthode pour activer la double authentification.'}</p>
+      <div className="space-y-3">{[
+        { method: 'totp' as Method, icon: Smartphone, text: 'Google Authenticator, Microsoft Authenticator, 1Password ou toute application TOTP compatible.' },
+        { method: 'email' as Method, icon: Mail, text: 'Un code temporaire envoyé à l’adresse vérifiée de votre compte.' },
+        { method: 'sms' as Method, icon: MessageSquare, text: 'Un code temporaire envoyé au numéro que vous confirmez. Les envois dépendent d’un prestataire SMS.' },
+      ].map(({ method, icon: Icon, text }) => {
+        const enabled = status.methods.includes(method);
+        return <article key={method} className="flex flex-col justify-between gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center"><div className="flex min-w-0 gap-3"><Icon size={21} className="mt-0.5 shrink-0 text-primary" /><div><h3 className="text-sm font-semibold">{mfaLabels[method]}{enabled && <span className="ml-2 text-xs font-normal text-green-700 dark:text-green-300">Activée</span>}</h3><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>{enabled && status.destinations[method] && <p className="mt-2 text-xs">{status.destinations[method]}</p>}{!status.available[method] && <p className="mt-2 text-xs text-muted-foreground">Envoi non configuré. Contactez l’administrateur pour activer cette méthode.</p>}</div></div><Button variant="outline" className="shrink-0" disabled={!enabled && !status.available[method]} onClick={() => start({ kind: enabled ? 'disable' : 'add', method })}>{enabled ? 'Désactiver' : 'Configurer'}</Button></article>;
+      })}</div>
+      {status.enabled && <div className="flex flex-col justify-between gap-4 rounded-2xl border p-5 sm:flex-row sm:items-center"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><Key size={17} />Codes de secours</h3><p className="mt-2 text-xs leading-relaxed text-muted-foreground">À conserver hors de Radar. Chaque code est utilisable une seule fois.</p></div><Button variant="outline" onClick={() => start({ kind: 'recovery' })}>Générer de nouveaux codes</Button></div>}
+      <p className="text-xs leading-relaxed text-muted-foreground">Une modification exige une nouvelle vérification de votre identité et déconnecte les autres sessions et autorisations Radar utilisant leurs anciens jetons. Conservez au moins une méthode accessible et vos codes de secours.</p>
+    </>}
+    {notice && <p role="status" className="rounded-xl bg-primary/5 p-4 text-sm">{notice}</p>}
+    {codes.length > 0 && <section className="space-y-4 rounded-2xl border border-primary/20 p-5" aria-label="Nouveaux codes de secours"><h3 className="font-semibold">Enregistrez ces codes maintenant</h3><p className="text-sm text-muted-foreground">Ils ne seront plus affichés après fermeture ou rechargement. Ces codes remplacent les précédents.</p><ul className="grid gap-2 sm:grid-cols-2">{codes.map(code => <li key={code} className="rounded-lg bg-secondary px-3 py-2 font-mono text-xs">{code}</li>)}</ul><div className="flex flex-wrap gap-3"><Button variant="outline" className="gap-2" onClick={async () => { try { await navigator.clipboard.writeText(codes.join('\n')); setNotice('Codes copiés. Conservez-les dans un emplacement sécurisé.'); } catch { setNotice('Copie indisponible. Enregistrez les codes manuellement.'); } }}><Copy size={15} />Copier les codes</Button><Button variant="outline" onClick={() => setCodes([])}>J’ai enregistré mes codes</Button></div></section>}
+    <Dialog open={Boolean(action)} onOpenChange={open => { if (!open && !busy) close(); }}><DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"><DialogHeader><DialogTitle>{phase === 'enroll' ? 'Confirmer la nouvelle méthode' : 'Vérifier votre identité'}</DialogTitle><DialogDescription>{phase === 'password' ? 'Une modification de sécurité nécessite une vérification récente. Votre méthode actuelle reste active pendant la configuration.' : phase === 'verify' ? 'Confirmez avec une méthode déjà activée ou un code de secours.' : 'La méthode sera activée seulement après validation du code reçu.'}</DialogDescription></DialogHeader>
+      {phase === 'password' && <form className="space-y-4" onSubmit={async event => {
+        event.preventDefault(); setBusy(true); setError('');
+        try {
+          const response = await api.post('/auth/mfa/reauth/start', { password: password || null });
+          setPassword('');
+          if (response.data.requires_2fa) { setChallenge(response.data); setPhase('verify'); }
+          else await execute(response.data.management_token);
+        } catch (error) { setError(mfaError(error)); } finally { setBusy(false); }
+      }}><div className="space-y-2"><Label htmlFor="mfa-password">Mot de passe Radar</Label><Input id="mfa-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} /><p className="text-xs text-muted-foreground">Si votre compte utilise uniquement Google ou Apple, laissez vide et reconnectez-vous d’abord avec ce fournisseur si demandé.</p></div>{action?.kind === 'add' && action.method === 'sms' && <div className="space-y-2"><Label htmlFor="mfa-phone">Numéro de téléphone international</Label><Input id="mfa-phone" type="tel" autoComplete="tel" placeholder="+33612345678" value={phone} onChange={event => setPhone(event.target.value)} required /><p className="text-xs text-muted-foreground">Le numéro n’est enregistré comme méthode qu’après confirmation du SMS.</p></div>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" className="w-full gap-2" disabled={busy}>{busy && <Loader2 size={15} className="animate-spin" />}Continuer</Button></form>}
+      {phase === 'verify' && challenge && <MfaChallenge key={challenge.challenge_token} token={challenge.challenge_token} methods={challenge.methods} destinations={challenge.destinations} onBack={close} onVerify={async (method, code) => {
+        setBusy(true);
+        try { const response = await api.post('/auth/mfa/reauth/complete', { challenge_token: challenge.challenge_token, method, code }); await execute(response.data.management_token); } finally { setBusy(false); }
+      }} />}
+      {phase === 'enroll' && enrollment && <div className="space-y-5">{enrollment.qr_code && <div className="space-y-3"><Image unoptimized src={`data:image/png;base64,${enrollment.qr_code}`} width={200} height={200} alt="QR code de configuration de votre application d’authentification" className="mx-auto rounded-xl bg-white" /><p className="text-xs leading-relaxed text-muted-foreground">Scannez ce QR code dans votre application. Si nécessaire, saisissez cette clé manuellement :</p><code className="block break-all rounded-xl bg-secondary p-3 text-sm">{enrollment.secret}</code></div>}<MfaChallenge key={enrollment.challenge_token} token={enrollment.challenge_token} methods={[enrollment.method]} destinations={enrollment.destination ? { [enrollment.method]: enrollment.destination } : {}} alreadySent={enrollment.sent} enrollment onBack={close} onVerify={async (method, code) => {
+        setBusy(true);
+        try { const response = await api.post('/auth/mfa/enroll/complete', { challenge_token: enrollment.challenge_token, method, code }); await changed(response.data, 'Méthode confirmée et activée. Enregistrez vos nouveaux codes de secours.'); } finally { setBusy(false); }
+      }} /></div>}
+    </DialogContent></Dialog>
+  </CardContent></Card>;
 }

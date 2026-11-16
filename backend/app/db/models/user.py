@@ -6,7 +6,7 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum as PyEnum
-from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON, Integer, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -50,6 +50,12 @@ class User(Base):
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String(255), nullable=True)
     backup_codes = Column(JSON, nullable=True)  # List of backup codes
+    mfa_email_enabled = Column(Boolean, nullable=False, default=False, server_default='false')
+    mfa_email = Column(String(500), nullable=True)  # Encrypted verified address, bound at enrollment.
+    mfa_sms_enabled = Column(Boolean, nullable=False, default=False, server_default='false')
+    mfa_phone = Column(String(255), nullable=True)  # Encrypted verified E.164 number.
+    mfa_version = Column(Integer, nullable=False, default=0, server_default='0')
+    mfa_totp_last_step = Column(BigInteger, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

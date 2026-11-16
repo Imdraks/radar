@@ -49,6 +49,7 @@ from app.api.privacy import router as privacy_router
 from app.api.legal_contracts import router as legal_contracts_router
 from app.api.credit_notes import router as credit_notes_router
 from app.api.health import router as health_router
+from app.api.mfa import router as mfa_router
 
 # ============================================================================
 # API ROUTERS - V2 (New LeadItem-based with UUIDs)
@@ -268,6 +269,7 @@ app.include_router(legal_contracts_router, prefix="/api/v1")
 
 # V1 Routes - Legacy (Integer IDs, Opportunity model)
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(mfa_router, prefix="/api/v1")
 app.include_router(opportunities_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.LEADS)), Depends(require_workspace_write)], prefix="/api/v1")  # Legacy /opportunities
 # Static /sources/health must precede dynamic /sources/{source_id}.
 app.include_router(source_health_router, dependencies=[Depends(get_current_platform_admin)], prefix="/api/v1", tags=["Source Health"])

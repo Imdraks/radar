@@ -11,6 +11,11 @@ interface LoginResult {
   requires2FA?: boolean;
   tempToken?: string;
 }
+export interface PendingMFA {
+  tempToken: string;
+  methods: string[];
+  destinations: Record<string, string>;
+}
 
 interface AuthState {
   user: User | null;
@@ -18,7 +23,9 @@ interface AuthState {
   isLoading: boolean;
   rememberMe: boolean;
   lastLoginEmail: string | null;
-  pending2FA: { email: string; password: string; tempToken: string } | null;
+  pending2FA: PendingMFA | null;
+  setPending2FA: (value: PendingMFA) => void;
+  complete2FA: (method: string, code: string) => Promise<void>;
   
   // Actions
   login: (email: string, password: string, rememberMe?: boolean, totpCode?: string) => Promise<LoginResult>;
@@ -48,9 +55,13 @@ export const useAuthStore = create<AuthState>()(
           
           // Check if 2FA is required
           if (response.requires_2fa) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
             set({ 
               isLoading: false,
-              pending2FA: { email, password, tempToken: response.temp_token }
+              user: null, isAuthenticated: false,
+              rememberMe, lastLoginEmail: rememberMe ? email : null,
+              pending2FA: { tempToken: response.temp_token, methods: response.methods || [], destinations: response.destinations || {} }
             });
             return { success: false, requires2FA: true, tempToken: response.temp_token };
           }
@@ -89,6 +100,14 @@ export const useAuthStore = create<AuthState>()(
       clearPending2FA: () => {
         set({ pending2FA: null });
       },
+      setPending2FA: value => set({ pending2FA: value, user: null, isAuthenticated: false, isLoading: false }),
+      complete2FA: async (method, code) => {
+        const pending = get().pending2FA;
+        if (!pending) throw new Error('Vérification expirée. Reconnectez-vous.');
+        const result = await authApi.mfaComplete(pending.tempToken, method, code);
+        await get().setTokens(result.access_token, result.refresh_token);
+        set({ pending2FA: null });
+      },
 
       logout: () => {
         useSubscriptionStore.getState().reset();
@@ -96,7 +115,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("current_workspace_id");
-        set({ user: null, isAuthenticated: false, isLoading: false });
+        set({ user: null, isAuthenticated: false, isLoading: false, pending2FA: null });
       },
 
       fetchUser: async () => {
