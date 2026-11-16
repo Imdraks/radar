@@ -1,7 +1,7 @@
 "use client";
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import legal from "@/config/legal.json";
 import {
@@ -39,6 +39,12 @@ export default function ContactPage() {
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('offer') === 'mcp') {
+      setForm(previous => ({ ...previous, plan: previous.plan || 'custom', message: previous.message || 'Je souhaite connaître les conditions et l’activation du connecteur ChatGPT / MCP pour mon workspace Radar.' }));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

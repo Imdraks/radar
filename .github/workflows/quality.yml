@@ -20,6 +20,8 @@ jobs:
           cache-dependency-path: integrations/chatgpt-artist-patch/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
+      - run: docker pull nginx:1.28-alpine
+      - run: python3 ../../scripts/check_mcp_public_proxy.py
   backend:
     runs-on: ubuntu-latest
     services:
@@ -90,6 +92,7 @@ jobs:
             sleep 1
           done
           python ../scripts/brand_ui_smoke.py
+          python ../scripts/documentation_ui_smoke.py
           python ../scripts/ui_smoke.py
           python ../scripts/consent_ui_smoke.py
           python ../scripts/legal_ui_smoke.py
