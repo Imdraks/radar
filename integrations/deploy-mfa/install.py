@@ -43,6 +43,41 @@ def archive(revision, paths):
     return result
 
 
+def known_vps_auth(previous):
+    """The complete owner-supplied JSON refresh variant; no heuristic overwrite."""
+    old_import = 'from fastapi import APIRouter, Depends, HTTPException, status, Request, Header\n'
+    old_refresh = '''@router.post("/refresh", response_model=Token)
+def refresh_token(
+    refresh_token: str,
+    db: Session = Depends(get_db)
+):
+    """Refresh access token"""
+'''
+    new_refresh = '''class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+@router.post("/refresh", response_model=Token)
+def refresh_token(
+    refresh_token: Optional[str] = None,
+    db: Session = Depends(get_db),
+    payload: Optional[RefreshTokenRequest] = Body(default=None),
+):
+    """Refresh access token"""
+    # JSON avoids putting credentials in URLs; preserve legacy query clients.
+    if payload is not None:
+        if refresh_token is not None and refresh_token != payload.refresh_token:
+            raise HTTPException(status_code=400, detail="Conflicting refresh credentials")
+        refresh_token = payload.refresh_token
+    if not refresh_token:
+        raise HTTPException(status_code=422, detail="Refresh token is required")
+'''
+    source = previous.decode()
+    if source.count(old_import) != 1 or source.count(old_refresh) != 1:
+        raise RuntimeError('Référence auth.py inattendue.')
+    return source.replace(old_import, old_import.rstrip('\n') + ', Body\n', 1).replace(old_refresh, new_refresh, 1).encode()
+
+
 def prepare_patch(root, paths, before, after):
     chunks = []
     for name in paths:
@@ -57,6 +92,10 @@ def prepare_patch(root, paths, before, after):
         # git apply with exact context preserves unrelated local changes and
         # refuses conflicts, missing baseline files or existing unknown additions.
         previous = before.get(name)
+        if name == 'backend/app/api/auth.py' and previous is not None and b'def refresh_token(' in previous:
+            reviewed_variant = known_vps_auth(previous)
+            if current == reviewed_variant:
+                previous = reviewed_variant
         chunks.extend(difflib.unified_diff(
             (previous or b'').decode().splitlines(keepends=True),
             after[name].decode().splitlines(keepends=True),

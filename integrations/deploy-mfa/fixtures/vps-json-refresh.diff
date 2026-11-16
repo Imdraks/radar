@@ -1,0 +1,38 @@
+--- a/backend/app/api/auth.py
++++ b/backend/app/api/auth.py
+@@ -3,7 +3,7 @@
+ """
+ from datetime import datetime
+ from typing import Optional, List
+-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
++from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Body
+ from sqlalchemy.orm import Session
+ from sqlalchemy import text
+ from secrets import compare_digest
+@@ -216,12 +216,24 @@
+     )
+ 
+ 
++class RefreshTokenRequest(BaseModel):
++    refresh_token: str
++
++
+ @router.post("/refresh", response_model=Token)
+ def refresh_token(
+-    refresh_token: str,
+-    db: Session = Depends(get_db)
++    refresh_token: Optional[str] = None,
++    db: Session = Depends(get_db),
++    payload: Optional[RefreshTokenRequest] = Body(default=None),
+ ):
+     """Refresh access token"""
++    # JSON avoids putting credentials in URLs; preserve legacy query clients.
++    if payload is not None:
++        if refresh_token is not None and refresh_token != payload.refresh_token:
++            raise HTTPException(status_code=400, detail="Conflicting refresh credentials")
++        refresh_token = payload.refresh_token
++    if not refresh_token:
++        raise HTTPException(status_code=422, detail="Refresh token is required")
+     user_id = verify_token(refresh_token, "refresh")
+     
+     if user_id is None:

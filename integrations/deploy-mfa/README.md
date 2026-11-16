@@ -8,7 +8,11 @@ backend/frontend/connecteur et les ports locaux ont été confirmés par le prop
 Le script livre uniquement le correctif A2F et sessions de `67e1efa`, comparé à
 `fea31f4`. Il ne copie pas une nouvelle application complète. Les changements
 locaux hors des contextes du patch sont préservés ; les conflits provoquent un
-arrêt avant toute modification. Les pages publiques MCP/doc, les variables d’environnement,
+arrêt avant toute modification. La variante `auth.py` transmise par le propriétaire
+(ajout de `Body` et de `RefreshTokenRequest` pour accepter le JSON) est reconnue
+uniquement si le fichier complet correspond exactement à cette variante revue.
+Elle migre vers le renouvellement JSON avec contrôle des sessions du nouveau backend ;
+aucune autre modification du rafraîchissement n’est adoptée automatiquement. Les pages publiques MCP/doc, les variables d’environnement,
 Nginx, Compose et les fichiers métier non concernés ne sont pas remplacés.
 
 Placer `install.py` et `paths.json` du **même commit** dans un répertoire temporaire :

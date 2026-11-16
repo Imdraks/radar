@@ -85,6 +85,39 @@ class DeploymentTests(unittest.TestCase):
             self.assertFalse((root / '.env').exists())
             self.assertFalse((root / 'compose.server.yml').exists())
 
+    def test_reviewed_vps_json_refresh_variant_migrates_to_tracked_sessions(self):
+        self.check_vps_refresh_variant()
+
+    def test_additional_unknown_refresh_change_is_still_refused(self):
+        self.check_vps_refresh_variant(unknown_change=True)
+
+    def check_vps_refresh_variant(self, unknown_change=False):
+        repo = Path(__file__).resolve().parents[2]
+        name = 'backend/app/api/auth.py'
+        baseline = subprocess.check_output(['git', 'show', deploy.BASE + ':' + name], cwd=repo)
+        target = subprocess.check_output(['git', 'show', deploy.TARGET + ':' + name], cwd=repo)
+        fixture = Path(__file__).with_name('fixtures') / 'vps-json-refresh.diff'
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            file = root / name
+            file.parent.mkdir(parents=True)
+            file.write_bytes(baseline)
+            deploy.run(['git', 'apply', '-'], cwd=root, input=fixture.read_bytes())
+            vps = file.read_bytes()
+            self.assertEqual(deploy.known_vps_auth(baseline), vps)
+            if unknown_change:
+                file.write_bytes(vps.replace(b'Conflicting refresh credentials', b'UNKNOWN local refresh change'))
+            patch = deploy.prepare_patch(root, [name], {name: baseline}, {name: target})
+            if unknown_change:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    deploy.run(['git', 'apply', '--check', '-'], cwd=root, input=patch, stderr=subprocess.DEVNULL)
+                self.assertIn(b'UNKNOWN local refresh change', file.read_bytes())
+            else:
+                deploy.run(['git', 'apply', '--check', '-'], cwd=root, input=patch)
+                deploy.run(['git', 'apply', '-'], cwd=root, input=patch)
+                self.assertEqual(file.read_bytes(), target)
+                self.assertIn(b"require_session(db, user, payload, lock=True)", file.read_bytes())
+
     def test_unknown_worker_images_are_refused(self):
         root = Path('/opt/radar')
         services = {name: {'build': {'context': str(root / directory)}, 'image': name} for name, directory in [('backend', 'backend'), ('frontend', 'frontend'), ('mcp', 'chatgpt-connector')]}
