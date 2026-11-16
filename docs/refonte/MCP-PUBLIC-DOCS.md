@@ -60,8 +60,8 @@ Ne pas y exécuter `git pull` et ne pas remplacer ses fichiers Compose, `.env`,
 stockages OAuth ou configurations locales par ceux du dépôt.
 
 1. Sauvegarder les fichiers frontend et la configuration Nginx active.
-2. Relever le port du frontend : `sudo docker port radar-frontend-1`, puis
-   confirmer l'upstream dans le bloc Nginx qui sert déjà `/`.
+2. Le propriétaire a confirmé le mapping frontend :
+   `3000/tcp -> 127.0.0.1:13000`. Le snippet utilise donc cet upstream.
 3. Déployer les sources frontend du commit retenu en préservant les variables,
    les personnalisations locales et les secrets. La création d'une copie de
    build isolée est préférable à un écrasement du répertoire actuel.
@@ -72,7 +72,7 @@ stockages OAuth ou configurations locales par ceux du dépôt.
 5. Vérifier `/doc` et `/mcp` directement sur le frontend avant d'adapter Nginx.
 6. Charger le map dans le contexte `http`. Remplacer uniquement le bloc exact
    `/mcp` par le snippet location et son bloc nommé. Ajuster l'upstream du
-   frontend au port confirmé ; `127.0.0.1:3000` est une valeur à vérifier.
+   frontend au port confirmé : `127.0.0.1:13000`.
 7. Exécuter `sudo nginx -t`, puis `sudo systemctl reload nginx` seulement si le
    contrôle réussit. Ne pas redémarrer le MCP ni changer les routes OAuth.
 

@@ -10,7 +10,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 mapping = (ROOT / 'docker/nginx/snippets/radar-mcp-html.map.conf').read_text()
 location = (ROOT / 'docker/nginx/snippets/radar-mcp-public.location.conf').read_text()
-location = location.replace('127.0.0.1:13100', '127.0.0.1:18081').replace('127.0.0.1:3000', '127.0.0.1:18082')
+location = location.replace('127.0.0.1:13100', '127.0.0.1:18081').replace('127.0.0.1:13000', '127.0.0.1:18082')
 location = location.replace('include proxy_params;', 'include /tmp/radar-proxy-params;')
 configuration = '''pid /tmp/radar-nginx.pid;
 error_log /dev/stderr warn;
