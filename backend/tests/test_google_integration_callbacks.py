@@ -40,6 +40,21 @@ def paths(provider):
 
 
 @pytest.mark.parametrize('provider', ['drive', 'calendar'])
+def test_random_state_format_survives_query_security_filter(client, headers, google, monkeypatch, provider):
+    # These random bytes produce "--" in URL-safe base64, which the query
+    # security middleware rejects. Keep the middleware active in this test.
+    entropy = (bytes.fromhex('fbeffb') * 11)[:32]
+    monkeypatch.setattr('secrets.token_bytes', lambda n: entropy if n == 32 else bytes(n))
+    init, callback = paths(provider)
+    started = client.get(init, headers=headers())
+    assert started.status_code == 200, started.text
+    assert started.json()['state'] == entropy.hex()
+    result = client.get(callback, params={'code': 'fixture', 'state': started.json()['state']}, follow_redirects=False)
+    assert result.status_code == 307, result.text
+    assert 'error=' not in result.headers['location']
+
+
+@pytest.mark.parametrize('provider', ['drive', 'calendar'])
 def test_callback_without_bearer_uses_single_use_state_and_keeps_other_routes_private(client, actors, headers, google, provider):
     init, callback = paths(provider)
     assert client.get(init).status_code == 401

@@ -22,7 +22,9 @@ def safe_redirect(path):
 
 def issue(db, user, workspace, request, provider, redirect=None):
     session = require_session(db, user, claims(request))
-    state = secrets.token_urlsafe(32)
+    # Hex keeps all 256 random bits without SQL-comment sequences such as "--"
+    # that the generic query filter can mistake for an injection attempt.
+    state = secrets.token_hex(32)
     payload = {'user_id': user.id, 'workspace_id': workspace.id, 'sid': str(session.id),
                'mfa_ver': user.mfa_version or 0, 'provider': provider,
                'created_at': time.time(), 'redirect': safe_redirect(redirect)}
