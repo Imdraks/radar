@@ -98,6 +98,9 @@ def test_app_enrollment_requires_code_and_password(client, db_session, account):
     headers = fresh_header(account)
     denied = client.post('/api/v1/auth/mfa/reauth/start', headers=headers, json={'password': 'wrong'})
     assert denied.status_code == 401
+    assert denied.json()['detail'] == 'Mot de passe Radar incorrect.'
+    failed = db_session.query(MFAChallenge).filter_by(user_id=account.id, purpose='password_reauth').one()
+    assert failed.attempts == 1 and failed.last_attempt_at is not None
     proof = reauth(client, headers)
     result = client.post('/api/v1/auth/mfa/enroll/start', headers=headers,
         json={'management_token': proof['management_token'], 'method': 'totp'})
@@ -478,3 +481,37 @@ def test_unencrypted_smtp_and_missing_sms_are_not_available(monkeypatch):
     monkeypatch.setattr(settings, 'smtp_use_tls', False)
     monkeypatch.setattr(settings, 'mfa_sms_provider', '')
     assert availability() == {'email': False, 'sms': False, 'totp': True}
+
+
+def test_password_reauth_missing_password_has_specific_error_and_counts_attempt(client, db_session, account):
+    headers = fresh_header(account)
+    response = client.post('/api/v1/auth/mfa/reauth/start', headers=headers, json={})
+    assert response.status_code == 401
+    assert response.json()['detail'] == 'Saisissez le mot de passe Radar de ce compte.'
+    failed = db_session.query(MFAChallenge).filter_by(user_id=account.id, purpose='password_reauth').one()
+    assert failed.attempts == 1
+    assert db_session.query(MFAChallenge).filter_by(user_id=account.id, purpose='manage_verified').count() == 0
+
+
+def test_password_reauth_keeps_account_lockout_after_wrong_passwords(client, db_session, account):
+    headers = fresh_header(account)
+    for _ in range(5):
+        response = client.post('/api/v1/auth/mfa/reauth/start', headers=headers, json={'password': 'wrong'})
+        assert response.status_code == 401
+        assert response.json()['detail'] == 'Mot de passe Radar incorrect.'
+    response = client.post('/api/v1/auth/mfa/reauth/start', headers=headers, json={'password': PASSWORD})
+    assert response.status_code == 429
+    assert db_session.query(MFAChallenge).filter_by(user_id=account.id, purpose='manage_verified').count() == 0
+
+
+def test_password_reauth_uses_connected_account_not_another_workspace_user(client, db_session, account, actors):
+    other = actors[0][1]
+    other.hashed_password = get_password_hash('Other-Account-Password-42!')
+    db_session.commit()
+    headers = fresh_header(account)
+    rejected = client.post('/api/v1/auth/mfa/reauth/start', headers=headers,
+        json={'password': 'Other-Account-Password-42!'})
+    assert rejected.status_code == 401
+    assert rejected.json()['detail'] == 'Mot de passe Radar incorrect.'
+    accepted = client.post('/api/v1/auth/mfa/reauth/start', headers=headers, json={'password': PASSWORD})
+    assert accepted.status_code == 200 and accepted.json()['requires_2fa'] is False

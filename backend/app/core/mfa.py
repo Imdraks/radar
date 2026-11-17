@@ -87,11 +87,11 @@ def load_challenge(db, token, purposes, owner_id=None):
     return user, row
 
 
-def reject(db, row):
+def reject(db, row, detail="Code invalide ou déjà utilisé."):
     row.attempts += 1
     row.last_attempt_at = datetime.utcnow()
     db.commit()  # Persist attempts even though the HTTP request fails.
-    raise HTTPException(401, 'Code invalide ou déjà utilisé.')
+    raise HTTPException(401, detail)
 
 
 def totp_secret(user):

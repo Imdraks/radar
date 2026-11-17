@@ -51,7 +51,7 @@ async def main():
                 elif path.endswith('/auth/mfa/options'): data = {'methods': ['totp', 'recovery'], 'destinations': {}, 'available': {'totp': True}}
                 elif path.endswith('/auth/mfa/status'): data = {'enabled': bool(active), 'methods': active.copy(), 'available': {'totp': True, 'email': True, 'sms': False}, 'destinations': {'email': 'm•••@example.com'}, 'has_backup_codes': bool(active)}
                 elif path.endswith('/auth/mfa/reauth/start'):
-                    if body.get('password') == 'wrong': status, data = 401, {'detail': 'TEST — vérification refusée'}
+                    if body.get('password') == 'wrong': status, data = 401, {'detail': 'Mot de passe Radar incorrect.'}
                     else: data = {'requires_2fa': True, 'challenge_token': TOKEN + '-management', 'methods': ['totp', 'recovery'], 'destinations': {}} if active else {'requires_2fa': False, 'management_token': TOKEN + '-verified'}
                 elif path.endswith('/auth/mfa/reauth/complete'): data = {'management_token': TOKEN + '-verified'}
                 elif path.endswith('/auth/mfa/enroll/start'):
@@ -124,9 +124,11 @@ async def main():
             email = page.locator('article').filter(has=page.get_by_role('heading', name='Code par e-mail', exact=True))
             await email.get_by_role('button', name='Configurer', exact=True).click()
             dialog = page.get_by_role('dialog')
+            await dialog.get_by_text('Compte vérifié :', exact=False).wait_for()
+            assert await dialog.get_by_text(USER['email'], exact=True).is_visible()
             await dialog.get_by_label('Mot de passe Radar', exact=True).fill('wrong')
             await dialog.get_by_role('button', name='Continuer', exact=True).click()
-            await dialog.get_by_role('alert').filter(has_text='TEST — vérification refusée').wait_for()
+            await dialog.get_by_role('alert').filter(has_text='Mot de passe Radar incorrect.').wait_for()
             assert len([body for path, body in calls if path.endswith('/auth/mfa/reauth/start') and body.get('password') == 'wrong']) == 1
             assert not [path for path, _ in calls if path.endswith('/auth/refresh')]
             await dialog.get_by_label('Mot de passe Radar', exact=True).fill('Explicit-UI-Test-Password!')

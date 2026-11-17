@@ -88,7 +88,7 @@ def reauth_start(data: ReauthInput, request: Request, user: User = Depends(get_c
     if user.hashed_password:
         if not data.password or not verify_password(data.password, user.hashed_password):
             _, failed = mfa.create_challenge(db, user, 'password_reauth')
-            mfa.reject(db, failed)
+            mfa.reject(db, failed, "Mot de passe Radar incorrect." if data.password else "Saisissez le mot de passe Radar de ce compte.")
     else:
         payload = decode_token(request.headers.get('authorization', '').removeprefix('Bearer ')) or {}
         authenticated_at = payload.get('auth_time', 0)

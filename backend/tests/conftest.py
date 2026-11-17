@@ -15,6 +15,17 @@ from app.core.security import create_access_token
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def isolate_rate_limit_state():
+    """Independent HTTP tests must not inherit the previous test client IP budget."""
+    from app.core.security_middleware import rate_limiter
+    rate_limiter.requests.clear()
+    rate_limiter.blocked_ips.clear()
+    yield
+    rate_limiter.requests.clear()
+    rate_limiter.blocked_ips.clear()
+
+
 @pytest.fixture(scope="session")
 def engine():
     url = os.environ.get("RADAR_TEST_DATABASE_URL")
