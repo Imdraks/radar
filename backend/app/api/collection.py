@@ -8,7 +8,10 @@ GET /entities - List entities
 """
 from datetime import datetime
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
+import json
+import redis
+from app.core.config import settings
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -71,6 +74,7 @@ def start_collection(
         
         if not entity:
             entity = Entity(
+                workspace_id=db.info["workspace_id"],
                 name=entity_input.name.strip(),
                 normalized_name=normalized_name,
                 entity_type=entity_type,
@@ -82,6 +86,7 @@ def start_collection(
     
     # Create collection run
     collection_run = CollectionRun(
+        workspace_id=db.info["workspace_id"],
         objective=DBObjectiveType[request.objective.value],
         entities_requested=[{"id": str(eid), "name": e.name, "type": e.type.value} 
                            for eid, e in zip(entity_ids, request.entities)],
@@ -98,8 +103,17 @@ def start_collection(
     db.add(collection_run)
     db.commit()
     
-    # Trigger collection task
-    task = run_collection_task.delay(
+    # Register ownership before dispatch; unknown/expired tasks are never publicly observable.
+    task_id = str(uuid4())
+    try:
+        with redis.from_url(settings.redis_url, socket_connect_timeout=1, socket_timeout=2) as cache:
+            cache.setex(f"task_progress_owner:{task_id}", 86400,
+                        json.dumps([current_user.id, db.info["workspace_id"]]))
+    except redis.RedisError as exc:
+        collection_run.status = "FAILED"
+        db.commit()
+        raise HTTPException(503, "Task progress service unavailable; collection not dispatched") from exc
+    task = run_collection_task.apply_async(task_id=task_id, kwargs=dict(
         run_id=str(collection_run.id),
         entity_ids=[str(eid) for eid in entity_ids],
         objective=request.objective.value,
@@ -112,7 +126,7 @@ def start_collection(
             "region": request.region,
             "city": request.city,
         }
-    )
+    ))
     
     return CollectResponse(
         run_id=collection_run.id,

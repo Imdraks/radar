@@ -64,6 +64,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    // A rejected step-up code is not an expired API session. Never replay an
+    // MFA mutation automatically: it consumes attempts or a one-use proof.
+    if (error.response?.status === 401 && originalRequest?.method?.toUpperCase() === 'POST'
+      && /\/auth\/(?:mfa\/|password\/change)/.test(originalRequest.url || '')) {
+      return Promise.reject(error);
+    }
 
     // Handle NO_WORKSPACE_ACCESS - redirect to waiting page
     if (error.response?.status === 403) {
@@ -123,6 +129,13 @@ api.interceptors.response.use(
 
 // Auth API
 export const authApi = {
+  passwordPolicy: async () => (await axios.get(`${API_URL}/api/v1/auth/password-policy`)).data,
+  forgotPassword: async (email: string) => (await axios.post(`${API_URL}/api/v1/auth/forgot-password`, { email })).data,
+  resetPassword: async (token: string, password: string, confirm: string) => (await axios.post(`${API_URL}/api/v1/auth/reset-password`, { token, new_password: password, confirm_password: confirm })).data,
+  mfaOptions: async (challengeToken: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/options`, { challenge_token: challengeToken })).data,
+  mfaSend: async (challengeToken: string, method: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/send`, { challenge_token: challengeToken, method })).data,
+  mfaTrustedComplete: async (challengeToken: string) => (await axios.post(`${API_URL}/api/v1/auth/mfa/trusted/complete`, { challenge_token: challengeToken })).data,
+  mfaComplete: async (challengeToken: string, method: string, code: string, trustDevice = false) => (await axios.post(`${API_URL}/api/v1/auth/mfa/complete`, { challenge_token: challengeToken, method, code, trust_device: trustDevice })).data,
   login: async (email: string, password: string, totpCode?: string) => {
     const response = await axios.post(`${API_URL}/api/v1/auth/login`, {
       email,

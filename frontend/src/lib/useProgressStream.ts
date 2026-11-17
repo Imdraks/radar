@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useState } from "react";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 
 interface ProgressData {
   task_id: string;
@@ -31,147 +32,50 @@ interface UseProgressStreamOptions {
   enabled?: boolean;
 }
 
-export function useProgressStream({
-  taskIds,
-  onProgress,
-  onCompleted,
-  onFailed,
-  enabled = true,
-}: UseProgressStreamOptions) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastProgress, setLastProgress] = useState<Record<string, ProgressData>>({});
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+export function useProgressStream({taskIds,onProgress,onCompleted,onFailed,enabled=true}: UseProgressStreamOptions) {
+  const [isConnected,setIsConnected] = useState(false);
+  const [lastProgress,setLastProgress] = useState<Record<string,ProgressData>>({});
+  const controller = useRef<AbortController | null>(null);
+  const callbacks = useRef({onProgress,onCompleted,onFailed});
+  callbacks.current = {onProgress,onCompleted,onFailed};
+  const selection = taskIds.join(",");
+  const disconnect = useCallback(() => {controller.current?.abort();controller.current=null;setIsConnected(false);},[]);
   const connect = useCallback(() => {
-    if (!enabled || taskIds.length === 0) return;
-
-    // Get token from localStorage (same key as api.ts)
-    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-    if (!token) {
-      // Token not found yet, might still be loading - don't spam console
-      return;
-    }
-
-    // Build URL
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-    const url = `${baseUrl}/api/v1/progress/stream?token=${token}&task_ids=${taskIds.join(",")}`;
-
-    try {
-      // Close existing connection
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log("Progress stream connected");
-        setIsConnected(true);
-      };
-
-      eventSource.onerror = (error) => {
-        console.error("Progress stream error:", error);
-        setIsConnected(false);
-
-        // Reconnect after 5 seconds
-        if (!reconnectTimeoutRef.current) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectTimeoutRef.current = null;
-            connect();
-          }, 5000);
+    disconnect();
+    if (!enabled || !selection) return;
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    const abort = new AbortController();controller.current=abort;
+    const params = new URLSearchParams({task_ids:selection});
+    const workspace = localStorage.getItem("current_workspace_id");
+    if (workspace) params.set("workspace_id",workspace);
+    const pending = new Set(selection.split(","));
+    void fetchEventSource(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/progress/stream?${params}`, {
+      headers:{Authorization:`Bearer ${token}`},signal:abort.signal,openWhenHidden:true,
+      async onopen(response) {
+        if (!response.ok || !response.headers.get("content-type")?.includes("text/event-stream")) {
+          throw new Error("Progress stream unavailable");
         }
-      };
-
-      // Handle different event types
-      eventSource.addEventListener("connected", (event) => {
-        console.log("Progress stream connected:", event.data);
-      });
-
-      eventSource.addEventListener("start", (event) => {
+        setIsConnected(true);
+      },
+      onmessage(event) {
+        if (["connected","heartbeat"].includes(event.event) || !event.data) return;
+        if (event.event === "error") throw new Error("Progress stream unavailable");
         const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onProgress?.(data);
-      });
-
-      eventSource.addEventListener("step", (event) => {
-        const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onProgress?.(data);
-      });
-
-      eventSource.addEventListener("progress", (event) => {
-        const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onProgress?.(data);
-      });
-
-      eventSource.addEventListener("source", (event) => {
-        const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onProgress?.(data);
-      });
-
-      eventSource.addEventListener("completed", (event) => {
-        const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onCompleted?.(data);
-        // Close connection for this task
-        eventSource.close();
-        setIsConnected(false);
-      });
-
-      eventSource.addEventListener("failed", (event) => {
-        const data = JSON.parse(event.data) as ProgressData;
-        setLastProgress((prev) => ({ ...prev, [data.task_id]: data }));
-        onFailed?.(data);
-        // Close connection for this task
-        eventSource.close();
-        setIsConnected(false);
-      });
-
-      eventSource.addEventListener("heartbeat", () => {
-        // Heartbeat received, connection is alive
-      });
-
-    } catch (error) {
-      console.error("Failed to create EventSource:", error);
-    }
-  }, [enabled, taskIds, onProgress, onCompleted, onFailed]);
-
-  // Connect when taskIds change
-  useEffect(() => {
-    if (enabled && taskIds.length > 0) {
-      connect();
-    }
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-    };
-  }, [enabled, taskIds.join(","), connect]);
-
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-      setIsConnected(false);
-    }
-  }, []);
-
-  return {
-    isConnected,
-    lastProgress,
-    disconnect,
-    reconnect: connect,
-  };
+        if (!pending.has(data.task_id)) return;
+        setLastProgress(previous => ({...previous,[data.task_id]:data}));
+        if (event.event === "completed" || event.event === "failed") {
+          pending.delete(data.task_id);
+          if (event.event === "completed") callbacks.current.onCompleted?.(data);
+          else callbacks.current.onFailed?.(data);
+          if (!pending.size) {abort.abort();setIsConnected(false);}
+        } else callbacks.current.onProgress?.(data);
+      },
+      onclose(){setIsConnected(false);},
+      onerror(error){setIsConnected(false);throw error;},
+    }).catch(() => {if (!abort.signal.aborted) setIsConnected(false);});
+  },[disconnect,enabled,selection]);
+  useEffect(() => {connect();return disconnect;},[connect,disconnect]);
+  return {isConnected,lastProgress,disconnect,reconnect:connect};
 }
-
 export type { ProgressData };

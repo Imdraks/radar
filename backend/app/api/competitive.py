@@ -150,7 +150,7 @@ def delete_competitor(
 
 @router.get("/mentions")
 def get_competitor_mentions(
-    period: str = Query("30d", regex="^(7d|30d|90d)$"),
+    period: str = Query("30d", pattern="^(7d|30d|90d)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -234,7 +234,7 @@ def get_competitor_mentions(
 
 @router.get("/winners-analysis")
 def get_winners_analysis(
-    period: str = Query("90d", regex="^(30d|90d|12m)$"),
+    period: str = Query("90d", pattern="^(30d|90d|12m)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -508,7 +508,7 @@ def get_competitive_alerts(
 
 @router.get("/market-share")
 def get_market_share_estimate(
-    period: str = Query("90d", regex="^(30d|90d|12m)$"),
+    period: str = Query("90d", pattern="^(30d|90d|12m)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:

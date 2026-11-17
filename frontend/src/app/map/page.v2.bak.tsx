@@ -1,4 +1,5 @@
 "use client";
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -90,7 +91,7 @@ const eventsMapApi = {
     if (params.date_from) queryParams.append("date_from", params.date_from);
     if (params.date_to) queryParams.append("date_to", params.date_to);
 
-    const response = await fetch(
+    const response = await workspaceFetch(
       `/api/v1/map/artist-events?${queryParams}`,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -106,7 +107,7 @@ const eventsMapApi = {
 
   syncEvents: async (): Promise<{ status: string; task_id?: string; message?: string }> => {
     const token = localStorage.getItem("token");
-    const response = await fetch("/api/v1/map/sync-events", {
+    const response = await workspaceFetch("/api/v1/map/sync-events", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });

@@ -51,8 +51,8 @@ def list_opportunities(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     # Tri
-    sort_by: str = Query("score_base", regex="^(score_base|created_at|deadline_at|budget_max|title)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("score_base", pattern="^(score_base|created_at|deadline_at|budget_max|title)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # Filtres
     search: Optional[str] = None,
     status: Optional[List[LeadItemStatusEnum]] = Query(None),

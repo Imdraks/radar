@@ -13,6 +13,8 @@ redis_pool = redis.ConnectionPool.from_url(
     settings.redis_url,
     max_connections=50,
     decode_responses=True,
+    socket_connect_timeout=1,
+    socket_timeout=1,
 )
 
 redis_client = redis.Redis(connection_pool=redis_pool)
@@ -63,9 +65,14 @@ def cache_result(prefix: str, ttl: int = 300):
 def invalidate_cache(prefix: str):
     """Invalidate all cache keys with given prefix"""
     try:
-        keys = redis_client.keys(f"cache:{prefix}:*")
-        if keys:
-            redis_client.delete(*keys)
+        batch = []
+        for key in redis_client.scan_iter(match=f"cache:{prefix}:*", count=200):
+            batch.append(key)
+            if len(batch) == 200:
+                redis_client.delete(*batch)
+                batch.clear()
+        if batch:
+            redis_client.delete(*batch)
     except Exception:
         pass
 

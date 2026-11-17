@@ -52,8 +52,8 @@ def list_opportunities(
     assigned_to_user_id: Optional[int] = None,
     created_after: Optional[datetime] = None,
     # Sorting
-    sort_by: str = Query("score", regex="^(score|deadline_at|created_at|budget_amount)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("score", pattern="^(score|deadline_at|created_at|budget_amount)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # Auth
     db: Session = Depends(get_db),
     current_user: User = Depends(require_workspace_member),

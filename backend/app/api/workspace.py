@@ -38,7 +38,7 @@ async def list_workspaces(
     Regular users see owned + member workspaces.
     """
     # Admins see all workspaces
-    if current_user.role == 'admin':
+    if current_user.is_superuser:
         all_workspaces = db.query(Workspace).all()
     else:
         # Get owned workspaces
@@ -155,7 +155,7 @@ async def get_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check access - admins can access all workspaces
-    if not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
+    if not current_user.is_superuser and not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get members
@@ -225,7 +225,7 @@ async def update_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check admin access
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Update fields
@@ -283,70 +283,30 @@ async def delete_workspace(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Allow owner or global admin to delete
-    if workspace.owner_user_id != current_user.id and current_user.role != 'admin':
+    if workspace.owner_user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Only owner or admin can delete workspace")
     
-    # Use raw SQL to cascade-delete all related data safely
-    # First, find which tables actually have a workspace_id column
-    from sqlalchemy import text
-    
-    result = db.execute(text("""
-        SELECT table_name FROM information_schema.columns
-        WHERE column_name = 'workspace_id'
-        AND table_schema = 'public'
-    """))
-    tables_with_workspace_id = {row[0] for row in result}
-    
-    # Ordered list – children before parents to respect FK constraints
-    related_tables = [
-        # Banking
-        "banking_sync_logs", "banking_consents", "banking_accounts", "banking_connections",
-        # Billing
-        "billing_invoice_items", "billing_invoices", "billing_clients",
-        # Discovery
-        "discovery_enrichment_jobs", "discovery_comparison_lists",
-        "discovery_candidates", "discovery_artists",
-        # Collections
-        "lead_items", "collections",
-        # CRM
-        "opportunities", "contacts", "clients",
-        # Entities & briefs
-        "entities",
-        # Profiles
-        "profiles",
-        # Inbox
-        "inbox_items",
-        # Artist data
-        "artist_analyses", "artist_snapshots",
-        # Jobs
-        "spotify_search_jobs",
-        # Drive
-        "drive_folder_map",
-        # Agency
-        "agency_tasks", "agency_projects",
-        # Tags / comments / favorites
-        "tags", "comments", "favorites",
-        # Activity & audit
-        "activity_logs", "audit_logs",
-        # Radar
-        "radar_configs", "radar_harvest_reports",
-        # Workspace core (last)
-        "workspace_invites", "workspace_members",
-    ]
-    
-    for table in related_tables:
-        if table in tables_with_workspace_id:
-            db.execute(
-                text(f"DELETE FROM {table} WHERE workspace_id = :wid"),
-                {"wid": workspace_id},
-            )
-    
-    # Delete the workspace itself
-    db.execute(
-        text("DELETE FROM workspaces WHERE id = :wid"),
-        {"wid": workspace_id},
-    )
-    db.commit()
+    # Business, financial and contractual records require the controlled data
+    # retention process. Never erase a whole agency using an incomplete table list.
+    from sqlalchemy import inspect, select, delete, or_
+    from sqlalchemy.exc import IntegrityError
+    from app.db.base import Base
+    db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    existing = set(inspect(db.get_bind()).get_table_names())
+    for table in Base.metadata.tables.values():
+        if table.name not in existing or table.name in {'workspaces', 'workspace_members', 'workspace_invites'}:
+            continue
+        columns = [column for column in table.c if column.name == 'workspace_id' or any(fk.target_fullname == 'workspaces.id' for fk in column.foreign_keys)]
+        if columns and db.execute(select(1).select_from(table).where(or_(*(column == workspace_id for column in columns))).limit(1)).first():
+            raise HTTPException(409, 'Cet espace contient des données à conserver. Utilisez Données et droits pour la résiliation ou une suppression contrôlée.')
+    try:
+        db.execute(delete(WorkspaceInvite).where(WorkspaceInvite.workspace_id == workspace_id))
+        db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id))
+        db.execute(delete(Workspace).where(Workspace.id == workspace_id))
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, 'Des données liées empêchent cette suppression. Utilisez la procédure contrôlée de conservation et suppression.') from None
 
 
 # ============================================================================
@@ -391,7 +351,7 @@ async def add_member(
         raise HTTPException(status_code=404, detail="Workspace not found")
     
     # Check admin access
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Find user by email
@@ -407,8 +367,11 @@ async def add_member(
         
         hashed_pw = None
         if provider == "credentials":
-            if not data.password or len(data.password) < 6:
-                raise HTTPException(status_code=400, detail="A password of at least 6 characters is required for credential accounts")
+            from app.core.passwords import validate_new_password
+            try:
+                validate_new_password(data.password or '')
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from None
             from app.core.security import get_password_hash
             hashed_pw = get_password_hash(data.password)
         
@@ -437,6 +400,7 @@ async def add_member(
     if user.id == workspace.owner_user_id:
         raise HTTPException(status_code=400, detail="Cannot add owner as member")
     
+    ensure_seat_available(db, workspace_id, user.id)
     member = WorkspaceMember(
         workspace_id=workspace_id,
         user_id=user.id,
@@ -473,7 +437,7 @@ async def update_member(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     member = db.query(WorkspaceMember).filter(
@@ -514,7 +478,7 @@ async def remove_member(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     member = db.query(WorkspaceMember).filter(
@@ -559,9 +523,12 @@ async def reset_member_password(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    user = db.query(User).filter(User.id == member.user_id).first()
+    user = db.query(User).filter(User.id == member.user_id).with_for_update().populate_existing().first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user.id == current_user.id:
+        raise HTTPException(409, 'Pour votre propre compte, utilisez le changement de mot de passe avec ancien mot de passe et A2F.')
 
     if user.auth_provider and user.auth_provider != "credentials":
         raise HTTPException(
@@ -570,11 +537,16 @@ async def reset_member_password(
         )
 
     import secrets, string
-    new_pw = data.new_password if (data.new_password and len(data.new_password) >= 6) else \
-        ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+    from app.core.passwords import validate_new_password, invalidate_credentials
+    new_pw = data.new_password if data.new_password else 'Aa1!' + secrets.token_urlsafe(24)
+    try:
+        validate_new_password(new_pw)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
 
     from app.core.security import get_password_hash
     user.hashed_password = get_password_hash(new_pw)
+    invalidate_credentials(db, user)
     db.commit()
 
     return ResetPasswordResponse(
@@ -603,7 +575,7 @@ async def setup_drive_structure(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
+    if not current_user.is_superuser and not _user_is_workspace_admin(db, current_user.id, workspace_id, workspace.owner_user_id):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -648,7 +620,7 @@ async def get_drive_status(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     
-    if not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
+    if not current_user.is_superuser and not _user_has_workspace_access(db, current_user.id, workspace_id, current_user.role):
         raise HTTPException(status_code=403, detail="Access denied")
     
     status = {
@@ -677,9 +649,6 @@ async def get_drive_status(
 
 def _user_has_workspace_access(db: Session, user_id: int, workspace_id: int, user_role: str = None) -> bool:
     """Check if user has any access to workspace. Global admins have access to all."""
-    # Global admins have access to everything
-    if user_role == 'admin':
-        return True
     
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not workspace:
@@ -870,7 +839,7 @@ async def migrate_all_drive_structures(
     Safe to run multiple times (idempotent).
     """
     # Check admin access
-    if current_user.role != 'admin' and not current_user.is_superuser:
+    if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -898,7 +867,7 @@ async def migrate_all_projects_drive_structures(
     This queues background tasks to ensure Drive folders exist for all projects.
     """
     # Check admin access
-    if current_user.role != 'admin' and not current_user.is_superuser:
+    if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -971,6 +940,14 @@ async def ensure_workspace_drive_structure(
 # AUTO-ASSIGN WORKSPACE ON LOGIN
 # ============================================================================
 
+def ensure_seat_available(db, workspace_id, user_id):
+    workspace = db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    members = {row.user_id for row in db.query(WorkspaceMember).filter_by(workspace_id=workspace_id).all()}
+    members.add(workspace.owner_user_id)
+    if user_id not in members and len(members) >= workspace.max_seats:
+        raise HTTPException(status_code=409, detail="Limite de sièges atteinte ; contactez l’administration")
+
+
 def auto_assign_user_to_workspaces(db: Session, user: User) -> List[int]:
     """
     Check if user's email matches any workspace invites.
@@ -994,6 +971,10 @@ def auto_assign_user_to_workspaces(db: Session, user: User) -> List[int]:
         ).first()
         
         if not existing_member:
+            try:
+                ensure_seat_available(db, invite.workspace_id, user.id)
+            except HTTPException:
+                continue  # Keep the invite pending; do not grant a seat or block login.
             # Add as member
             member = WorkspaceMember(
                 workspace_id=invite.workspace_id,

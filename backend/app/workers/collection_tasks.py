@@ -66,6 +66,13 @@ def run_collection_task(
             log.error(f"Collection run introuvable", run_id=run_id)
             return {"error": "Collection run not found"}
         
+        if collection_run.workspace_id is None:
+            collection_run.status = "FAILED"
+            collection_run.error_summary = "Legacy collection ownership requires reconciliation"
+            db.commit()
+            return {"error": "Unassigned collection"}
+        db.info["workspace_id"] = collection_run.workspace_id
+
         # Get entities
         entities = db.query(Entity).filter(
             Entity.id.in_([UUID(eid) for eid in entity_ids])

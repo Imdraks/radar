@@ -197,7 +197,7 @@ def step_search(db: Session, job: SpotifySearchJob) -> List[Dict[str, Any]]:
 
 def step_enrich(db: Session, job: SpotifySearchJob, artists: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Enrich artists with Viberate data (monthly listeners, social stats).
+    Collect published Spotify listeners and optional complementary artist data.
     """
     logger.info(f"[ENRICH] Enriching {len(artists)} artists")
     
@@ -225,12 +225,10 @@ def step_enrich(db: Session, job: SpotifySearchJob, artists: List[Dict[str, Any]
     
     for i, artist in enumerate(artists):
         try:
-            # Base estimation
-            monthly_listeners = estimate_monthly_listeners(
-                artist['followers'],
-                artist['popularity']
-            )
-            source = "estimated"
+            from app.enrichment.providers.spotify_scraper import scrape_spotify_artist
+            observed = scrape_spotify_artist(artist['spotify_id'])
+            monthly_listeners = observed.get('monthly_listeners') if observed else None
+            source = "spotify_public" if monthly_listeners is not None else "unavailable"
             label = None
             management = None
             social_stats = None
@@ -241,10 +239,6 @@ def step_enrich(db: Session, job: SpotifySearchJob, artists: List[Dict[str, Any]
                     enriched_data = asyncio.run(
                         enrichment_service.enrich(artist['spotify_id'], force_refresh=False)
                     )
-                    
-                    if enriched_data.monthly_listeners.value:
-                        monthly_listeners = enriched_data.monthly_listeners.value
-                        source = "viberate"
                     
                     if enriched_data.labels and enriched_data.labels.principal:
                         label = enriched_data.labels.principal
@@ -260,7 +254,7 @@ def step_enrich(db: Session, job: SpotifySearchJob, artists: List[Dict[str, Any]
                             'tiktok_followers': enriched_data.social_stats.tiktok_followers,
                         }
                     
-                    logger.info(f"[ENRICH] {artist['name']}: {monthly_listeners:,} listeners ({source})")
+                    logger.info(f"[ENRICH] {artist['name']}: {monthly_listeners} listeners ({source})")
                     
                 except Exception as e:
                     logger.debug(f"[ENRICH] Viberate failed for {artist['name']}: {e}")
@@ -280,11 +274,9 @@ def step_enrich(db: Session, job: SpotifySearchJob, artists: List[Dict[str, Any]
             
         except Exception as e:
             logger.error(f"[ENRICH] Error enriching {artist['name']}: {e}")
-            # Add with estimates
-            artist['monthly_listeners'] = estimate_monthly_listeners(
-                artist['followers'], artist['popularity']
-            )
-            artist['monthly_listeners_source'] = "estimated"
+            # An enrichment failure must not manufacture listener observations.
+            artist['monthly_listeners'] = None
+            artist['monthly_listeners_source'] = "unavailable"
             enriched.append(artist)
     
     return enriched
@@ -312,7 +304,7 @@ def step_complete(db: Session, job: SpotifySearchJob, artists: List[Dict[str, An
                 followers=artist.get('followers', 0),
                 popularity=artist.get('popularity', 0),
                 monthly_listeners=artist.get('monthly_listeners'),
-                monthly_listeners_source=artist.get('monthly_listeners_source', 'estimated'),
+                monthly_listeners_source=artist.get('monthly_listeners_source', 'unavailable'),
                 genres=artist.get('genres', []),
                 label=artist.get('label'),
                 management=artist.get('management'),

@@ -129,6 +129,12 @@ class ArtistDetailResponse(BaseModel):
     city: Optional[str] = None
     genres: List[str] = []
     
+    evidence: List[dict] = []
+    metric_classification: dict = {}
+    prediction_validation: str = "not_calibrated"
+    missing_data: List[str] = []
+    social_profiles: dict = Field(default_factory=dict)
+    social_observations: dict = Field(default_factory=dict)
     # Latest metrics
     score: int = 0
     timing_bucket: Optional[str] = None
@@ -290,7 +296,7 @@ async def get_discovery_feed(
             score=metrics.score if metrics else 0,
             recommendation=metrics.recommendation if metrics else None,
             monthly_listeners=metrics.monthly_listeners or None if metrics else None,
-            followers=metrics.spotify_followers or metrics.total_social_followers or None if metrics else None,
+            followers=metrics.spotify_followers or None if metrics else None,
             velocity=metrics.velocity if metrics else None,
             acceleration=metrics.acceleration if metrics else None,
             data_quality=metrics.data_quality if metrics else None,
@@ -467,6 +473,40 @@ async def refresh_artist(
     )
 
 
+class SocialProfilesUpdate(BaseModel):
+    instagram_url: Optional[str] = Field(None, max_length=500)
+    tiktok_url: Optional[str] = Field(None, max_length=500)
+    youtube_url: Optional[str] = Field(None, max_length=500)
+
+
+@router.patch("/artist/{artist_id}/social-profiles")
+def update_social_profiles(
+    artist_id: str, data: SocialProfilesUpdate, db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user), workspace_id: int = Depends(get_user_workspace_id),
+):
+    from app.enrichment.providers.social_public import normalize_profile
+    from uuid import UUID
+    try:
+        target_id = UUID(artist_id)
+    except ValueError:
+        raise HTTPException(422, "Invalid artist ID")
+    artist = db.query(DiscoveryArtist).filter(DiscoveryArtist.id == target_id,
+        DiscoveryArtist.workspace_id == workspace_id, DiscoveryArtist.is_deleted == False).first()
+    if not artist:
+        raise HTTPException(404, "Artist not found")
+    updates = {}
+    for field, value in data.model_dump(exclude_unset=True).items():
+        platform = field.removesuffix("_url")
+        normalized = normalize_profile(platform, value) if value else None
+        if value and not normalized:
+            raise HTTPException(422, f"Invalid {platform} profile URL")
+        updates[field] = normalized
+    for field, value in updates.items():
+        setattr(artist, field, value)
+    db.commit()
+    return {platform:getattr(artist,f"{platform}_url") for platform in ("instagram","tiktok","youtube")}
+
+
 # ============================================================================
 # JOB QUEUE
 # ============================================================================
@@ -601,11 +641,52 @@ async def get_artist_detail(
         ArtistAnalysis.artist_name == artist.canonical_name,
     ).order_by(desc(ArtistAnalysis.created_at)).first()
     
+    snapshots = db.query(DiscoverySnapshot).filter(DiscoverySnapshot.artist_id == artist.id).order_by(
+        desc(DiscoverySnapshot.fetched_at)).limit(20).all()
+    latest_by_source = {}
+    for snapshot in snapshots:
+        latest_by_source.setdefault(snapshot.source, snapshot)
+    from app.enrichment.providers.social_public import METRICS, normalize_profile, observation
+    social_snapshot = latest_by_source.get("SOCIAL")
+    social_observations = dict((social_snapshot.raw_payload or {}).get("observations", {})) if social_snapshot else {}
+    for platform, record in list(social_observations.items()):
+        current_url = normalize_profile(platform, getattr(artist, f"{platform}_url")) if platform in METRICS else None
+        if record.get("precision") != "third_party_unspecified" and record.get("source_url") != current_url:
+            social_observations[platform] = observation(platform, current_url, error_code="PROFILE_CHANGED_REFRESH_REQUIRED")
+    social_values = {platform: social_observations[platform].get("value") if platform in social_observations
+                     else getattr(metrics, metric, None) for platform, metric in METRICS.items()}
+    estimated_listeners = any((snap.raw_payload or {}).get("monthly_listeners_estimated") for snap in latest_by_source.values())
+    evidence = [{"source": snap.source, "collected_at": (snap.raw_payload or {}).get("collected_at") or snap.fetched_at,
+                 "recorded_at": snap.fetched_at,
+                 "status": snap.status, "error_code": snap.error_code,
+                 "source_url": (snap.raw_payload or {}).get("source_url"),
+                 "monthly_listeners_source": (snap.raw_payload or {}).get("monthly_listeners_source"),
+                 "precision": (snap.raw_payload or {}).get("precision"),
+                 "contains_deezer_data": bool((snap.raw_payload or {}).get("deezer_fans")),
+                 "expires_at": snap.ttl_expires_at} for snap in latest_by_source.values()]
+    missing = []
+    has_public_listener_observation = any(
+        (snap.raw_payload or {}).get("monthly_listeners_source") == "spotify_public"
+        and (snap.raw_payload or {}).get("monthly_listeners") is not None
+        for snap in latest_by_source.values())
+    if not metrics or (not metrics.monthly_listeners and not has_public_listener_observation) or estimated_listeners:
+        missing.append("monthly_listeners")
+    if not metrics or not metrics.spotify_followers:
+        missing.append("spotify_followers")
+    if not metrics or not metrics.fee_estimate_min:
+        missing.append("booking_fee_estimate")
     # Check if stale
     stale_threshold = datetime.utcnow() - timedelta(hours=24)
     is_stale = bool(artist.last_enriched_at and artist.last_enriched_at < stale_threshold)
     
     return ArtistDetailResponse(
+        evidence=evidence,
+        social_profiles={platform:getattr(artist,f"{platform}_url") for platform in METRICS},
+        social_observations=social_observations,
+        missing_data=missing,
+        metric_classification={"score": "heuristic", "fee": "estimate", "growth": "projection",
+                               "monthly_listeners": "estimate" if estimated_listeners else "collected_or_missing",
+                               "confidence": "not_calibrated"},
         id=artist.id,
         name=artist.canonical_name,
         normalized_name=artist.normalized_name,
@@ -619,8 +700,8 @@ async def get_artist_detail(
         score=metrics.score if metrics else 0,
         timing_bucket=metrics.timing_bucket if metrics else None,
         recommendation=metrics.recommendation if metrics else None,
-        monthly_listeners=metrics.monthly_listeners if metrics else None,
-        followers=metrics.spotify_followers or metrics.total_social_followers or None if metrics else None,
+        monthly_listeners=metrics.monthly_listeners if metrics and not estimated_listeners else None,
+        followers=metrics.spotify_followers or None if metrics else None,
         velocity=metrics.velocity if metrics else None,
         acceleration=metrics.acceleration if metrics else None,
         data_quality=metrics.data_quality if metrics else None,
@@ -641,7 +722,7 @@ async def get_artist_detail(
         predicted_listeners_30d=analysis.predicted_listeners_30d if analysis else None,
         predicted_listeners_90d=analysis.predicted_listeners_90d if analysis else None,
         predicted_listeners_180d=analysis.predicted_listeners_180d if analysis else None,
-        confidence_score=analysis.confidence_score if analysis else None,
+        confidence_score=None,  # No calibrated certainty percentage available.
         
         # SWOT
         strengths=analysis.strengths if analysis else None,
@@ -650,7 +731,7 @@ async def get_artist_detail(
         threats=analysis.threats if analysis else None,
         
         # Booking Intelligence
-        optimal_fee=analysis.optimal_fee if analysis else None,
+        optimal_fee=None,  # Only the indicative min/max range is presented.
         negotiation_power=analysis.negotiation_power if analysis else None,
         best_booking_window=analysis.best_booking_window if analysis else None,
         event_type_fit=analysis.event_type_fit if analysis else None,
@@ -664,9 +745,9 @@ async def get_artist_detail(
         ai_recommendations=analysis.ai_recommendations if analysis else None,
         
         # Social breakdown
-        instagram_followers=metrics.instagram_followers if metrics else None,
-        tiktok_followers=metrics.tiktok_followers if metrics else None,
-        youtube_subscribers=metrics.youtube_subscribers if metrics else None,
+        instagram_followers=social_values["instagram"],
+        tiktok_followers=social_values["tiktok"],
+        youtube_subscribers=social_values["youtube"],
         
         last_enriched_at=artist.last_enriched_at,
         created_at=artist.created_at,

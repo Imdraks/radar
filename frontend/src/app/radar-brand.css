@@ -1,0 +1,73 @@
+/* Radar DA — Signal clair. Brand geometry is decorative, not measured activity. */
+
+  :root {
+    --background: 240 20% 98%;
+    --foreground: 237 24% 16%;
+    --primary: 253 66% 59%;
+    --ring: 253 66% 59%;
+    --accent: 253 60% 96%;
+    --accent-foreground: 253 48% 38%;
+    --border: 240 15% 90%;
+    --muted-foreground: 236 10% 43%;
+    --radius: .85rem;
+  }
+  .dark {
+    --primary: 254 82% 75%;
+    --ring: 254 82% 75%;
+    --accent: 246 22% 20%;
+    --accent-foreground: 252 80% 86%;
+  }
+  body { font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; }
+  ::selection { background: hsl(253 66% 59% / .16); }
+
+  .radar-public {
+    color: hsl(237 24% 16%);
+    background: #f8f8fc;
+    --background: 240 20% 98%;
+    --foreground: 237 24% 16%;
+    --primary: 253 66% 59%;
+    --card: 0 0% 100%;
+    --card-foreground: 237 24% 16%;
+    --muted-foreground: 236 10% 43%;
+  }
+  .radar-site-container { @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8; }
+  .radar-section { @apply py-16 sm:py-24; scroll-margin-top: 80px; }
+  .radar-kicker { @apply flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[.15em] text-primary; }
+  .radar-display { font-size: clamp(2rem, 3.6vw, 3.3rem); font-weight: 600; line-height: 1.12; letter-spacing: -.045em; }
+  .radar-signal-dot { @apply inline-block h-2 w-2 shrink-0 rounded-full bg-primary; box-shadow: 0 0 0 4px hsl(var(--primary) / .08); }
+  .radar-hero { background: radial-gradient(ellipse at 85% 20%, hsl(253 66% 59% / .06), transparent 55%), #f8f8fc; }
+  .radar-orbit-panel { box-shadow: 0 25px 65px -35px hsl(253 40% 40% / .2); }
+  .radar-domain-card { transition: border-color .2s, box-shadow .2s; }
+  .radar-domain-card:hover { border-color: hsl(var(--primary) / .3); box-shadow: 0 12px 30px -22px hsl(var(--primary) / .3); }
+  .radar-field { aspect-ratio: 1; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg 275deg, hsl(var(--primary) / .055) 345deg, transparent 360deg); }
+  .radar-field > span { position: absolute; border: 1px solid hsl(var(--primary) / .13); border-radius: 50%; }
+  .radar-field > span:nth-child(1) { inset: 0; }
+  .radar-field > span:nth-child(2) { inset: 12%; }
+  .radar-field > span:nth-child(3) { inset: 25%; }
+  .radar-field > span:nth-child(4) { inset: 38%; }
+  .radar-field::before, .radar-field::after { content: ''; position: absolute; background: hsl(var(--primary) / .1); }
+  .radar-field::before { top: 50%; height: 1px; width: 100%; }
+  .radar-field::after { left: 50%; width: 1px; height: 100%; }
+  .radar-field i { position: absolute; width: 8px; height: 8px; left: 74%; top: 23%; background: hsl(var(--primary)); border-radius: 50%; box-shadow: 0 0 0 6px hsl(var(--primary) / .08); }
+  .radar-orbit-label { @apply absolute z-10 flex min-w-[112px] items-center gap-2.5 rounded-xl border bg-white px-3 py-3 shadow-sm; }
+  .radar-orbit-label svg { color: hsl(var(--primary)); }
+  .radar-orbit-label-0 { top: 12%; left: 0; }
+  .radar-orbit-label-1 { top: 18%; right: 0; }
+  .radar-orbit-label-2 { bottom: 14%; left: 3%; }
+  .radar-orbit-label-3 { bottom: 9%; right: 1%; }
+  .radar-app { font-size: 14px; }
+  .radar-content h1 { letter-spacing: -.04em; }
+  .radar-content :where(table) { font-variant-numeric: tabular-nums; }
+  .radar-content :where(thead) { background: hsl(var(--muted) / .55); }
+  .radar-content :where(th) { font-size: 11px; letter-spacing: .025em; }
+  .radar-content :where(button, a) { -webkit-tap-highlight-color: transparent; }
+  .radar-content :where(input, select, textarea) { transition: border-color .15s, box-shadow .15s; }
+  .radar-content > :where(div) { min-width: 0; }
+  .radar-screen-header { @apply flex flex-col justify-between gap-4 sm:flex-row sm:items-center; }
+  .radar-screen-intro { @apply mb-7 border-b pb-6; }
+  .radar-screen-intro h1 { @apply text-[28px] font-semibold tracking-tight; }
+  .radar-auth { @apply relative isolate grid min-h-screen items-center gap-10 overflow-hidden bg-background px-5 py-10 lg:grid-cols-2 lg:px-12; }
+  .radar-auth-story { @apply relative mx-auto hidden w-full max-w-xl lg:block; }
+  .radar-auth-card { @apply relative mx-auto w-full max-w-[440px] rounded-3xl border bg-card shadow-[0_24px_70px_-40px_rgba(39,28,80,.2)]; }
+  .radar-content :where(.text-blue-600) { color: hsl(var(--primary)); }
+

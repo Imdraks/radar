@@ -1,0 +1,8 @@
+{
+  "name": "radar-mcp-artist-patch-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node test/artist-tools.test.mjs && python3 -m unittest discover -s test -p 'test_*.py'" },
+  "devDependencies": { "zod": "4.6.7" }
+}

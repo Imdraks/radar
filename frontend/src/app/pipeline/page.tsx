@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import {
@@ -116,10 +117,10 @@ function PipelineContent() {
     try {
       const token = localStorage.getItem('access_token');
       const [pipelineRes, clientsRes] = await Promise.all([
-        fetch('/api/v1/agency/pipeline', {
+        workspaceFetch('/api/v1/agency/pipeline', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/clients', {
+        workspaceFetch('/api/v1/agency/clients', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -157,7 +158,7 @@ function PipelineContent() {
 
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/deals/${draggedDeal.id}/status?status=${newStatus}`, {
+      await workspaceFetch(`/api/v1/agency/deals/${draggedDeal.id}/status?status=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -176,7 +177,7 @@ function PipelineContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/deals', {
+      const response = await workspaceFetch('/api/v1/agency/deals', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -225,7 +226,7 @@ function PipelineContent() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/deals/${selectedDeal.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/deals/${selectedDeal.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -255,7 +256,7 @@ function PipelineContent() {
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/deals/${deal.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/deals/${deal.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -292,14 +293,14 @@ function PipelineContent() {
       <div className="px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pipeline Commercial</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Pipeline Commercial</h1>
             <p className="text-gray-600">
               {data?.total_deals || 0} deals • {formatCurrency(data?.total_value || 0)} total
             </p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
             Nouveau deal
@@ -524,7 +525,7 @@ function PipelineContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer le deal
                 </button>
@@ -605,7 +606,7 @@ function PipelineContent() {
               </button>
               <button
                 onClick={() => { setShowViewModal(false); handleEditDeal(selectedDeal); }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Modifier
               </button>
@@ -676,7 +677,7 @@ function PipelineContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Sauvegarder
                 </button>

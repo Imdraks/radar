@@ -22,7 +22,7 @@ from app.db.models.agency import (
     ActivityType, Client
 )
 from app.db.models.user import User
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, resolve_workspace_id
 from app.services.google_workspace import get_google_workspace_service, TokenExpiredError
 from app.core.cache import cache_get
 
@@ -262,7 +262,7 @@ async def get_project_detail(
     """Get complete project details for the header"""
     project = db.query(Project).options(
         joinedload(Project.client)
-    ).filter(Project.id == project_id).first()
+    ).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -350,7 +350,7 @@ async def get_project_overview(
     current_user: User = Depends(get_current_user)
 ):
     """Get overview tab data: next action, blockers, today tasks, validations, timeline"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -430,7 +430,7 @@ async def update_project_detail(
     current_user: User = Depends(get_current_user)
 ):
     """Update project fields (partial update)"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -501,7 +501,7 @@ async def get_project_drive_folders(
     current_user: User = Depends(get_current_user)
 ):
     """Get the list of Drive subfolders for a project (used for file upload destination)"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -534,7 +534,7 @@ async def get_project_deliverables(
     current_user: User = Depends(get_current_user)
 ):
     """Get all deliverables for a project"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -580,7 +580,7 @@ async def create_project_deliverable(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new deliverable for the project"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -630,7 +630,7 @@ async def update_deliverable(
     current_user: User = Depends(get_current_user)
 ):
     """Update a deliverable"""
-    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id).first()
+    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id, Deliverable.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not deliverable:
         raise HTTPException(status_code=404, detail="Deliverable not found")
     
@@ -697,7 +697,7 @@ async def request_deliverable_validation(
     current_user: User = Depends(get_current_user)
 ):
     """Request validation for a deliverable"""
-    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id).first()
+    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id, Deliverable.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not deliverable:
         raise HTTPException(status_code=404, detail="Deliverable not found")
     
@@ -730,7 +730,7 @@ async def approve_deliverable(
     current_user: User = Depends(get_current_user)
 ):
     """Approve a deliverable"""
-    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id).first()
+    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id, Deliverable.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not deliverable:
         raise HTTPException(status_code=404, detail="Deliverable not found")
     
@@ -768,7 +768,7 @@ async def delete_deliverable(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a deliverable and move its Drive file to project's 99_Archive folder"""
-    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id).first()
+    deliverable = db.query(Deliverable).filter(Deliverable.id == deliverable_id, Deliverable.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not deliverable:
         raise HTTPException(status_code=404, detail="Deliverable not found")
     
@@ -777,7 +777,7 @@ async def delete_deliverable(
     drive_file_id = deliverable.drive_file_id
     
     # Get project archive folder
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     archive_folder_id = project.drive_folder_archive if project else None
     user_id = current_user.id
     
@@ -844,7 +844,7 @@ async def get_project_tasks(
     current_user: User = Depends(get_current_user)
 ):
     """Get all tasks for a project (for Kanban)"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -881,7 +881,7 @@ async def create_project_task(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new task for the project"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -929,7 +929,7 @@ async def update_task(
     current_user: User = Depends(get_current_user)
 ):
     """Update a task"""
-    task = db.query(AgencyTask).filter(AgencyTask.id == task_id).first()
+    task = db.query(AgencyTask).filter(AgencyTask.id == task_id, AgencyTask.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -982,7 +982,7 @@ async def delete_task(
     current_user: User = Depends(get_current_user)
 ):
     """Delete a task"""
-    task = db.query(AgencyTask).filter(AgencyTask.id == task_id).first()
+    task = db.query(AgencyTask).filter(AgencyTask.id == task_id, AgencyTask.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -1006,7 +1006,7 @@ async def get_project_assets(
     current_user: User = Depends(get_current_user)
 ):
     """Get all assets for a project"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -1038,7 +1038,7 @@ async def create_project_asset(
     """Create a new asset for the project"""
     from app.db.models.agency import AssetKind
     
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -1074,7 +1074,7 @@ async def delete_asset(
     current_user: User = Depends(get_current_user)
 ):
     """Delete an asset"""
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    asset = db.query(Asset).filter(Asset.id == asset_id, Asset.project.has(Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id"))))).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     
@@ -1096,7 +1096,7 @@ async def get_project_activity(
     current_user: User = Depends(get_current_user)
 ):
     """Get project activity timeline"""
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter(Project.id == project_id, Project.client.has(Client.workspace_id == resolve_workspace_id(db, current_user, db.info.get("workspace_id")))).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     

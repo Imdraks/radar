@@ -1,5 +1,2 @@
 import { redirect } from 'next/navigation';
-
-export default function InvoicesRedirect() {
-  redirect('/factures');
-}
+export default function LegacyRoute() { redirect('/factures'); }

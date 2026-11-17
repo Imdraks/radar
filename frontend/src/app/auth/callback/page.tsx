@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
@@ -14,12 +14,17 @@ function AuthCallbackContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Connexion en cours...");
   const [isNewUser, setIsNewUser] = useState(false);
+  const processed = useRef(false);
 
   useEffect(() => {
+    if (processed.current) return;
+    processed.current = true;
     const processCallback = async () => {
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
-      const isNew = searchParams.get("is_new") === "true";
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = fragment.get("access_token") || searchParams.get("access_token");
+      const refreshToken = fragment.get("refresh_token") || searchParams.get("refresh_token");
+      const isNew = (fragment.get("is_new") || searchParams.get("is_new")) === "true";
+      window.history.replaceState(null, "", window.location.pathname);
       const error = searchParams.get("error");
 
       if (error) {
@@ -36,21 +41,12 @@ function AuthCallbackContent() {
 
       try {
         // Store tokens in auth store
-        setTokens(accessToken, refreshToken);
+        await setTokens(accessToken, refreshToken);
         setIsNewUser(isNew);
         setStatus("success");
         setMessage(isNew ? "Compte créé avec succès !" : "Connexion réussie !");
 
-        // Decode token to get user role
-        let redirectPath = "/today";
-        try {
-          const payload = JSON.parse(atob(accessToken.split('.')[1]));
-          if (payload.role === 'admin') {
-            redirectPath = "/admin";
-          }
-        } catch (e) {
-          console.error("Failed to decode token");
-        }
+        const redirectPath = useAuthStore.getState().user?.is_superuser ? '/admin' : '/today';
 
         // Redirect after a short delay
         setTimeout(() => {

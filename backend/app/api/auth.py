@@ -3,8 +3,11 @@ Authentication endpoints
 """
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from secrets import compare_digest
+from app.core.config import settings
 from pydantic import BaseModel, EmailStr
 
 from app.db import get_db
@@ -28,6 +31,7 @@ class SetupCheck(BaseModel):
     """Response for setup check"""
     needs_setup: bool
     user_count: int
+    setup_enabled: bool
 
 
 class InitialSetup(BaseModel):
@@ -43,16 +47,26 @@ def check_needs_setup(db: Session = Depends(get_db)):
     user_count = db.query(User).count()
     return SetupCheck(
         needs_setup=user_count == 0,
-        user_count=user_count
+        user_count=user_count,
+        setup_enabled=bool(settings.bootstrap_token),
     )
 
 
 @router.post("/setup", response_model=UserResponse)
 def initial_setup(
     data: InitialSetup,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    bootstrap_token: str = Header(default="", alias="X-Radar-Bootstrap-Token"),
 ):
     """Create the first admin account (only works if no users exist)"""
+    if not settings.bootstrap_token or not compare_digest(bootstrap_token, settings.bootstrap_token):
+        raise HTTPException(403, "Initialisation réservée à l’opérateur de la plateforme")
+    return create_initial_admin(db, data)
+
+
+def create_initial_admin(db: Session, data: InitialSetup):
+    # Serialize setup across workers; the second concurrent attempt observes the first commit.
+    db.execute(text("SELECT pg_advisory_xact_lock(7243321801)"))
     # Check if any users exist
     user_count = db.query(User).count()
     if user_count > 0:
@@ -101,9 +115,9 @@ def login(
     db: Session = Depends(get_db)
 ):
     """Authenticate user and return tokens"""
-    user = db.query(User).filter(User.email == credentials.email).first()
+    user = db.query(User).filter(User.email == credentials.email).with_for_update().first()
     
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -123,119 +137,73 @@ def login(
             detail="Accès refusé. Votre compte n'est pas autorisé. Contactez l'administrateur.",
         )
     
-    # Check if 2FA is enabled
-    if user.two_factor_enabled and user.two_factor_secret:
-        # 2FA is enabled - require TOTP code
+    from app.core import mfa
+    user = mfa.lock_user(db, user.id)
+    from app.core.login_sessions import trusted
+    if mfa.methods(user) and not trusted(db, user, request):
+        token, challenge = mfa.create_challenge(db, user, 'login')
         if not credentials.totp_code:
-            # Return temp token for 2FA verification
-            from datetime import timedelta
-            temp_token = create_access_token(
-                data={"sub": str(user.id), "2fa_pending": True},
-                expires_delta=timedelta(minutes=5)  # 5 minutes to enter code
-            )
-            return LoginResponse(
-                requires_2fa=True,
-                temp_token=temp_token,
-            )
-        
-        # Verify the TOTP code
-        if not two_factor_auth.verify_code(user.two_factor_secret, credentials.totp_code):
-            # Check backup codes
-            if user.backup_codes:
-                # backup_codes is stored as JSON list
-                backup_codes = user.backup_codes if isinstance(user.backup_codes, list) else []
-                # Normalize input code for comparison
-                normalized_input = credentials.totp_code.upper().replace(" ", "").replace("-", "")
-                
-                matched_code = None
-                for code in backup_codes:
-                    if code.replace("-", "") == normalized_input:
-                        matched_code = code
-                        break
-                
-                if matched_code:
-                    # Valid backup code - remove it
-                    backup_codes.remove(matched_code)
-                    user.backup_codes = backup_codes
-                    db.commit()
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Code 2FA invalide",
-                    )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Code 2FA invalide",
-                )
-    
-    # Log successful login
-    ActivityLogger.log(
-        db=db,
-        user=user,
-        action=Actions.LOGIN,
-        details={"email": user.email, "2fa_used": user.two_factor_enabled},
-        request=request,
-    )
-    
-    # Update last login
-    user.last_login_at = datetime.utcnow()
-    db.commit()
-    
+            db.commit()
+            return LoginResponse(requires_2fa=True, temp_token=token, **mfa.options(user))
+        # Compatibility for existing TOTP/recovery clients. Delivered codes require
+        # the explicit challenge API and must never be guessed from a user ID.
+        code = credentials.totp_code.strip()
+        normalized = code.replace(' ', '').replace('-', '')
+        method = 'totp' if len(normalized) == 6 and normalized.isascii() and normalized.isdigit() else 'recovery'
+        mfa.verify(db, user, challenge, method, code)
+    return finish_login(db, user, request)
+
+
+def finish_login(db, user, request):
+    # Freeze the revision whose factors were actually verified. Later ORM
+    # refreshes/commits must not adopt a concurrently changed MFA policy.
+    verified_version = user.mfa_version or 0
     # Auto-assign user to workspaces based on email invites
     from app.api.workspace import auto_assign_user_to_workspaces
     auto_assign_user_to_workspaces(db, user)
     
-    # Create tokens with role included
-    token_data = {
-        "sub": str(user.id),
-        "email": user.email,
-        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
-    }
-    access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    return LoginResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        requires_2fa=False,
-    )
+    db.refresh(user)
+    if (user.mfa_version or 0) != verified_version or not user.is_active or not (user.is_whitelisted or user.is_superuser):
+        raise HTTPException(401, 'La sécurité du compte a changé. Recommencez la connexion.')
+    from app.core.mfa import issue_tokens, methods
+    user.last_login_at = datetime.utcnow()
+    tokens = issue_tokens(user, request=request)
+    ActivityLogger.log(db=db, user=user, action=Actions.LOGIN,
+        details={'email': user.email, '2fa_used': bool(methods(user))}, request=request)
+    # Defer Drive provisioning until after every required login factor succeeds.
+    from app.db.models.account import Account
+    account = db.query(Account).filter(Account.user_id == user.id, Account.provider == 'google').first()
+    if account:
+        try:
+            from app.workers.tasks import ensure_drive_structure_task
+            from app.db.models.workspace import WorkspaceMember
+            for member in db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).all():
+                ensure_drive_structure_task.delay(user_id=user.id, workspace_id=member.workspace_id,
+                                                 google_account_id=user.email)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning('Drive provisioning deferred after login')
+    return LoginResponse(**tokens, requires_2fa=False)
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(
-    refresh_token: str,
-    db: Session = Depends(get_db)
-):
-    """Refresh access token"""
-    user_id = verify_token(refresh_token, "refresh")
-    
+def refresh_session(data: RefreshRequest, db: Session = Depends(get_db)):
+    from app.core.security import decode_token
+    from app.core.mfa import issue_tokens
+    user_id = verify_token(data.refresh_token, 'refresh')
     if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
-        )
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
-        )
-    
-    # Create new tokens with role
-    token_data = {
-        "sub": str(user.id),
-        "email": user.email,
-        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
-    }
-    access_token = create_access_token(data=token_data)
-    new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    return Token(
-        access_token=access_token,
-        refresh_token=new_refresh_token,
-    )
+        raise HTTPException(401, 'Session expirée. Reconnectez-vous.')
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    payload = decode_token(data.refresh_token) or {}
+    if not user or not user.is_active or not (user.is_whitelisted or user.is_superuser) or payload.get('mfa_ver', 0) != (user.mfa_version or 0):
+        raise HTTPException(401, 'Session expirée. Reconnectez-vous.')
+    from app.core.login_sessions import require_session
+    session = require_session(db, user, payload, lock=True)
+    return issue_tokens(user, auth_time=payload.get('auth_time', 0), session=session)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -246,195 +214,17 @@ def get_current_user_info(
     return current_user
 
 
-# 2FA Models
-class TwoFactorSetupResponse(BaseModel):
-    secret: str
-    qr_code: str
-    backup_codes: List[str]
+# Legacy paths remain authenticated and explicitly direct clients to the new flow.
+@router.get('/2fa/status')
+def legacy_2fa_status(current_user: User = Depends(get_current_user)):
+    from app.core.mfa import methods
+    return {'enabled': bool(methods(current_user)), 'has_backup_codes': bool(current_user.backup_codes)}
 
 
-class TwoFactorEnableRequest(BaseModel):
-    code: str
-
-
-class TwoFactorVerifyRequest(BaseModel):
-    code: str
-
-
-class TwoFactorStatusResponse(BaseModel):
-    enabled: bool
-    has_backup_codes: bool
-
-
-@router.get("/2fa/status", response_model=TwoFactorStatusResponse)
-def get_2fa_status(
-    current_user: User = Depends(get_current_user)
-):
-    """Check if 2FA is enabled for current user"""
-    return TwoFactorStatusResponse(
-        enabled=current_user.two_factor_enabled or False,
-        has_backup_codes=bool(current_user.backup_codes)
-    )
-
-
-@router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
-def setup_2fa(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Initialize 2FA setup. Returns QR code and backup codes.
-    User must confirm with /2fa/enable endpoint.
-    """
-    # Generate new secret
-    secret = two_factor_auth.generate_secret()
-    
-    # Generate QR code
-    qr_code = two_factor_auth.generate_qr_code(secret, current_user.email)
-    
-    # Generate backup codes
-    backup_codes = two_factor_auth.generate_backup_codes(10)
-    
-    # Store pending secret (not yet enabled)
-    current_user.two_factor_secret = secret
-    current_user.backup_codes = backup_codes
-    db.commit()
-    
-    return TwoFactorSetupResponse(
-        secret=secret,
-        qr_code=qr_code,
-        backup_codes=backup_codes
-    )
-
-
-@router.post("/2fa/enable")
-def enable_2fa(
-    data: TwoFactorEnableRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Enable 2FA after verifying the first code from authenticator app.
-    """
-    if not current_user.two_factor_secret:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA setup not initiated. Call /2fa/setup first."
-        )
-    
-    # Verify the code
-    if not two_factor_auth.verify_code(current_user.two_factor_secret, data.code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification code"
-        )
-    
-    # Enable 2FA
-    current_user.two_factor_enabled = True
-    db.commit()
-    
-    return {"status": "success", "message": "2FA enabled successfully"}
-
-
-@router.post("/2fa/disable")
-def disable_2fa(
-    data: TwoFactorVerifyRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Disable 2FA (requires current 2FA code).
-    """
-    if not current_user.two_factor_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is not enabled"
-        )
-    
-    # Verify the code
-    if not two_factor_auth.verify_code(current_user.two_factor_secret, data.code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification code"
-        )
-    
-    # Disable 2FA
-    current_user.two_factor_enabled = False
-    current_user.two_factor_secret = None
-    current_user.backup_codes = None
-    db.commit()
-    
-    return {"status": "success", "message": "2FA disabled successfully"}
-
-
-@router.post("/2fa/verify")
-def verify_2fa_code(
-    data: TwoFactorVerifyRequest,
-    user_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Verify 2FA code during login (called after password verification).
-    """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Try TOTP code first
-    if two_factor_auth.verify_code(user.two_factor_secret, data.code):
-        return {"status": "success", "verified": True}
-    
-    # Try backup code
-    if user.backup_codes:
-        is_valid, used_code = two_factor_auth.verify_backup_code(
-            data.code, 
-            user.backup_codes
-        )
-        if is_valid and used_code:
-            # Remove used backup code
-            user.backup_codes = [c for c in user.backup_codes if c != used_code]
-            db.commit()
-            return {
-                "status": "success", 
-                "verified": True,
-                "backup_code_used": True,
-                "remaining_backup_codes": len(user.backup_codes)
-            }
-    
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Invalid verification code"
-    )
-
-
-@router.post("/2fa/regenerate-backup-codes")
-def regenerate_backup_codes(
-    data: TwoFactorVerifyRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Generate new backup codes (requires current 2FA code).
-    """
-    if not current_user.two_factor_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA is not enabled"
-        )
-    
-    # Verify the code
-    if not two_factor_auth.verify_code(current_user.two_factor_secret, data.code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification code"
-        )
-    
-    # Generate new backup codes
-    new_codes = two_factor_auth.generate_backup_codes(10)
-    current_user.backup_codes = new_codes
-    db.commit()
-    
-    return {"status": "success", "backup_codes": new_codes}
+@router.post('/2fa/setup')
+@router.post('/2fa/enable')
+@router.post('/2fa/disable')
+@router.post('/2fa/verify')
+@router.post('/2fa/regenerate-backup-codes')
+def legacy_2fa_management(current_user: User = Depends(get_current_user)):
+    raise HTTPException(410, 'Utilisez Paramètres > Sécurité et le parcours /auth/mfa avec réauthentification.')

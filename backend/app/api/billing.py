@@ -1,6 +1,6 @@
 """
 Billing API endpoints for quotes (devis) and invoices (factures)
-Part of Radar Business add-on
+Part of the Radar Business subscription
 """
 from datetime import date, datetime
 from decimal import Decimal
@@ -15,7 +15,7 @@ from io import BytesIO
 logger = logging.getLogger(__name__)
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.deps import get_db, get_current_user, get_current_workspace_id
 from app.db.models.user import User
@@ -34,7 +34,17 @@ from app.schemas.billing import (
 )
 from app.core.encryption import encrypt_iban, decrypt_iban, mask_iban
 
+from app.services.invoice_lifecycle import (
+    locked_invoice, require_draft, transition, set_payment, frozen_parties, invoice_legal_text, audit as audit_invoice,
+)
+
 router = APIRouter()
+
+
+@router.get("/capabilities")
+def billing_capabilities():
+    from app.billing.electronic import capabilities
+    return capabilities()
 
 
 # ============ Emitter Info Schema ============
@@ -50,6 +60,10 @@ class EmitterInfo(BaseModel):
     legal_email: Optional[str] = None
     siret: Optional[str] = None
     vat_number: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    capital_social: Optional[str] = None
+    rcs_city: Optional[str] = None
+    tva_franchise: Optional[bool] = None
     logo_drive_file_id: Optional[str] = None
     payment_info: Optional[dict] = None
     # Template IDs
@@ -71,6 +85,10 @@ class EmitterInfoUpdate(BaseModel):
     legal_email: Optional[str] = None
     siret: Optional[str] = None
     vat_number: Optional[str] = None
+    forme_juridique: Optional[str] = None
+    capital_social: Optional[str] = None
+    rcs_city: Optional[str] = None
+    tva_franchise: Optional[bool] = None
     logo_drive_file_id: Optional[str] = None
     payment_info: Optional[dict] = None
     devis_template_doc_id: Optional[str] = None
@@ -79,49 +97,17 @@ class EmitterInfoUpdate(BaseModel):
 
 # ============ Helper Functions ============
 
+def next_document_reference(db: Session, workspace_id: int, kind: str) -> str:
+    from app.services.billing_numbers import next_reference
+    return next_reference(db, workspace_id, kind)
+
+
 def generate_quote_reference(db: Session, workspace_id: int) -> str:
-    """Generate unique quote reference: DEV-YYYY-XXXX"""
-    year = datetime.now().year
-    prefix = f"DEV-{year}-"
-    
-    # Get the last quote number for this workspace and year
-    last_quote = db.query(Quote).filter(
-        Quote.workspace_id == workspace_id,
-        Quote.reference.like(f"{prefix}%")
-    ).order_by(Quote.id.desc()).first()
-    
-    if last_quote:
-        try:
-            last_num = int(last_quote.reference.split("-")[-1])
-            new_num = last_num + 1
-        except:
-            new_num = 1
-    else:
-        new_num = 1
-    
-    return f"{prefix}{new_num:04d}"
+    return next_document_reference(db, workspace_id, "DEV")
 
 
 def generate_invoice_reference(db: Session, workspace_id: int) -> str:
-    """Generate unique invoice reference: FAC-YYYY-XXXX"""
-    year = datetime.now().year
-    prefix = f"FAC-{year}-"
-    
-    last_invoice = db.query(Invoice).filter(
-        Invoice.workspace_id == workspace_id,
-        Invoice.reference.like(f"{prefix}%")
-    ).order_by(Invoice.id.desc()).first()
-    
-    if last_invoice:
-        try:
-            last_num = int(last_invoice.reference.split("-")[-1])
-            new_num = last_num + 1
-        except:
-            new_num = 1
-    else:
-        new_num = 1
-    
-    return f"{prefix}{new_num:04d}"
+    return next_document_reference(db, workspace_id, "FAC")
 
 
 def calculate_quote_totals(quote: Quote):
@@ -181,6 +167,10 @@ async def get_emitter_info(
         legal_email=workspace.legal_email or workspace.billing_email,
         siret=workspace.siret,
         vat_number=workspace.vat_number,
+        forme_juridique=workspace.forme_juridique,
+        capital_social=workspace.capital_social,
+        rcs_city=workspace.rcs_city,
+        tva_franchise=workspace.tva_franchise,
         logo_drive_file_id=workspace.logo_drive_file_id,
         payment_info=workspace.payment_info,
         devis_template_doc_id=workspace.devis_template_doc_id,
@@ -230,6 +220,10 @@ async def update_emitter_info(
         legal_email=workspace.legal_email or workspace.billing_email,
         siret=workspace.siret,
         vat_number=workspace.vat_number,
+        forme_juridique=workspace.forme_juridique,
+        capital_social=workspace.capital_social,
+        rcs_city=workspace.rcs_city,
+        tva_franchise=workspace.tva_franchise,
         logo_drive_file_id=workspace.logo_drive_file_id,
         payment_info=workspace.payment_info,
         devis_template_doc_id=workspace.devis_template_doc_id,
@@ -815,10 +809,15 @@ async def convert_quote_to_invoice(
     if quote.status != QuoteStatus.ACCEPTED:
         raise HTTPException(status_code=400, detail="Seuls les devis acceptés peuvent être convertis")
     
+    db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    db.refresh(quote)
+    if quote.status == QuoteStatus.INVOICED:
+        raise HTTPException(status_code=409, detail="Devis déjà converti")
+
     # Create invoice
     invoice = Invoice(
         workspace_id=workspace_id,
-        reference=generate_invoice_reference(db, workspace_id),
+        reference=f"BROUILLON-{uuid.uuid4().hex}",
         created_by_id=current_user.id,
         client_id=quote.client_id,
         opportunity_id=quote.opportunity_id,
@@ -1090,7 +1089,7 @@ async def generate_quote_pdf(
         if contact_email:
             client_contact_lines.append(f"Email: {contact_email}")
         if c.siret:
-            client_contact_lines.append(f"SIRET: {c.siret}")
+            client_contact_lines.append(f"{'SIREN' if len(c.siret) == 9 else 'SIRET'}: {c.siret}")
         if c.vat_number:
             client_contact_lines.append(f"TVA: {c.vat_number}")
     
@@ -1287,7 +1286,7 @@ async def generate_quote_pdf(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = "Les conditions d’escompte, d’échéance et de pénalités sont celles acceptées dans les documents commerciaux applicables."
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
     
@@ -1302,9 +1301,6 @@ async def generate_quote_pdf(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -1515,7 +1511,7 @@ async def upload_quote_pdf_to_drive(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = "Les conditions d’escompte, d’échéance et de pénalités sont celles acceptées dans les documents commerciaux applicables."
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -1529,9 +1525,6 @@ async def upload_quote_pdf_to_drive(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -1666,8 +1659,9 @@ async def create_invoice(
     """Create a new invoice"""
     invoice = Invoice(
         workspace_id=workspace_id,
-        reference=generate_invoice_reference(db, workspace_id),
+        reference=f"BROUILLON-{uuid.uuid4().hex}",
         created_by_id=current_user.id,
+        legal_details=invoice_in.legal_details.model_dump(mode="json") if invoice_in.legal_details else None,
         title=invoice_in.title,
         description=invoice_in.description,
         client_id=invoice_in.client_id,
@@ -1738,22 +1732,25 @@ async def update_invoice(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Update an invoice"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible de modifier une facture payée")
-    
     update_data = invoice_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(invoice, field, value)
-    
-    calculate_invoice_totals(invoice)
+    if "legal_details" in update_data:
+        update_data["legal_details"] = invoice_in.legal_details.model_dump(mode="json") if invoice_in.legal_details else None
+    target = update_data.pop("status", None)
+    if update_data:
+        require_draft(invoice)
+        for field, value in update_data.items():
+            if value is None and field in {"title", "issue_date", "tax_rate", "discount_percent"}:
+                raise HTTPException(422, "Champ obligatoire")
+            setattr(invoice, field, value)
+        calculate_invoice_totals(invoice)
+        audit_invoice(invoice, "draft_updated", current_user.id)
+    if target is not None:
+        transition(db, invoice, target, current_user.id)
     db.commit()
     db.refresh(invoice)
     
@@ -1769,18 +1766,12 @@ async def add_invoice_item(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Add an item to an invoice"""
-    invoice = db.query(Invoice).options(
-        joinedload(Invoice.items)
-    ).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible de modifier une facture payée")
+    require_draft(invoice)
     
     line_total = item_in.quantity * item_in.unit_price
     item = InvoiceItem(
@@ -1812,16 +1803,12 @@ async def delete_invoice_item(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Delete an item from an invoice"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible de modifier une facture payée")
+    require_draft(invoice)
     
     item = db.query(InvoiceItem).filter(
         InvoiceItem.id == item_id,
@@ -1850,24 +1837,12 @@ async def record_payment(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Record a payment for an invoice"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    invoice.amount_paid = payment.amount_paid
-    invoice.payment_method = payment.payment_method
-    invoice.paid_date = payment.paid_date or date.today()
-    
-    # Update status based on payment
-    if invoice.amount_paid >= invoice.total:
-        invoice.status = InvoiceStatus.PAID
-    elif invoice.amount_paid > 0:
-        invoice.status = InvoiceStatus.PARTIAL
-    
+    set_payment(invoice, payment.amount_paid, current_user.id, payment.payment_method, payment.paid_date, payment.expected_amount_paid)
     db.commit()
     db.refresh(invoice)
     
@@ -1882,16 +1857,13 @@ async def delete_invoice(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Delete an invoice"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible de supprimer une facture payée")
+    if invoice.status != InvoiceStatus.DRAFT or invoice.issued_at or invoice.sent_at:
+        raise HTTPException(status_code=400, detail="Seules les factures brouillon peuvent être supprimées")
     
     db.delete(invoice)
     db.commit()
@@ -1927,12 +1899,13 @@ async def generate_invoice_pdf(
         raise HTTPException(status_code=404, detail="Facture non trouvée")
 
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    workspace, frozen_client = frozen_parties(invoice, workspace)
 
     # Calculs
     subtotal = float(invoice.subtotal or 0)
     discount_pct = float(invoice.discount_percent or 0)
     discount_amt = float(invoice.discount_amount or 0)
-    tax_rate = float(invoice.tax_rate or 20)
+    tax_rate = float(invoice.tax_rate if invoice.tax_rate is not None else 20)
     tax_amt = float(invoice.tax_amount or 0)
     total = float(invoice.total or 0)
     amount_paid = float(invoice.amount_paid or 0)
@@ -2017,7 +1990,7 @@ async def generate_invoice_pdf(
     elements.append(Spacer(1, 4*mm))
 
     # ========== FACTURE TITLE + REFERENCE ==========
-    title_data = [[Paragraph("Facture", section_title_style), Paragraph(f"#{invoice.reference}", ref_style)]]
+    title_data = [[Paragraph("Brouillon de facture" if invoice.status == InvoiceStatus.DRAFT else "Facture", section_title_style), Paragraph(f"#{invoice.reference}", ref_style)]]
     title_table = Table(title_data, colWidths=[90*mm, 85*mm])
     title_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (1, 0), (1, 0), 'RIGHT')]))
     elements.append(title_table)
@@ -2027,8 +2000,8 @@ async def generate_invoice_pdf(
     client_lines = []
     client_contact_lines = []
     contact_name = "-"
-    if invoice.billing_client:
-        c = invoice.billing_client
+    if frozen_client:
+        c = frozen_client
         if c.company_name:
             client_lines.append(f"<b>{c.company_name}</b>")
         elif c.name:
@@ -2056,7 +2029,7 @@ async def generate_invoice_pdf(
         contact_email = c.contact_email or c.email
         if contact_phone: client_contact_lines.append(f"Tél: {contact_phone}")
         if contact_email: client_contact_lines.append(f"Email: {contact_email}")
-        if c.siret: client_contact_lines.append(f"SIRET: {c.siret}")
+        if c.siret: client_contact_lines.append(f"{'SIREN' if len(c.siret) == 9 else 'SIRET'}: {c.siret}")
         if c.vat_number: client_contact_lines.append(f"TVA: {c.vat_number}")
 
     address_data = [[
@@ -2207,7 +2180,7 @@ async def generate_invoice_pdf(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = invoice_legal_text(invoice)
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -2221,9 +2194,6 @@ async def generate_invoice_pdf(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -2283,12 +2253,13 @@ async def upload_invoice_pdf_to_drive(
         raise HTTPException(status_code=400, detail="Connectez votre compte Google pour sauvegarder sur Drive")
 
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    workspace, frozen_client = frozen_parties(invoice, workspace)
 
     # ---- Generate PDF (same as GET endpoint) ----
     subtotal = float(invoice.subtotal or 0)
     discount_pct = float(invoice.discount_percent or 0)
     discount_amt = float(invoice.discount_amount or 0)
-    tax_rate = float(invoice.tax_rate or 20)
+    tax_rate = float(invoice.tax_rate if invoice.tax_rate is not None else 20)
     tax_amt = float(invoice.tax_amount or 0)
     total = float(invoice.total or 0)
     amount_paid = float(invoice.amount_paid or 0)
@@ -2340,7 +2311,7 @@ async def upload_invoice_pdf_to_drive(
     elements.append(Spacer(1, 4*mm))
 
     # Title
-    title_data = [[Paragraph("Facture", section_title_style), Paragraph(f"#{invoice.reference}", ref_style)]]
+    title_data = [[Paragraph("Brouillon de facture" if invoice.status == InvoiceStatus.DRAFT else "Facture", section_title_style), Paragraph(f"#{invoice.reference}", ref_style)]]
     title_table = Table(title_data, colWidths=[90*mm, 85*mm])
     title_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (1, 0), (1, 0), 'RIGHT')]))
     elements.append(title_table)
@@ -2349,8 +2320,8 @@ async def upload_invoice_pdf_to_drive(
     # Client info
     client_lines = []
     contact_name = "-"
-    if invoice.billing_client:
-        c = invoice.billing_client
+    if frozen_client:
+        c = frozen_client
         if c.company_name: client_lines.append(f"<b>{c.company_name}</b>")
         elif c.name: client_lines.append(f"<b>{c.name}</b>")
         if c.contact_first_name or c.contact_last_name:
@@ -2447,7 +2418,7 @@ async def upload_invoice_pdf_to_drive(
         elements.append(Paragraph("<b>TVA non applicable, article 293 B du Code Général des Impôts.</b>", footer_style))
         elements.append(Spacer(1, 2*mm))
 
-    legal_text = "Pour tout professionnel, en cas de retard de paiement, seront exigibles, conformément à l'article L 441-10 du code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40 euros."
+    legal_text = invoice_legal_text(invoice)
     elements.append(Paragraph(legal_text, footer_style))
     elements.append(Spacer(1, 3*mm))
 
@@ -2461,9 +2432,6 @@ async def upload_invoice_pdf_to_drive(
         if workspace.rcs_city:
             siren = workspace.siret[:9] if workspace.siret and len(workspace.siret) >= 9 else ""
             reg_parts.append(f"RCS {workspace.rcs_city} {siren}".strip())
-        elif workspace.legal_city and workspace.siret:
-            siren = workspace.siret[:9] if len(workspace.siret) >= 9 else workspace.siret
-            reg_parts.append(f"RCS {workspace.legal_city} {siren}")
         if workspace.siret:
             reg_parts.append(f"SIRET: {workspace.siret}")
         if workspace.vat_number and not workspace.tva_franchise:
@@ -2561,21 +2529,25 @@ async def get_billing_dashboard(
     # Invoice counts
     invoices_draft = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.DRAFT
     ).count()
     
     invoices_sent = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.SENT
     ).count()
     
     invoices_paid = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.PAID
     ).count()
     
     invoices_overdue = db.query(Invoice).filter(
         Invoice.workspace_id == workspace_id,
+        Invoice.credited_at.is_(None),
         Invoice.status == InvoiceStatus.OVERDUE
     ).count()
     
@@ -2587,7 +2559,7 @@ async def get_billing_dashboard(
     
     total_invoices = db.query(func.coalesce(func.sum(Invoice.total), 0)).filter(
         Invoice.workspace_id == workspace_id,
-        Invoice.status != InvoiceStatus.CANCELLED
+        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.PAID, InvoiceStatus.OVERDUE])
     ).scalar()
     
     total_paid = db.query(func.coalesce(func.sum(Invoice.amount_paid), 0)).filter(
@@ -2596,10 +2568,18 @@ async def get_billing_dashboard(
     
     total_pending = db.query(func.coalesce(func.sum(Invoice.total - Invoice.amount_paid), 0)).filter(
         Invoice.workspace_id == workspace_id,
-        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE])
+        Invoice.status.in_([InvoiceStatus.SENT, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE]),
+        Invoice.credited_at.is_(None)
     ).scalar()
     
+    from app.db.models.credit_note import CreditNote
+    credits = db.query(func.coalesce(func.sum(CreditNote.total), 0)).filter(CreditNote.workspace_id == workspace_id).scalar()
+    credited_count = db.query(CreditNote).filter_by(workspace_id=workspace_id).count()
+    paid_credited = db.query(func.coalesce(func.sum(Invoice.amount_paid), 0)).filter(Invoice.workspace_id == workspace_id, Invoice.credited_at.is_not(None)).scalar()
     return BillingDashboard(
+        credited_invoices_count=credited_count,
+        credits_total=Decimal(str(credits)),
+        payments_on_credited_invoices=Decimal(str(paid_credited)),
         quotes_draft=quotes_draft,
         quotes_sent=quotes_sent,
         quotes_accepted=quotes_accepted,
@@ -2608,7 +2588,7 @@ async def get_billing_dashboard(
         invoices_paid=invoices_paid,
         invoices_overdue=invoices_overdue,
         total_quotes_amount=Decimal(str(total_quotes)),
-        total_invoices_amount=Decimal(str(total_invoices)),
+        total_invoices_amount=Decimal(str(total_invoices)) - Decimal(str(credits)),
         total_paid=Decimal(str(total_paid)),
         total_pending=Decimal(str(total_pending))
     )
@@ -2728,25 +2708,12 @@ async def send_invoice(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Mark invoice as sent"""
-    invoice = db.query(Invoice).options(
-        joinedload(Invoice.billing_client)
-    ).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status not in [InvoiceStatus.DRAFT, InvoiceStatus.SENT]:
-        raise HTTPException(status_code=400, detail="Cette facture ne peut pas être envoyée")
-    
-    invoice.status = InvoiceStatus.SENT
-    invoice.sent_at = datetime.utcnow()
-    invoice.sent_to_email = email or (invoice.billing_client.email if invoice.billing_client else None)
-    
-    add_audit_log(invoice, "sent", current_user.id, {"email": invoice.sent_to_email})
-    
+    transition(db, invoice, InvoiceStatus.SENT, current_user.id, email)
     db.commit()
     return {"message": "Facture marquée comme envoyée", "status": invoice.status.value}
 
@@ -2760,31 +2727,12 @@ async def mark_invoice_paid(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Mark invoice as fully paid"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Facture déjà payée")
-    
-    if invoice.status == InvoiceStatus.CANCELLED:
-        raise HTTPException(status_code=400, detail="Facture annulée")
-    
-    invoice.status = InvoiceStatus.PAID
-    invoice.amount_paid = invoice.total
-    invoice.paid_date = date.today()
-    if payment_method:
-        invoice.payment_method = payment_method
-    
-    add_audit_log(invoice, "paid", current_user.id, {
-        "amount": str(invoice.total),
-        "method": payment_method.value if payment_method else None
-    })
-    
+    set_payment(invoice, invoice.total, current_user.id, payment_method)
     db.commit()
     return {"message": "Facture marquée comme payée", "status": invoice.status.value}
 
@@ -2798,20 +2746,12 @@ async def cancel_invoice(
     workspace_id: int = Depends(get_current_workspace_id)
 ):
     """Cancel an invoice"""
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id,
-        Invoice.workspace_id == workspace_id
-    ).first()
+    invoice = locked_invoice(db, invoice_id, workspace_id)
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
-    if invoice.status == InvoiceStatus.PAID:
-        raise HTTPException(status_code=400, detail="Impossible d'annuler une facture payée")
-    
-    invoice.status = InvoiceStatus.CANCELLED
-    add_audit_log(invoice, "cancelled", current_user.id, {"reason": reason} if reason else None)
-    
+    transition(db, invoice, InvoiceStatus.CANCELLED, current_user.id)
     db.commit()
     return {"message": "Facture annulée", "status": invoice.status.value}
 
@@ -2864,7 +2804,7 @@ async def generate_quote_document(
     
     # Get client name
     if quote.billing_client:
-        client_name = quote.billing_client.company_name or f"{quote.billing_client.first_name} {quote.billing_client.last_name}"
+        client_name = quote.billing_client.company_name or quote.billing_client.name
     else:
         client_name = "Client Inconnu"
     
@@ -2936,33 +2876,37 @@ async def generate_invoice_document(
     if not invoice:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
     
+    require_draft(invoice)  # Editable Google Docs are draft previews, not issued originals.
+
     # Get workspace for template and emitter info
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    live_workspace = workspace
+    workspace, frozen_client = frozen_parties(invoice, workspace)
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace non trouvé")
     
     # Check template exists
-    if not workspace.facture_template_doc_id:
+    if not live_workspace.facture_template_doc_id:
         raise HTTPException(
             status_code=400, 
             detail="Aucun template de facture configuré. Configurez le template dans les paramètres émetteur."
         )
     
     # Check workspace has Drive folder
-    if not workspace.drive_folder_id:
+    if not live_workspace.drive_folder_id:
         raise HTTPException(
             status_code=400,
             detail="Aucun dossier Drive configuré pour ce workspace."
         )
     
     # Get client name
-    if invoice.billing_client:
-        client_name = invoice.billing_client.company_name or f"{invoice.billing_client.first_name} {invoice.billing_client.last_name}"
+    if frozen_client:
+        client_name = frozen_client.company_name or frozen_client.name
     else:
         client_name = "Client Inconnu"
     
     # Build replacements dictionary
-    replacements = build_invoice_replacements(invoice, workspace, client_name)
+    replacements = build_invoice_replacements(invoice, workspace, client_name, frozen_client)
     
     try:
         # Get Google Workspace service for user
@@ -2970,10 +2914,10 @@ async def generate_invoice_document(
         
         # Generate document
         doc_result = await gws.generate_invoice_document(
-            template_id=workspace.facture_template_doc_id,
+            template_id=live_workspace.facture_template_doc_id,
             invoice_reference=invoice.reference,
             client_name=client_name,
-            root_folder_id=workspace.drive_folder_id,
+            root_folder_id=live_workspace.drive_folder_id,
             replacements=replacements
         )
         
@@ -3019,7 +2963,7 @@ def build_quote_replacements(quote: Quote, workspace: Workspace, client_name: st
     # Format client address
     client_address = ""
     if client:
-        parts = [client.address, f"{client.postal_code} {client.city}", client.country]
+        parts = [client.address_line1, client.address_line2, f"{client.postal_code} {client.city}", client.country]
         client_address = "\n".join([p for p in parts if p])
     
     # Format emitter address
@@ -3070,9 +3014,9 @@ def build_quote_replacements(quote: Quote, workspace: Workspace, client_name: st
     }
 
 
-def build_invoice_replacements(invoice: Invoice, workspace: Workspace, client_name: str) -> dict:
+def build_invoice_replacements(invoice: Invoice, workspace: Workspace, client_name: str, frozen_client=None) -> dict:
     """Build placeholder replacements for invoice template"""
-    client = invoice.billing_client
+    client = frozen_client
     
     # Format items table
     items_lines = []
@@ -3085,7 +3029,7 @@ def build_invoice_replacements(invoice: Invoice, workspace: Workspace, client_na
     # Format client address
     client_address = ""
     if client:
-        parts = [client.address, f"{client.postal_code} {client.city}", client.country]
+        parts = [client.address_line1, client.address_line2, f"{client.postal_code} {client.city}", client.country]
         client_address = "\n".join([p for p in parts if p])
     
     # Format emitter address
@@ -3121,7 +3065,7 @@ def build_invoice_replacements(invoice: Invoice, workspace: Workspace, client_na
         "{{ISSUE_DATE}}": invoice.issue_date.strftime("%d/%m/%Y") if invoice.issue_date else "",
         "{{DUE_DATE}}": invoice.due_date.strftime("%d/%m/%Y") if invoice.due_date else "",
         "{{NOTES}}": invoice.notes or "",
-        "{{PAYMENT_TERMS}}": invoice.payment_terms or "",
+        "{{PAYMENT_TERMS}}": invoice.terms or "",
         
         # Items table
         "{{ITEMS_TABLE}}": items_text,

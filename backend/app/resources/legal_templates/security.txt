@@ -1,0 +1,17 @@
+PROJET — MESURES TECHNIQUES ET ORGANISATIONNELLES
+Éditeur : [[EDITEUR]]. Version : [[VERSION_CONTRACTUELLE]]. Infrastructure : [[HOSTING_NAME]], [[HOSTING_ADDRESS]], [[HOSTING_CONTACT]]. Les rubriques suivantes doivent être rapprochées de preuves de déploiement ; le code seul ne démontre pas la sécurité de la production.
+
+1. Identités et accès
+Définir comptes nominatifs, habilitations, administrateurs de plateforme et de workspace, authentification renforcée, arrivée/départ, revue périodique et accès exceptionnel. Les droits d'abonnement sont contrôlés au backend et séparés de la demande commerciale. État déployé et preuves : [[ACCESS_CONTROLS_EVIDENCE]].
+
+2. Isolation, secrets et communications
+Vérifier filtrage multi-workspace, tests de refus interentreprises, TLS et terminaison proxy, stockage et rotation des secrets, protection des intégrations, journaux et erreurs, chiffrement approprié et contrôle des accès aux clés. Les exports métier excluent les champs de connexion connus ; leurs contenus restent sensibles. État et preuves : [[INFRASTRUCTURE_SECURITY_EVIDENCE]].
+
+3. Sauvegardes et restauration
+Désigner les responsables, emplacements, durées, chiffrement, contrôle d'accès, objectifs de perte de données et de reprise réellement convenus. Tester une restauration isolée, vérifier les données et réappliquer les restrictions ou effacements nécessaires avant remise en service. Une sauvegarde locale jetable réussie n'est pas une garantie de sauvegarde du serveur client. Dispositif de production et preuves : [[BACKUP_AND_RECOVERY_EVIDENCE]].
+
+4. Développement, exploitation et surveillance
+Maintenir mises à jour et gestion des vulnérabilités, revues de code, CI, contrôle des migrations, changements, journaux proportionnés, alertes et reprises des tâches. Définir la gestion des fournisseurs et des échecs, les limites de charge et le traitement des incidents. Les tests avec fixtures ne valident pas les prestataires réels. Dispositif, fréquence et preuves : [[OPERATIONS_SECURITY_EVIDENCE]].
+
+5. Incidents et assistance
+Canal et responsables : [[INCIDENT_CONTACTS]]. Le sous-traitant informe le responsable sans retard indu d'une violation connue et fournit les éléments disponibles et compléments ; le responsable décide des notifications requises. Prévoir exercices, documentation et conservation proportionnée des preuves. Les notifications à l'autorité ou aux personnes ne sont pas effectuées automatiquement par un statut de portail. Engagements de service et exclusions licites : [[SERVICE_LEVELS_VALIDATED]].

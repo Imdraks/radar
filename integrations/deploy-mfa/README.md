@@ -1,0 +1,129 @@
+# Déployer A2F et sessions sur le VPS existant
+
+Le VPS du propriétaire est en révision `056_full_credit_notes`, avec les sources
+sous `/opt/radar`, sans dépôt Git. Les fichiers Compose effectifs sont
+`compose.server.yml` et `compose.mcp.yml`, projet `radar`. Les contextes Docker
+backend/frontend/connecteur et les ports locaux ont été confirmés par le propriétaire.
+
+Le script livre uniquement le correctif A2F et sessions de `90f6758` (callback Google corrigé), comparé à
+`fea31f4`. Il ne copie pas une nouvelle application complète. Les changements
+locaux hors des contextes du patch sont préservés ; les conflits provoquent un
+arrêt avant toute modification. La variante `auth.py` transmise par le propriétaire
+(ajout de `Body` et de `RefreshTokenRequest` pour accepter le JSON) est reconnue
+uniquement si le fichier complet correspond exactement à cette variante revue.
+Elle migre vers le renouvellement JSON avec contrôle des sessions du nouveau backend ;
+aucune autre modification du rafraîchissement n’est adoptée automatiquement. Les pages publiques MCP/doc, les variables d’environnement,
+Nginx, Compose et les fichiers métier non concernés ne sont pas remplacés.
+
+Placer `install.py` et `paths.json` du **même commit** dans un répertoire temporaire :
+
+```sh
+sudo python3 install.py          # Vérification et préparation temporaire uniquement
+sudo python3 install.py --apply  # Sauvegarde, construction, migration, redémarrage
+```
+
+Les archives GitHub sont épinglées à deux commits complets, téléchargées en HTTPS ;
+seuls les fichiers réguliers attendus sont lus, sans extraction arbitraire.
+Le correctif du login MCP existant est reconnu par son empreinte et vérifié avec
+Node dans l’image Docker déjà installée. Aucun Node système n’est nécessaire.
+
+En mode application :
+
+1. Vérifier les contextes Docker, les images partagées worker/scheduler, la
+   révision 056, l’application du patch et la compatibilité MCP.
+2. Sauvegarder les sources concernées et les identifiants des anciennes images
+   dans `/opt/radar-deployment-backups/<date>` (répertoire réservé à root).
+3. Construire les trois images dans des copies temporaires des contextes actuels.
+   Le site existant reste servi pendant cette phase. Les images originales sont
+   conservées avec des tags datés. Les fichiers de configuration sont réutilisés.
+4. Vérifier la présence de la migration 058, arrêter backend/worker/scheduler/MCP/frontend,
+   vérifier que les sources n’ont pas changé, sauvegarder PostgreSQL avec `pg_dump -Fc`
+   et vérifier que l’archive peut être lue avec `pg_restore --list`.
+5. Installer les seuls fichiers concernés en conservant les propriétaires et
+   permissions des fichiers existants, puis appliquer `alembic upgrade head` avec
+   la nouvelle image backend. Ni `stamp`, ni suppression de table, ni restauration
+   automatique de base n’est utilisée.
+6. Redémarrer les cinq services, vérifier `/health` côté backend et `/login` côté
+   frontend, afficher la révision et l’état Compose.
+
+Un échec avant la tentative de migration rétablit les sources effectivement
+écrites et les tags des anciennes images, puis redémarre les anciens services si
+nécessaire. Un échec pendant/après la tentative de migration laisse les nouvelles
+sources et images en place : revenir à un ancien backend pourrait contourner les
+révocations. Examiner l’erreur et les sauvegardes ; ne pas restaurer automatiquement
+l’ancienne base ou un ancien backend.
+
+Les utilisateurs et connecteurs devront se reconnecter une fois. Les facteurs
+déjà actifs sont préservés. L’application TOTP fonctionne sans prestataire ;
+l’envoi réel d’e-mails et de SMS dépend des fournisseurs configurés. Aucun
+fournisseur SMS n’est activé par cet installateur. La rotation des clés existantes
+n’est pas effectuée : elles servent notamment à déchiffrer les facteurs existants.
+
+Tests : `python3 -m unittest discover -s integrations/deploy-mfa -p 'test_*.py' -v`.
+Les tests Docker/orchestration sont simulés ; ils ne prétendent pas qu’un VPS ou
+un fournisseur réel a été contacté. Le patch complet épinglé est réellement
+appliqué dans un répertoire temporaire dépourvu de `.git`.
+
+Le script autonome `fix_google_sso.py --apply` répare uniquement le paramètre
+Request manquant du callback Google sur une installation A2F déjà déployée.
+Il sauvegarde le fichier et l’image backend, reconstruit le backend et redémarre
+backend/worker/scheduler sans migration de base. Le reste du fichier est préservé.
+
+## Mise à jour du message de mot de passe sur une instance A2F existante
+
+`update_password_prompt.py --apply` est indépendant de l’installateur initial
+réservé à la révision 056. Il applique les seuls changements de trois fichiers
+entre `5a3e019` et `477e3a8` : message serveur de réauthentification, helper des
+échecs A2F et affichage du compte dans les paramètres. Il ne migre pas la base,
+ne réinitialise aucun mot de passe et ne modifie pas les facteurs déjà actifs.
+
+Il vérifie le patch, construit backend/frontend à partir de copies temporaires
+des sources locales pendant que le site tourne, sauvegarde les fichiers et les
+anciennes images, puis redémarre backend/worker/scheduler/frontend. Le MCP, les
+variables d’environnement, Compose et Nginx sont conservés. Une modification
+concurrente des fichiers bloque l’écriture. Une erreur rétablit les fichiers
+écrits et les images sauvegardées, puis les anciens services si nécessaire.
+
+Sans `--apply`, il vérifie la compatibilité sans toucher aux sources du site.
+Les tests locaux utilisent Docker simulé et des arbres Git épinglés ; ils ne
+prétendent pas avoir exécuté un déploiement réel sur le VPS.
+
+## Déployer les nouveaux parcours complets de mot de passe
+
+`update_password_recovery.py --apply` livre les formulaires de récupération et
+changement, la politique partagée, les contrôles A2F, la tâche d’envoi et les pages
+publiques. Il accepte une instance en révision 058, sans créer de migration ni
+réinitialiser de mot de passe. Les archives sont épinglées à `5a3e019` et `a487e9d`.
+Les fichiers déjà conformes sont conservés. Pour le contenu de la documentation,
+la version complète connue `fea31f4` est aussi acceptée (guide A2F anciennement
+absent du VPS). Toute autre incompatibilité de contexte bloque le déploiement.
+
+Le script construit les images sur des copies temporaires avant interruption,
+sauvegarde les sources concernées et les images, installe les fichiers nécessaires
+puis redémarre backend/frontend/worker/scheduler. Il contrôle les nouvelles routes,
+les trois pages publiques et un worker enregistrant la tâche de récupération et
+consommant la file `celery`. Un worker indisponible entraîne un retour aux anciens
+fichiers et images. Les nouveaux fichiers créés sont retirés lors d’un rollback ;
+aucune base de données n’est restaurée automatiquement, car l’installateur n’y écrit pas.
+Compose, Nginx, les variables d’environnement et le connecteur MCP sont conservés.
+
+Le script affiche uniquement si l’envoi d’e-mails est configuré. Ce contrôle ne
+prouve pas la réception d’un message réel. Configurer le fournisseur Resend ou SMTP
+TLS/SSL et tester ensuite avec une adresse autorisée. Le lien de récupération
+expire quinze minutes après sa création par le worker et est à usage unique.
+
+### Compatibilité du contrôle de démarrage avec FastAPI 0.149
+
+Les routeurs inclus sont représentés par des objets `_IncludedRouter` sans attribut
+`.path` dans cette version. Le contrôle du déploiement résout donc les chemins via
+`app.openapi()['paths']`. Un test backend exécute le code exact du contrôle avec
+l’application réelle ; des tests négatifs vérifient qu’une route absente ou une
+expiration incorrecte déclenche toujours un échec. Le script contrôle également
+la politique réellement servie à travers le frontend, avec une expiration de 15 minutes.
+
+Avant un retour arrière, les derniers détails du contrôle backend sont conservés
+sous `backend-readiness.log` et le dernier échec public sous `readiness.json`, dans
+la sauvegarde réservée à root. L’état des services est conservé sous
+`services-before-rollback.json` si Docker permet de le lire. Le script n’affiche
+pas de variables d’environnement ni de trace privée complète dans le terminal.
+Les journaux privés doivent être relus et expurgés de tout secret avant partage.

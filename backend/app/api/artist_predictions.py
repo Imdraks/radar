@@ -53,8 +53,8 @@ class ArtistPredictionResponse(BaseModel):
     optimistic: ScenarioResponse
     
     # Probabilités et confiance
-    growth_probability: float
-    confidence_score: int
+    growth_probability: Optional[float]
+    confidence_score: Optional[int]
     confidence_label: str
     
     # Données historiques
@@ -82,7 +82,7 @@ class ArtistPredictionSummary(BaseModel):
     predicted_30d_max: int
     predicted_90d_min: int
     predicted_90d_max: int
-    growth_probability: float
+    growth_probability: Optional[float]
     confidence_label: str
     is_valid: bool
 
@@ -149,8 +149,8 @@ async def get_artist_prediction_summary(
         predicted_30d_max=prediction.optimistic.value_30d,
         predicted_90d_min=prediction.pessimistic.value_90d,
         predicted_90d_max=prediction.optimistic.value_90d,
-        growth_probability=prediction.growth_probability,
-        confidence_label=prediction.confidence_label,
+        growth_probability=None,
+        confidence_label="Non calibrée",
         is_valid=prediction.is_valid
     )
 
@@ -208,6 +208,11 @@ async def refresh_artist_prediction(
     }
 
 
+@router.get("/{artist_name}/evaluation")
+def evaluate_artist_predictions(artist_name: str, db: Session = Depends(get_db), workspace: Workspace = Depends(get_current_workspace)):
+    return ArtistPredictionService(db).evaluate_history(artist_name, workspace.id)
+
+
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
@@ -232,9 +237,9 @@ def _convert_prediction_to_response(prediction: ArtistPrediction) -> ArtistPredi
             value_90d=prediction.optimistic.value_90d,
             growth_rate=prediction.optimistic.growth_rate
         ),
-        growth_probability=prediction.growth_probability,
-        confidence_score=prediction.confidence_score,
-        confidence_label=prediction.confidence_label,
+        growth_probability=None,
+        confidence_score=None,
+        confidence_label="Non calibrée",
         historical_data=[
             HistoricalDataPoint(date=d["date"], listeners=d["listeners"])
             for d in prediction.historical_data

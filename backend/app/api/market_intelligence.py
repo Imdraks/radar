@@ -5,7 +5,7 @@ Aggregates data from discovery artists, events, and scoring to produce actionabl
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import func, and_, case, desc
 from sqlalchemy.orm import Session
 
@@ -90,8 +90,10 @@ def get_intelligence_feed(
             ArtistEvent.workspace_id == workspace_id, ArtistEvent.is_deleted == False,
             ArtistEvent.event_date >= now,
         ).scalar() or 0
-    except Exception:
-        pass
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Market intelligence data unavailable")
+        raise HTTPException(503, "Market intelligence data unavailable") from exc
 
     kpis = {
         "total_artists": total_artists,
@@ -296,8 +298,10 @@ def get_intelligence_feed(
                 "source": ev.source,
                 "message": f"{ev.artist_name} — {ev.event_name}, {ev.event_date.strftime('%d/%m') if ev.event_date else '?'} à {ev.city or '?'}",
             })
-    except Exception:
-        pass
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Market intelligence data unavailable")
+        raise HTTPException(503, "Market intelligence data unavailable") from exc
 
     # --- Market saturation by city (top cities with most events) ---
     try:
@@ -332,8 +336,10 @@ def get_intelligence_feed(
                     "avg_price_max": round(float(c.avg_price_max or 0)),
                     "message": f"{c.city} — {c.event_count} événements à venir, prix moyen {round(float(c.avg_price_min or 0))}–{round(float(c.avg_price_max or 0))}€",
                 })
-    except Exception:
-        pass
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Market intelligence data unavailable")
+        raise HTTPException(503, "Market intelligence data unavailable") from exc
 
     # ── 3. Sort feed by priority ──
     priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
@@ -497,8 +503,10 @@ def get_fee_estimate(
             {"event": e.event_name, "price_min": e.price_min, "price_max": e.price_max, "city": e.city}
             for e in events
         ]
-    except Exception:
-        pass
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Market intelligence data unavailable")
+        raise HTTPException(503, "Market intelligence data unavailable") from exc
 
     return {
         "artist_id": str(artist.id),

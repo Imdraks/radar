@@ -281,21 +281,9 @@ class WebArtistScanner:
         logger.info(f"🔍 Démarrage du scan web pour: {artist_name} (force_refresh={force_refresh})")
         
         profile = WebArtistProfile(name=artist_name)
-        known_artist = get_known_artist(artist_name)
-        
-        # Si l'artiste est dans la base de données, utiliser comme base
-        if known_artist:
-            print(f"   ✅ ARTISTE TROUVÉ DANS LA BASE: {known_artist.name}", flush=True)
-            print(f"      Tier: {known_artist.market_tier}, Fee: {known_artist.fee_min:,}€ - {known_artist.fee_max:,}€", flush=True)
-            logger.info(f"✅ Artiste trouvé dans la base de données: {known_artist.name}")
-            profile = self._create_profile_from_known_artist(known_artist)
-            profile.sources_scanned.append("Base de données artistes FR")
-            
-            # Si pas de force_refresh et artiste connu, retourner directement
-            if not force_refresh:
-                profile.confidence_score = 95.0
-                return profile
-        
+        # Static catalog values have no dated collection evidence. Keep its helpers
+        # archived for reference, but never seed a live artist scan from that catalog.
+
         # Scanner le web pour actualiser/compléter les données
         if not self.session:
             self.session = aiohttp.ClientSession(
@@ -319,19 +307,6 @@ class WebArtistScanner:
                 self._scan_google(artist_name, profile),
             ]
             
-            # Garder une copie des données de la base avant le scan web
-            base_data = None
-            if known_artist:
-                base_data = {
-                    'spotify': profile.spotify_monthly_listeners,
-                    'youtube': profile.youtube_subscribers,
-                    'instagram': profile.instagram_followers,
-                    'tiktok': profile.tiktok_followers,
-                    'fee_min': profile.estimated_fee_min,
-                    'fee_max': profile.estimated_fee_max,
-                    'market_tier': profile.market_tier,
-                }
-            
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             # Afficher les erreurs de scan
@@ -343,14 +318,9 @@ class WebArtistScanner:
             
             print(f"\n   📊 Sources scannées: {profile.sources_scanned}", flush=True)
             
-            # Si on avait des données de la base, les fusionner intelligemment
-            if base_data and known_artist:
-                profile = self._merge_with_known_data(profile, base_data, known_artist)
-            else:
-                # Calculer les métriques finales uniquement si pas de données de base
-                self._calculate_total_metrics(profile)
-                self._estimate_fees(profile)
-            
+            self._calculate_total_metrics(profile)
+            self._estimate_fees(profile)
+
             self._analyze_market_trend(profile)
             self._calculate_confidence(profile)
             

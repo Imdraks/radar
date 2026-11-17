@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { RadarMark } from "@/components/brand/RadarBrand";
 import { Target, User, Mail, Lock, Loader2, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,8 @@ import api from "@/lib/api";
 
 const setupSchema = z.object({
   email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Minimum 6 caractères"),
+  password: z.string().min(8, "Minimum 8 caractères, avec majuscule, minuscule, chiffre et symbole"),
+  bootstrapToken: z.string().min(1, "Jeton d’initialisation requis"),
   confirmPassword: z.string(),
   full_name: z.string().min(2, "Nom requis"),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -46,15 +48,18 @@ export default function SetupPage() {
   const checkSetup = async () => {
     try {
       const response = await api.get("/auth/setup-check");
-      if (response.data.needs_setup) {
+      if (response.data.needs_setup && !response.data.setup_enabled) {
+        setError("L’administrateur doit être créé par l’opérateur de la plateforme avant l’ouverture du service.");
+        setNeedsSetup(false);
+      } else if (response.data.needs_setup) {
         setNeedsSetup(true);
       } else {
         // Setup already done, redirect to login
         router.push("/login");
       }
     } catch (err) {
-      // If API not available, still show setup
-      setNeedsSetup(true);
+      setNeedsSetup(false);
+      setError("Impossible de vérifier la disponibilité de l’initialisation.");
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +72,7 @@ export default function SetupPage() {
         email: data.email,
         password: data.password,
         full_name: data.full_name,
-      });
+      }, { headers: { "X-Radar-Bootstrap-Token": data.bootstrapToken } });
       setSuccess(true);
       setTimeout(() => {
         router.push("/login");
@@ -79,19 +84,19 @@ export default function SetupPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!needsSetup) {
-    return null;
+    return <main className="mx-auto max-w-xl p-8"><h1>Initialisation Radar</h1><p role="alert">{error || "Initialisation déjà effectuée."}</p></main>;
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-8 pb-8">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
@@ -106,11 +111,11 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Target className="h-8 w-8 text-primary-foreground" />
+            <RadarMark className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl">Bienvenue !</CardTitle>
           <CardDescription>
@@ -119,6 +124,11 @@ export default function SetupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bootstrapToken">Jeton d’initialisation</Label>
+              <Input id="bootstrapToken" type="password" autoComplete="off" {...register("bootstrapToken")} />
+              {errors.bootstrapToken && <p role="alert">{errors.bootstrapToken.message}</p>}
+            </div>
             {error && (
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
                 {error}

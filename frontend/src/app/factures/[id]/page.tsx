@@ -1,4 +1,7 @@
 'use client';
+import { InvoiceCorrections } from '@/components/billing/InvoiceCorrections';
+import {InvoiceLegalFields, type InvoiceLegalDetails} from '@/components/billing/InvoiceLegalFields';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -68,6 +71,9 @@ interface Invoice {
   reference: string;
   title: string;
   description?: string;
+  legal_details?: InvoiceLegalDetails | null;
+  updated_at?: string;
+  credited_at?: string|null;
   status: 'DRAFT' | 'SENT' | 'PAID' | 'PARTIAL' | 'OVERDUE' | 'CANCELLED';
   issue_date: string;
   due_date?: string;
@@ -179,7 +185,7 @@ export default function InvoiceDetailPage() {
   const fetchInvoice = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -212,7 +218,7 @@ export default function InvoiceDetailPage() {
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/billing/clients', {
+      const res = await workspaceFetch('/api/v1/billing/clients', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -235,7 +241,7 @@ export default function InvoiceDetailPage() {
       const token = localStorage.getItem('access_token');
       
       // 1. Sauvegarder les infos de la facture
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -284,7 +290,7 @@ export default function InvoiceDetailPage() {
       
       // Supprimer les items
       for (const item of itemsToDelete) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -292,7 +298,7 @@ export default function InvoiceDetailPage() {
       
       // Ajouter les nouveaux items
       for (const item of itemsToAdd) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -310,7 +316,7 @@ export default function InvoiceDetailPage() {
       
       // Modifier les items existants
       for (const item of itemsToUpdate) {
-        await fetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
+        await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/items/${item.id}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -405,7 +411,7 @@ export default function InvoiceDetailPage() {
   const updateStatus = async (status: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -434,14 +440,15 @@ export default function InvoiceDetailPage() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/payment`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount_paid: parseFloat(payment.amount),
+          amount_paid: (Number(invoice?.amount_paid || 0) + Number(payment.amount)).toFixed(2),
+          expected_amount_paid: Number(invoice?.amount_paid || 0).toFixed(2),
           payment_method: payment.method,
         }),
       });
@@ -484,8 +491,8 @@ export default function InvoiceDetailPage() {
     return null;
   }
 
-  const isEditable = invoice.status !== 'PAID' && invoice.status !== 'CANCELLED';
-  const remaining = Number(invoice.total) - Number(invoice.amount_paid);
+  const isEditable = invoice.status === 'DRAFT';
+  const remaining = invoice.credited_at ? 0 : Number(invoice.total) - Number(invoice.amount_paid);
   const paymentProgress = Number(invoice.total) > 0 
     ? (Number(invoice.amount_paid) / Number(invoice.total)) * 100 
     : 0;
@@ -494,7 +501,7 @@ export default function InvoiceDetailPage() {
     setGeneratingPdf(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/pdf`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/pdf`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
@@ -522,7 +529,7 @@ export default function InvoiceDetailPage() {
     setSavingToDrive(true);
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/billing/invoices/${invoiceId}/pdf/drive`, {
+      const res = await workspaceFetch(`/api/v1/billing/invoices/${invoiceId}/pdf/drive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -566,15 +573,15 @@ export default function InvoiceDetailPage() {
       <AppLayoutWithOnboarding>
         <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 max-w-full items-start gap-4">
           <Button variant="ghost" onClick={() => router.push('/factures')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h1 className="min-w-0 break-all text-2xl font-bold text-gray-900 dark:text-white">
                 {invoice.reference}
               </h1>
               <Badge className={STATUS_CONFIG[invoice.status].color}>
@@ -584,7 +591,7 @@ export default function InvoiceDetailPage() {
             <p className="text-gray-500 dark:text-gray-400">{invoice.title}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={generatePdf} disabled={generatingPdf}>
             {generatingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
             {generatingPdf ? 'Génération...' : 'PDF'}
@@ -617,7 +624,7 @@ export default function InvoiceDetailPage() {
               Marquer envoyée
             </Button>
           )}
-          {['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
+          {!invoice.credited_at && ['SENT', 'PARTIAL', 'OVERDUE'].includes(invoice.status) && (
             <Button 
               onClick={() => {
                 setPayment({ amount: String(remaining), method: 'BANK_TRANSFER' });
@@ -645,8 +652,10 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
+      {invoice.status==='DRAFT' && <InvoiceLegalFields key={invoice.id+":"+(invoice.updated_at||"")} invoiceId={invoice.id} details={invoice.legal_details} dueDate={invoice.due_date} onSaved={fetchInvoice}/>}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
+        <InvoiceCorrections invoiceId={invoice.id} status={invoice.status} credited={!!invoice.credited_at} onChanged={fetchInvoice}/>
+      {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Invoice Info */}
           {editing ? (

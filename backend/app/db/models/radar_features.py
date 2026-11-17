@@ -324,7 +324,7 @@ class SourceHealth(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     source_id = Column(Integer, ForeignKey('source_configs.id', ondelete='CASCADE'), nullable=False)
-    date = Column(Date, nullable=False, index=True)
+    date = Column(Date, nullable=False)
     
     # Request metrics
     requests = Column(Integer, default=0)

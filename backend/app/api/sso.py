@@ -126,6 +126,7 @@ async def google_sso_init(request: Request):
 
 @router.get("/google/callback")
 async def google_sso_callback(
+    request: Request,
     code: str,
     state: str,
     db: Session = Depends(get_db),
@@ -205,27 +206,12 @@ async def google_sso_callback(
             ttl=86400 * 30  # 30 days
         )
         
-        # Ensure Drive structure exists (called at EVERY login for idempotence)
-        # This creates/verifies the folder structure based on workspace packs
-        from app.workers.tasks import ensure_drive_structure_task
-        from app.db.models.workspace import WorkspaceMember
-        
-        # Get user's workspace(s)
-        workspace_members = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == user.id
-        ).all()
-        
-        for member in workspace_members:
-            # Queue drive structure task for each workspace
-            ensure_drive_structure_task.delay(
-                user_id=user.id,
-                workspace_id=member.workspace_id,
-                google_account_id=email
-            )
-        
         # Create session tokens
-        session_tokens = sso_service.create_session_tokens(user)
+        session_tokens = sso_service.create_session_tokens(user, request=request)
         
+        if session_tokens.get('requires_2fa'):
+            return RedirectResponse(url=f"{settings.frontend_url}/login#" + urlencode({'mfa_token': session_tokens['temp_token']}))
+
         # Redirect to frontend with tokens
         frontend_callback = f"{settings.frontend_url}/auth/callback"
         params = {
@@ -234,11 +220,11 @@ async def google_sso_callback(
             "is_new": "true" if is_new else "false",
         }
         
-        return RedirectResponse(url=f"{frontend_callback}?{urlencode(params)}")
+        return RedirectResponse(url=f"{frontend_callback}#{urlencode(params)}")
         
     except Exception as e:
         # Redirect to frontend with error
-        error_url = f"{settings.frontend_url}/login?error={str(e)}"
+        error_url = f"{settings.frontend_url}/login?error=sso_failed"
         return RedirectResponse(url=error_url)
 
 
@@ -368,8 +354,11 @@ async def apple_sso_callback(
         )
         
         # Create session tokens
-        session_tokens = sso_service.create_session_tokens(user)
+        session_tokens = sso_service.create_session_tokens(user, request=request)
         
+        if session_tokens.get('requires_2fa'):
+            return RedirectResponse(url=f"{settings.frontend_url}/login#" + urlencode({'mfa_token': session_tokens['temp_token']}))
+
         # Redirect to frontend
         frontend_callback = f"{settings.frontend_url}/auth/callback"
         params = {
@@ -378,10 +367,10 @@ async def apple_sso_callback(
             "is_new": "true" if is_new else "false",
         }
         
-        return RedirectResponse(url=f"{frontend_callback}?{urlencode(params)}")
+        return RedirectResponse(url=f"{frontend_callback}#{urlencode(params)}")
         
     except Exception as e:
-        error_url = f"{settings.frontend_url}/login?error={str(e)}"
+        error_url = f"{settings.frontend_url}/login?error=sso_failed"
         return RedirectResponse(url=error_url)
 
 

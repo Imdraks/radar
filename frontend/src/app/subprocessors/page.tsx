@@ -1,0 +1,7 @@
+import legal from '@/config/legal.json';
+import {LegalDocument,LegalSection,ContractLink} from '@/components/legal/LegalDocument';
+export default function Page(){return <LegalDocument title="Prestataires et transferts">
+ <LegalSection title="Inventaire de production"><p><ContractLink url={legal.subprocessorsUrl} label="Liste des prestataires, rôles, services et lieux de traitement"/>. L’absence de liste publiée ne signifie pas qu’aucun tiers n’intervient.</p></LegalSection>
+ <LegalSection title="Services possibles selon activation"><p>Le code prévoit notamment un hébergeur, Resend pour l’email, Google pour l’authentification/Drive/Calendar et éventuellement la mesure d’audience, des fournisseurs d’IA et des sources artistiques. Cette liste décrit les possibilités du logiciel et ne certifie pas l’activation ou la qualification juridique de chaque fournisseur. Certains peuvent agir comme responsables distincts plutôt que comme sous-traitants.</p></LegalSection>
+ <LegalSection title="Documents requis"><p>Avant exploitation, l’inventaire doit préciser entité contractante, finalité, données transmises, localisation, rôle, accord applicable, garanties de transfert, conservation et procédure de changement. Une analyse des accès depuis des pays tiers peut rester nécessaire même si un serveur principal est situé dans l’Union.</p><p><ContractLink url={legal.transferSafeguardsUrl} label="Documentation des garanties de transfert hors EEE"/>.</p></LegalSection>
+ </LegalDocument>;}

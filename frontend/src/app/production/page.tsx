@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import {
@@ -109,10 +110,10 @@ function ProductionContent() {
     try {
       const token = localStorage.getItem('access_token');
       const [productionRes, projectsRes] = await Promise.all([
-        fetch('/api/v1/agency/production', {
+        workspaceFetch('/api/v1/agency/production', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/projects', {
+        workspaceFetch('/api/v1/agency/projects', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -150,7 +151,7 @@ function ProductionContent() {
 
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/deliverables/${draggedItem.id}/status?status=${newStatus}`, {
+      await workspaceFetch(`/api/v1/agency/deliverables/${draggedItem.id}/status?status=${newStatus}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -168,7 +169,7 @@ function ProductionContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/deliverables', {
+      const response = await workspaceFetch('/api/v1/agency/deliverables', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +195,7 @@ function ProductionContent() {
   const requestApproval = async (deliverableId: number) => {
     try {
       const token = localStorage.getItem('access_token');
-      await fetch('/api/v1/agency/approvals', {
+      await workspaceFetch('/api/v1/agency/approvals', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -229,7 +230,7 @@ function ProductionContent() {
     if (!selectedItem) return;
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/deliverables/${selectedItem.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/deliverables/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -254,7 +255,7 @@ function ProductionContent() {
     if (!confirm(`Supprimer le livrable "${item.name}" ?`)) return;
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/deliverables/${item.id}`, {
+      await workspaceFetch(`/api/v1/agency/deliverables/${item.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -278,14 +279,14 @@ function ProductionContent() {
       <div className="px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Production</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Production</h1>
             <p className="text-gray-600">
               {data?.total_items || 0} livrables en cours
             </p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
             Nouveau livrable
@@ -531,7 +532,7 @@ function ProductionContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer le livrable
                 </button>
@@ -608,7 +609,7 @@ function ProductionContent() {
             <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
               <button
                 onClick={() => { setShowViewModal(false); handleEditItem(selectedItem); }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Modifier
               </button>
@@ -687,7 +688,7 @@ function ProductionContent() {
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Enregistrer
               </button>

@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "Comment fonctionne la facturation ?",
     answer:
-      "Vous pouvez créer des devis et factures directement dans Radar. Les PDF sont générés aux normes françaises (mentions légales, TVA, RCS). Ils sont automatiquement sauvegardés sur votre Google Drive dans un dossier dédié.",
+      "Radar Business conserve la création de devis, factures et PDF. La transmission réglementaire de factures électroniques nécessite une intégration spécialisée ; sa conformité complète n’est pas encore validée.",
   },
   {
     question: "Comment fonctionne le scoring IA des leads ?",
@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "Comment fonctionne la connexion bancaire ?",
     answer:
-      "Radar se connecte à vos banques via API sécurisée. Vous visualisez vos transactions en temps réel et pouvez les rapprocher avec vos factures. Aucun identifiant bancaire n'est stocké sur nos serveurs.",
+      "Les connexions bancaires avancées sont suspendues pendant leur validation technique et commerciale. Le suivi des paiements reste dans Radar Business.",
   },
   {
     question: "Comment gérer les rôles et permissions ?",

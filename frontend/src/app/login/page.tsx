@@ -6,6 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Target, Loader2, Shield, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { RadarLogo, RadarMark, RadarField } from "@/components/brand/RadarBrand";
+import { MfaChallenge, mfaError } from '@/components/auth/MfaChallenge';
+import { authApi } from '@/lib/api';
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +57,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, rememberMe, setRememberMe, lastLoginEmail, isAuthenticated, isLoading: authLoading, pending2FA, clearPending2FA } = useAuthStore();
+  const { login, rememberMe, setRememberMe, lastLoginEmail, isAuthenticated, isLoading: authLoading, pending2FA, clearPending2FA, setPending2FA, complete2FA } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingSetup, setCheckingSetup] = useState(true);
@@ -66,10 +70,26 @@ function LoginContent() {
   }, []);
 
   const [ssoProviders, setSsoProviders] = useState<{ id: string; name: string; enabled: boolean }[]>([]);
-  const [show2FA, setShow2FA] = useState(false);
-  const [totpCode, setTotpCode] = useState("");
-  const [savedCredentials, setSavedCredentials] = useState<{ email: string; password: string } | null>(null);
-  const totpInputRef = useRef<HTMLInputElement>(null);
+  const show2FA = Boolean(pending2FA);
+  const ssoMfaRef = useRef(false);
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get('mfa_token');
+    if (!token) return;
+    ssoMfaRef.current = true;
+    window.history.replaceState(null, '', window.location.pathname);
+    localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token');
+    authApi.mfaTrustedComplete(token).then(async result => {
+      if (result.trusted) {
+        await useAuthStore.getState().setTokens(result.access_token, result.refresh_token);
+        ssoMfaRef.current = false;
+        router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
+        return;
+      }
+      const options = await authApi.mfaOptions(token);
+      setPending2FA({ tempToken: token, methods: options.methods, destinations: options.destinations || {} });
+    }).catch(error => { setError(mfaError(error)); ssoMfaRef.current = false; });
+  }, [setPending2FA, router]);
 
   const {
     register,
@@ -86,21 +106,10 @@ function LoginContent() {
 
   // Auto-redirect if already authenticated
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      // Check role from token to redirect appropriately
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.role === 'admin') {
-            router.push("/admin");
-            return;
-          }
-        } catch (e) {}
-      }
-      router.push("/today");
+    if (!authLoading && isAuthenticated && !pending2FA && !ssoMfaRef.current) {
+      router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, pending2FA, router]);
 
   // Pre-fill email if remembered
   useEffect(() => {
@@ -171,27 +180,12 @@ function LoginContent() {
       const result = await login(data.email, data.password, rememberMe);
       
       if (result.requires2FA) {
-        // Show 2FA input
-        setSavedCredentials({ email: data.email, password: data.password });
-        setShow2FA(true);
+        setValue('password', '');
         setIsLoading(false);
-        // Focus on TOTP input after animation
-        setTimeout(() => totpInputRef.current?.focus(), 300);
         return;
       }
       
-      // Redirect based on role
-      const token = localStorage.getItem('access_token');
-      let redirectPath = "/today";
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.role === 'admin') {
-            redirectPath = "/admin";
-          }
-        } catch (e) {}
-      }
-      router.push(redirectPath);
+      router.push(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string | object } } };
       const detail = error?.response?.data?.detail;
@@ -209,52 +203,13 @@ function LoginContent() {
     }
   };
   
-  const handleVerify2FA = async () => {
-    if (!savedCredentials || !totpCode) return;
-    
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      const result = await login(savedCredentials.email, savedCredentials.password, rememberMe, totpCode);
-      
-      if (result.success) {
-        // Redirect based on role
-        const token = localStorage.getItem('access_token');
-        let redirectPath = "/today";
-        if (token) {
-          try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.role === 'admin') {
-              redirectPath = "/admin";
-            }
-          } catch (e) {}
-        }
-        router.push(redirectPath);
-      }
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string | object } } };
-      const detail = error?.response?.data?.detail;
-      if (typeof detail === "string") {
-        setError(detail);
-      } else {
-        setError("Code 2FA invalide");
-      }
-      setTotpCode("");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const handleBack = () => {
-    setShow2FA(false);
-    setTotpCode("");
-    setSavedCredentials(null);
     clearPending2FA();
+    ssoMfaRef.current = false;
     setError(null);
   };
 
-  if (checkingSetup || (!authLoading && isAuthenticated)) {
+  if (checkingSetup || (!authLoading && isAuthenticated && !pending2FA && !ssoMfaRef.current)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4 animate-pulse">
@@ -268,105 +223,34 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 dark:from-gray-900 dark:via-gray-950 dark:to-primary/5 p-4 safe-top safe-bottom">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse-soft" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse-soft animate-delay-500" />
-      </div>
-      
-      <Card className="w-full max-w-md relative animate-fade-in-up shadow-xl border-0 dark:border dark:border-gray-800">
+    <div className="radar-auth safe-top safe-bottom">
+      <aside className="radar-auth-story">
+        <RadarField className="pointer-events-none absolute -left-20 -top-24 h-[540px] w-[540px] opacity-40" />
+        <div className="relative"><Link href="/" aria-label="Radar — Accueil"><RadarLogo /></Link><p className="radar-kicker mt-16">Un point de repère commun</p><h2 className="radar-display mt-5">Votre agence.<br />Toute la perspective.</h2><p className="mt-6 max-w-sm text-base leading-relaxed text-muted-foreground">Retrouvez vos projets, vos artistes et votre équipe. Reprenez là où les choses avancent.</p><div className="mt-10 flex gap-5 text-xs text-muted-foreground"><span>Organisation</span><span>Création</span><span>Activité</span></div></div>
+      </aside>
+      <Card className="radar-auth-card">
         <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30 animate-bounce-soft">
-              {show2FA ? (
-                <Shield className="h-8 w-8 text-primary-foreground" />
-              ) : (
-                <Target className="h-8 w-8 text-primary-foreground" />
-              )}
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-            {show2FA ? "Vérification 2FA" : "Radar"}
-          </CardTitle>
+          <div className="mb-6 flex justify-center"><Link href="/" aria-label="Radar — Accueil"><RadarLogo compact /></Link></div>
+          <CardTitle className="text-2xl font-semibold tracking-tight">{show2FA ? "Vérification 2FA" : "Bienvenue dans votre espace"}</CardTitle>
           <CardDescription className="text-muted-foreground">
             {show2FA 
-              ? "Entrez le code de votre application d'authentification" 
+              ? "Choisissez une méthode pour confirmer votre identité"
               : "Connectez-vous pour accéder à la plateforme"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 2FA Verification Form */}
-          {show2FA ? (
-            <div className="space-y-4 animate-fade-in">
-              {error && (
-                <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm animate-fade-in flex items-center gap-2">
-                  <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="totp" className="text-sm font-medium">Code à 6 chiffres</Label>
-                <Input
-                  ref={totpInputRef}
-                  id="totp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="000000"
-                  className="h-14 text-center text-2xl font-mono tracking-[0.5em]"
-                  value={totpCode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    setTotpCode(value);
-                    // Auto-submit when 6 digits entered
-                    if (value.length === 6) {
-                      setTimeout(() => handleVerify2FA(), 100);
-                    }
-                  }}
-                  disabled={isLoading}
-                  autoComplete="one-time-code"
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Vous pouvez aussi utiliser un code de récupération
-                </p>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 h-12"
-                  onClick={handleBack}
-                  disabled={isLoading}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Retour
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 h-12 font-semibold"
-                  onClick={handleVerify2FA}
-                  disabled={isLoading || totpCode.length < 6}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Vérification...
-                    </>
-                  ) : (
-                    "Vérifier"
-                  )}
-                </Button>
-              </div>
-            </div>
+          {show2FA && pending2FA ? (
+            <MfaChallenge key={pending2FA.tempToken} token={pending2FA.tempToken}
+              methods={pending2FA.methods} destinations={pending2FA.destinations}
+              allowTrust onBack={handleBack} onVerify={async (method, code, trustDevice) => {
+                await complete2FA(method, code, trustDevice);
+                ssoMfaRef.current = false;
+                router.push(useAuthStore.getState().user?.is_superuser ? '/admin' : '/today');
+              }} />
           ) : (
             <>
-              {/* SSO Buttons - Always show */}
+              {ssoProviders.some(provider => provider.id === 'google' && provider.enabled) && <>
               <div className="space-y-3">
                 {/* Google SSO */}
                 <Button
@@ -383,15 +267,6 @@ function LoginContent() {
               Continuer avec Google
             </Button>
             
-            {/* Apple SSO - Coming Soon */}
-            <Button
-              variant="outline"
-              className="w-full h-12 text-base font-medium opacity-50 cursor-not-allowed"
-              disabled={true}
-            >
-              <AppleIcon className="mr-3 h-5 w-5" />
-              Apple — Prochainement
-            </Button>
           </div>
             
           <div className="relative">
@@ -405,6 +280,7 @@ function LoginContent() {
             </div>
           </div>
           
+          </>}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm animate-fade-in flex items-center gap-2">
@@ -420,7 +296,7 @@ function LoginContent() {
               <Input
                 id="email"
                 type="email"
-                placeholder="vous@example.com"
+                placeholder="vous@agence.fr"
                 className="h-12 text-base"
                 {...register("email")}
                 disabled={isLoading}
@@ -445,6 +321,7 @@ function LoginContent() {
               )}
             </div>
 
+            <Link href="/forgot-password" className="inline-block text-sm font-medium text-primary underline-offset-4 hover:underline">Mot de passe oublié ?</Link>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="rememberMe"
@@ -485,7 +362,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center animate-pulse">
-            <Target className="h-8 w-8 text-primary" />
+            <RadarMark className="h-12 w-12 text-primary" />
           </div>
         </div>
       </div>

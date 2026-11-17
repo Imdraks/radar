@@ -59,7 +59,7 @@ export function FinalCTA() {
 
           {/* Trust note */}
           <p className="mt-8 text-sm text-gray-500">
-            Plateforme privée • Découverte artistes & Scoring IA • Google Workspace + Banques • Hébergement RGPD France
+            Organisation • Discovery et analyses indicatives • Intégrations selon configuration
           </p>
         </div>
       </div>

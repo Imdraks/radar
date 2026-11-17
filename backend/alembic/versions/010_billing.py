@@ -13,7 +13,9 @@ from sqlalchemy.dialects.postgresql import ENUM
 revision = '010_billing'
 down_revision = '009_entity_brief_system'
 branch_labels = None
-depends_on = None
+# This branch references workspaces, introduced by the inbox branch.
+# Preserve revision IDs/parents for already-stamped databases.
+depends_on = '020_workspace_inbox'
 
 
 def upgrade():

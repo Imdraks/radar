@@ -16,12 +16,12 @@ const reasons = [
   {
     icon: Eye,
     title: "Veille & Analytics avancés",
-    description: "Cockpit temps réel, veille concurrentielle, carte événements et prédictions IA intégrées.",
+    description: "Organisation, événements et intelligence artistique réunis autour de vos projets.",
   },
   {
     icon: Shield,
-    title: "RGPD & hébergement France",
-    description: "Données hébergées en France. Rôles et permissions granulaires. Audit trail complet.",
+    title: "Rôles et permissions",
+    description: "Accès par espace de travail et rôles. Hébergement et engagements précisés dans votre contrat.",
   },
 ];
 

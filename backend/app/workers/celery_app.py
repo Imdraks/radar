@@ -22,6 +22,8 @@ celery_app = Celery(
         "app.workers.discovery_scheduler",
         "app.workers.spotify_search_pipeline",
         "app.workers.event_sync_tasks",
+        "app.workers.mfa_tasks",
+        "app.workers.password_tasks",
     ],
 )
 
@@ -48,6 +50,10 @@ celery_app.conf.update(
 
 # Beat schedule for periodic tasks
 celery_app.conf.beat_schedule = {
+    "purge-expired-mfa-challenges": {
+        "task": "app.workers.mfa_tasks.purge_expired",
+        "schedule": crontab(minute='15', hour='4'),
+    },
     # 🎯 AUTO RADAR - Récolte automatique toutes les 15 minutes
     "auto-radar-harvest": {
         "task": "app.workers.auto_radar_task.auto_radar_harvest",

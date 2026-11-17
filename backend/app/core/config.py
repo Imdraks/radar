@@ -18,9 +18,15 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
     
+    # Optional one-time bootstrap secret. Empty disables public administrator setup.
+    bootstrap_token: str = Field(default="", repr=False)
+
     # Database
     database_url: str = "postgresql://radar:radar_password@localhost:5432/opportunities_radar"
     
+    # Optional free-quota YouTube Data API key; never sent to the frontend.
+    youtube_api_key: str = Field(default="", repr=False)
+
     # Redis
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/0"
@@ -48,6 +54,12 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_use_tls: bool = True
+
+    # SMS MFA stays unavailable until an operator configures a real provider.
+    mfa_sms_provider: str = ''
+    twilio_account_sid: str = Field(default='', repr=False)
+    twilio_auth_token: str = Field(default='', repr=False)
+    twilio_from_number: str = ''
     
     # Webhook Notifications
     discord_webhook_url: Optional[str] = None
@@ -131,6 +143,10 @@ class Settings(BaseSettings):
     # Comma-separated list of always-allowed emails (e.g., "ceo@example.com,admin@example.com")
     allowed_emails: str = ""
     
+    contact_receiver_email: str = ""
+    # Hash of the reviewed public publisher identity; no publication on an unconfigured instance.
+    legal_publisher_fingerprint: str = ""
+
     # Resend API (for sending invitation emails)
     resend_api_key: str = ""
     resend_from_email: str = "Radar <noreply@radarapp.fr>"

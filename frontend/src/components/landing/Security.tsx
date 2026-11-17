@@ -5,18 +5,18 @@ import { Shield, Server, Lock, Users, Eye, FileCheck } from "lucide-react";
 const securityFeatures = [
   {
     icon: Server,
-    title: "Hébergé en Europe",
-    description: "Vos données restent sur des serveurs européens certifiés.",
+    title: "Hébergement documenté",
+    description: "La localisation et les engagements d’hébergement sont précisés dans votre contrat.",
   },
   {
     icon: Shield,
-    title: "RGPD Conforme",
-    description: "Respect total de la réglementation européenne sur les données.",
+    title: "Protection des données",
+    description: "Les conditions de traitement des données sont disponibles auprès de notre équipe.",
   },
   {
     icon: Lock,
     title: "Chiffrement SSL",
-    description: "Toutes les communications sont chiffrées de bout en bout.",
+    description: "Les échanges utilisent HTTPS lorsque votre instance est déployée avec TLS.",
   },
   {
     icon: Users,
@@ -26,20 +26,13 @@ const securityFeatures = [
   {
     icon: Eye,
     title: "Audit Trail",
-    description: "Traçabilité complète des actions sur la plateforme.",
+    description: "Les activations d’abonnement conservent leur décision et leur référence d’autorisation.",
   },
   {
     icon: FileCheck,
-    title: "Backups quotidiens",
-    description: "Sauvegardes automatiques et restauration possible.",
+    title: "Sauvegarde et restauration",
+    description: "La politique de sauvegarde dépend de l’exploitation de votre instance.",
   },
-];
-
-const stats = [
-  { value: "100%", label: "Sécurisé" },
-  { value: "RGPD", label: "Conforme" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "FR", label: "Made in France" },
 ];
 
 export function Security() {
@@ -50,28 +43,15 @@ export function Security() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 rounded-full text-sm text-green-700 mb-4">
             <Shield className="h-4 w-4" />
-            Sécurité & Conformité
+            Sécurité et contrôle des accès
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
             Vos données en sécurité
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Radar est conçu pour les agences qui prennent la sécurité au sérieux.
-            Infrastructure robuste, conforme aux standards européens.
+            Contrôles d’accès par organisation et autorisations côté serveur.
           </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-16">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center"
-            >
-              <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.label}</div>
-            </div>
-          ))}
         </div>
 
         {/* Features Grid */}

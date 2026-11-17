@@ -69,7 +69,7 @@ class ProgressNotifier:
     def redis_client(self) -> redis.Redis:
         """Lazy initialization du client Redis"""
         if self._redis is None:
-            self._redis = redis.from_url(settings.redis_url)
+            self._redis = redis.from_url(settings.redis_url, socket_connect_timeout=1, socket_timeout=2)
         return self._redis
     
     def _publish(self, msg_type: str, data: Dict[str, Any]):
@@ -82,7 +82,9 @@ class ProgressNotifier:
             "data": data
         }
         try:
-            self.redis_client.publish(PROGRESS_CHANNEL, json.dumps(message))
+            payload = json.dumps(message)
+            self.redis_client.setex(f"task_progress:{self.task_id}", 86400, payload)
+            self.redis_client.publish(PROGRESS_CHANNEL, payload)
             logger.debug(f"Published progress: {msg_type} - {data.get('message', '')}")
         except Exception as e:
             logger.error(f"Failed to publish progress: {e}")

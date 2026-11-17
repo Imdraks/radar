@@ -2,7 +2,6 @@
 User management endpoints
 """
 from typing import List
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -62,7 +61,7 @@ def list_users(
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(
-    user_id: UUID,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -106,13 +105,13 @@ def create_user(
 
 @router.patch("/{user_id}", response_model=UserResponse)
 def update_user(
-    user_id: UUID,
+    user_id: int,
     update_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     """Update user"""
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).with_for_update().populate_existing().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -120,6 +119,15 @@ def update_user(
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    if 'password' in update_dict:
+        if user.id == current_user.id:
+            raise HTTPException(409, 'Pour votre propre compte, utilisez le changement de mot de passe avec ancien mot de passe et A2F.')
+        if not current_user.is_superuser:
+            raise HTTPException(403, 'La réinitialisation administrative du mot de passe exige un administrateur de plateforme.')
+        if update_dict['password'] is None:
+            raise HTTPException(422, 'Un nouveau mot de passe est requis.')
+    if 'password' in update_dict or ('email' in update_dict and update_dict['email'] != user.email):
+        user.mfa_version = (user.mfa_version or 0) + 1
     
     # Hash password if provided
     if "password" in update_dict:
@@ -135,7 +143,7 @@ def update_user(
 
 @router.delete("/{user_id}")
 def delete_user(
-    user_id: UUID,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):

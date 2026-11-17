@@ -166,3 +166,19 @@ from .banking import (
     SyncTrigger,
 )
 
+
+from .subscription_request import SubscriptionRequest
+
+from .production_event import ProductionEvent, EventArtist, EventExpense
+
+# Register historical artist observations before schema creation / Alembic discovery.
+from .artist_snapshot import ArtistSnapshot
+
+from .privacy import PrivacyRequest
+
+from .legal_contract import LegalBundle, LegalAcceptance
+
+from .credit_note import CreditNote
+from .artist_event import ArtistEvent
+from .mfa import MFAChallenge
+from .login_session import UserSession, TrustedDevice

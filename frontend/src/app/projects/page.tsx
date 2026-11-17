@@ -1,4 +1,5 @@
 'use client';
+import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -111,13 +112,13 @@ function ProjectsContent() {
       if (filterStatus) params.append('status', filterStatus);
       
       const [projectsRes, clientsRes, dealsRes] = await Promise.all([
-        fetch(`/api/v1/agency/projects?${params}`, {
+        workspaceFetch(`/api/v1/agency/projects?${params}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/clients', {
+        workspaceFetch('/api/v1/agency/clients', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
-        fetch('/api/v1/agency/deals?status=won', {
+        workspaceFetch('/api/v1/agency/deals?status=won', {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
       ]);
@@ -147,7 +148,7 @@ function ProjectsContent() {
     
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/agency/projects', {
+      const response = await workspaceFetch('/api/v1/agency/projects', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -193,7 +194,7 @@ function ProjectsContent() {
     if (!selectedProject) return;
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/v1/agency/projects/${selectedProject.id}`, {
+      const response = await workspaceFetch(`/api/v1/agency/projects/${selectedProject.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +220,7 @@ function ProjectsContent() {
     if (!confirm(`Supprimer le projet "${project.name}" ?`)) return;
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`/api/v1/agency/projects/${project.id}`, {
+      await workspaceFetch(`/api/v1/agency/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -251,16 +252,16 @@ function ProjectsContent() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-7">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="radar-screen-header radar-screen-intro">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projets</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Projets</h1>
           <p className="text-gray-600">{projects.length} projets</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Nouveau projet
@@ -268,7 +269,7 @@ function ProjectsContent() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-card p-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -456,15 +457,14 @@ function ProjectsContent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Client *
+                  Client (facultatif)
                 </label>
                 <select
-                  required
                   value={newProject.client_id}
                   onChange={(e) => setNewProject({ ...newProject, client_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 >
-                  <option value="">Sélectionner un client</option>
+                  <option value="">Production interne</option>
                   {clients.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.name}
@@ -541,7 +541,7 @@ function ProjectsContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                 >
                   Créer le projet
                 </button>
@@ -622,7 +622,7 @@ function ProjectsContent() {
             <div className="flex justify-end gap-3 p-4 border-t border-gray-200">
               <button
                 onClick={() => { setShowViewModal(false); handleEditProject(selectedProject); }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Modifier
               </button>
@@ -701,7 +701,7 @@ function ProjectsContent() {
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
               >
                 Enregistrer
               </button>

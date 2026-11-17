@@ -1,0 +1,14 @@
+PROJET — PRESTATAIRES, DESTINATAIRES ET TRANSFERTS
+Éditeur : [[EDITEUR]]. Version : [[VERSION_CONTRACTUELLE]]. Contact : [[PRIVACY_CONTACT]].
+
+1. Inventaire effectif
+Un connecteur présent dans le dépôt ne signifie pas qu'un prestataire est activé, contracté ou destinataire de données en production. Chaque fournisseur est qualifié selon son rôle réel : sous-traitant, sous-traitant ultérieur, responsable indépendant, destinataire ou source. La liste validée doit identifier raison sociale exacte, fonction, données et personnes, localisation du traitement et du support, entités contractantes, accès, sous-traitants, durée et garanties. Liste approuvée : [[SUBPROCESSORS_AND_RECIPIENTS_VALIDATED]].
+
+2. Activation et minimisation
+Avant activation, vérifier l'objet du transfert, les champs nécessaires, les droits du client et les paramètres du fournisseur. Une autorisation OAuth ne remplace ni une base légale ni un contrat article 28. Pour les outils d'IA, préciser les contenus envoyés, conservation, éventuel entraînement, accès humain et conditions de réutilisation. Les collecteurs de données publiques doivent respecter les droits des personnes, droits de propriété et conditions des sources ; la disponibilité technique n'est pas une autorisation générale.
+
+3. Transferts hors EEE
+Identifier pays, support et accès distants, mécanisme de transfert applicable, éléments de validité, analyses et mesures supplémentaires lorsque nécessaires. Aucun hébergement intégralement français ou européen n'est affirmé sur la seule présence d'une configuration. Garanties et pièces de contrôle : [[TRANSFER_SAFEGUARDS_VALIDATED]].
+
+4. Modifications et fin de relation
+Le mécanisme d'autorisation et d'information des changements, le délai d'objection motivée et les suites sont décrits dans le DPA et les conditions validées : [[SUBPROCESSOR_CHANGE_PROCESS]]. À la fin d'une intégration, révoquer les accès et vérifier le sort des données, exports et sauvegardes selon les contrats et instructions. La suppression d'un token dans Radar ne prouve pas l'effacement de tous les traitements chez le tiers. Réviser cet inventaire à chaque modification effective.

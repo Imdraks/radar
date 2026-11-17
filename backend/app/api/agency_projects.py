@@ -14,7 +14,7 @@ from app.db.models.agency import (
     ProjectStatus, DeliverableStatus, ApprovalStatus, DealStatus
 )
 from app.db.models.user import User
-from app.api.deps import get_current_user, require_workspace_member
+from app.api.deps import get_current_user, require_workspace_member, resolve_workspace_id
 from app.db.models.workspace import WorkspaceMember
 from app.schemas.agency import (
     # Project
@@ -42,12 +42,7 @@ router = APIRouter(prefix="/agency", tags=["agency-projects"])
 
 
 def get_ws_id(current_user: User, db: Session, workspace_id: Optional[int] = None) -> int:
-    """Helper to get workspace_id from user or parameter"""
-    ws_id = workspace_id or getattr(current_user, 'workspace_id', None)
-    if not ws_id:
-        member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == current_user.id).first()
-        ws_id = member.workspace_id if member else None
-    return ws_id
+    return resolve_workspace_id(db, current_user, workspace_id)
 
 
 # ============================================================================
@@ -235,8 +230,12 @@ async def create_project(
         if not deal:
             raise HTTPException(status_code=404, detail="Deal not found")
     
+    if client is None:
+        from app.services.production_context import internal_client
+        client = internal_client(db, ws_id)
     project = Project(
-        client_id=project_in.client_id,
+        workspace_id=ws_id,
+        client_id=client.id,
         deal_id=project_in.deal_id,
         name=project_in.name,
         status=project_in.status.value if project_in.status else ProjectStatus.ACTIVE,

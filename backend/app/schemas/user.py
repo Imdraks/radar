@@ -3,32 +3,14 @@ User schemas with security validation
 """
 from datetime import datetime
 from typing import Optional, List
-import re
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.db.models.user import Role
 
 
 def validate_password_strength(password: str) -> str:
-    """
-    Validate password strength:
-    - At least 8 characters
-    - At least one uppercase letter
-    - At least one lowercase letter
-    - At least one number
-    - At least one special character
-    """
-    if len(password) < 8:
-        raise ValueError("Le mot de passe doit contenir au moins 8 caractères")
-    if not re.search(r"[A-Z]", password):
-        raise ValueError("Le mot de passe doit contenir au moins une majuscule")
-    if not re.search(r"[a-z]", password):
-        raise ValueError("Le mot de passe doit contenir au moins une minuscule")
-    if not re.search(r"\d", password):
-        raise ValueError("Le mot de passe doit contenir au moins un chiffre")
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        raise ValueError("Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&*)")
-    return password
+    from app.core.passwords import validate_new_password
+    return validate_new_password(password)
 
 
 def sanitize_string(value: str) -> str:
@@ -59,7 +41,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Create user schema with strong password validation"""
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=12, max_length=128)
     
     @field_validator('password')
     @classmethod
@@ -74,7 +56,7 @@ class UserUpdate(BaseModel):
     role: Optional[Role] = None
     is_active: Optional[bool] = None
     is_whitelisted: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=8, max_length=128)
+    password: Optional[str] = Field(None, min_length=12, max_length=128)
     
     @field_validator('full_name')
     @classmethod
@@ -120,7 +102,7 @@ class UserLogin(BaseModel):
     """Login request schema"""
     email: EmailStr
     password: str
-    totp_code: Optional[str] = None  # 2FA code if enabled
+    totp_code: Optional[str] = Field(default=None, max_length=40)  # Legacy TOTP/recovery only.
 
 
 class Token(BaseModel):
@@ -137,6 +119,8 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     requires_2fa: bool = False
     temp_token: Optional[str] = None  # Temporary token to complete 2FA
+    methods: List[str] = []
+    destinations: dict = {}
 
 
 class TokenPayload(BaseModel):

@@ -25,17 +25,7 @@ const integrations = [
     ],
     color: "from-green-500 to-emerald-500",
   },
-  {
-    icon: Landmark,
-    name: "Banques",
-    description: "Connexion sécurisée à vos comptes bancaires. Suivi des transactions et rapprochement automatique.",
-    features: [
-      "Transactions en temps réel",
-      "Rapprochement factures",
-      "Multi-comptes & multi-banques",
-    ],
-    color: "from-purple-500 to-indigo-500",
-  },
+
 ];
 
 export function Integrations() {
@@ -58,8 +48,8 @@ export function Integrations() {
               </span>
             </h2>
             <p className="text-gray-600 mb-8 text-lg">
-              Radar se connecte nativement à Google Workspace et vos banques.
-              Fichiers, calendriers et transactions restent synchronisés.
+              Radar se connecte nativement à Google Workspace.
+              Retrouvez les fichiers et calendriers associés à vos projets.
             </p>
 
             {/* Integration Cards */}

@@ -210,8 +210,8 @@ class SSOService:
             account.expires_at = tokens.get("expires_at")
             account.updated_at = datetime.utcnow()
             
-            # Update user last login
-            account.user.last_login_at = datetime.utcnow()
+            # A provider callback proves only the first factor. finish_login
+            # records a successful connection after Radar MFA has completed.
             self.db.commit()
             
             logger.info(f"SSO login: existing account {provider}:{provider_account_id}")
@@ -261,8 +261,6 @@ class SSOService:
         )
         self.db.add(account)
         
-        # Update user login time
-        user.last_login_at = datetime.utcnow()
         if avatar_url and not user.avatar_url:
             user.avatar_url = avatar_url
         
@@ -270,24 +268,18 @@ class SSOService:
         
         return user, is_new_user
     
-    def create_session_tokens(self, user: User) -> Dict[str, str]:
+    def create_session_tokens(self, user: User, request=None) -> Dict[str, Any]:
         """Create JWT access and refresh tokens for the user"""
-        access_token = create_access_token(
-            data={
-                "sub": str(user.id),
-                "email": user.email,
-                "role": user.role.value,
-            }
-        )
-        refresh_token = create_refresh_token(
-            data={"sub": str(user.id)}
-        )
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-        }
+        from app.core import mfa
+        user = mfa.lock_user(self.db, user.id)
+        if mfa.methods(user):
+            token, _ = mfa.create_challenge(self.db, user, 'login')
+            self.db.commit()
+            return {'requires_2fa': True, 'temp_token': token}
+        from app.api.auth import finish_login
+        return finish_login(self.db, user, request).model_dump(exclude_none=True)
     
+
     def get_user_accounts(self, user_id: UUID) -> list:
         """Get all SSO accounts linked to a user"""
         accounts = self.db.query(Account).filter(Account.user_id == user_id).all()

@@ -60,6 +60,8 @@ export function NotificationCenter() {
   const wsDisabled = useRef(false); // Flag to stop all WS attempts after failures
   
   const { user } = useAuthStore();
+  const workspaceId = typeof window !== "undefined" ? localStorage.getItem("current_workspace_id") : null;
+  const storageKey = user && workspaceId ? `${STORAGE_KEY}:${user.id}:${workspaceId}` : null;
   const queryClient = useQueryClient();
   
   // Refs to avoid recreating connectWebSocket on every render
@@ -71,22 +73,13 @@ export function NotificationCenter() {
   // Get token from localStorage
   const getToken = () => typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
-  // Load cached notifications
   useEffect(() => {
-    const cached = localStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      try {
-        setNotifications(JSON.parse(cached));
-      } catch (e) {
-        console.error("Failed to parse cached notifications:", e);
-      }
-    }
-  }, []);
-
-  // Save notifications to cache
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications.slice(0, 50)));
-  }, [notifications]);
+    localStorage.removeItem(STORAGE_KEY);
+    setNotifications([]);
+    wsRef.current?.close();
+    wsRef.current = null;
+    wsDisabled.current = false;
+  }, [storageKey]);
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
@@ -110,7 +103,9 @@ export function NotificationCenter() {
       const wsUrl = getWsUrl();
       if (!wsUrl) return;
       
-      const ws = new WebSocket(`${wsUrl}/notifications?token=${token}`);
+      const workspace = localStorage.getItem("current_workspace_id");
+      const query = workspace ? `?workspace_id=${encodeURIComponent(workspace)}` : "";
+      const ws = new WebSocket(`${wsUrl}/notifications${query}`, ["radar", `bearer.${token}`]);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -183,7 +178,7 @@ export function NotificationCenter() {
       wsDisabled.current = true;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storageKey]);
 
   // Connect on mount
   useEffect(() => {

@@ -189,7 +189,7 @@ function EmptyFeed({ feedType }: { feedType: string }) {
           ? "Analysez des artistes pour construire votre feed personnalisé de recommandations basées sur vos recherches."
           : "Le feed trending se remplit automatiquement avec les artistes en forte croissance de votre historique."}
       </p>
-      <Link href="/artist">
+      <Link href="#artist-search">
         <Button className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white shadow-md">
           <Search className="h-4 w-4 mr-2" />
           Analyser un artiste
@@ -374,7 +374,7 @@ function DiscoveryV3Page() {
   const handleAddToComparison = (artistId: number) => {
     window.open(`/comparison?add=${artistId}`, "_blank");
     toast.success("Ouverture de la comparaison", {
-      description: "Artiste ajouté à la comparaison",
+      description: "Choisissez une sélection pour enregistrer cet artiste",
     });
   };
 
@@ -399,14 +399,14 @@ function DiscoveryV3Page() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="radar-screen-header">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
             <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Discovery</h1>
-            <p className="text-muted-foreground text-sm">Feed intelligent d'artistes analysés</p>
+            <h1 className="text-[28px] font-semibold tracking-tight">Discovery</h1>
+            <p className="text-muted-foreground text-sm">Recherche, données sourcées et sélections artistiques</p><p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">Les analyses combinent observations, calculs et, selon les fonctions activées, synthèses assistées par IA. Projections et cachets restent indicatifs : vérifiez les sources et gardez une décision humaine. <a className="underline" href="/privacy#discovery">Données et limites</a></p>
           </div>
         </div>
         
@@ -438,7 +438,7 @@ function DiscoveryV3Page() {
 
       {/* Active analysis indicator */}
       {(queueQuery.data?.running ?? 0) > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
@@ -665,27 +665,7 @@ function DiscoveryV3Page() {
               }}
             />
             
-            {/* Quick Links */}
-            <Card className="p-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Target className="h-4 w-4 text-purple-500" />
-                Accès rapide
-              </h4>
-              <div className="space-y-2">
-                <Link href="/artist" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
-                    <Search className="h-4 w-4" />
-                    Historique des analyses
-                  </Button>
-                </Link>
-                <Link href="/comparison" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
-                    <Users className="h-4 w-4" />
-                    Comparer des artistes
-                  </Button>
-                </Link>
-              </div>
-            </Card>
+
           </div>
         </div>
       </div>
