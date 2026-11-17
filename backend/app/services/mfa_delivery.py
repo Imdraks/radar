@@ -17,9 +17,9 @@ def availability():
     }
 
 
-def smtp_send(destination, body):
+def smtp_send(destination, body, subject="Votre code de sécurité Radar"):
     message = EmailMessage()
-    message['Subject'] = 'Votre code de sécurité Radar'
+    message['Subject'] = subject
     message['From'] = settings.smtp_from_email or settings.smtp_user
     message['To'] = destination
     message.set_content(body)

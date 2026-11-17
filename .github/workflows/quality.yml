@@ -96,6 +96,7 @@ jobs:
           python ../scripts/brand_ui_smoke.py
           python ../scripts/documentation_ui_smoke.py
           python ../scripts/mfa_ui_smoke.py
+          python ../scripts/password_ui_smoke.py
           python ../scripts/ui_smoke.py
           python ../scripts/consent_ui_smoke.py
           python ../scripts/legal_ui_smoke.py

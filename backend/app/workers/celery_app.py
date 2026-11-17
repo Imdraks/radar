@@ -23,6 +23,7 @@ celery_app = Celery(
         "app.workers.spotify_search_pipeline",
         "app.workers.event_sync_tasks",
         "app.workers.mfa_tasks",
+        "app.workers.password_tasks",
     ],
 )
 

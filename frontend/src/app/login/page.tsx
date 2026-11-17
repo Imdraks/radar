@@ -321,6 +321,7 @@ function LoginContent() {
               )}
             </div>
 
+            <Link href="/forgot-password" className="inline-block text-sm font-medium text-primary underline-offset-4 hover:underline">Mot de passe oublié ?</Link>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="rememberMe"

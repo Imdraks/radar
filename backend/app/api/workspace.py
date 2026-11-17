@@ -407,8 +407,11 @@ async def add_member(
         
         hashed_pw = None
         if provider == "credentials":
-            if not data.password or len(data.password) < 6:
-                raise HTTPException(status_code=400, detail="A password of at least 6 characters is required for credential accounts")
+            from app.core.passwords import validate_new_password
+            try:
+                validate_new_password(data.password or '')
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from None
             from app.core.security import get_password_hash
             hashed_pw = get_password_hash(data.password)
         
@@ -560,9 +563,12 @@ async def reset_member_password(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    user = db.query(User).filter(User.id == member.user_id).first()
+    user = db.query(User).filter(User.id == member.user_id).with_for_update().populate_existing().first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user.id == current_user.id:
+        raise HTTPException(409, 'Pour votre propre compte, utilisez le changement de mot de passe avec ancien mot de passe et A2F.')
 
     if user.auth_provider and user.auth_provider != "credentials":
         raise HTTPException(
@@ -571,11 +577,16 @@ async def reset_member_password(
         )
 
     import secrets, string
-    new_pw = data.new_password if (data.new_password and len(data.new_password) >= 6) else \
-        ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+    from app.core.passwords import validate_new_password, invalidate_credentials
+    new_pw = data.new_password if data.new_password else 'Aa1!' + secrets.token_urlsafe(24)
+    try:
+        validate_new_password(new_pw)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
 
     from app.core.security import get_password_hash
     user.hashed_password = get_password_hash(new_pw)
+    invalidate_credentials(db, user)
     db.commit()
 
     return ResetPasswordResponse(

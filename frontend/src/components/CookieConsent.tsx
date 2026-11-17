@@ -2,6 +2,7 @@
 import { useEffect,useState } from "react";
 import Script from "next/script";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import legal from "@/config/legal.json";
 import {CONSENT_VERSION,readConsent,type ConsentState} from "@/lib/consent";
 
@@ -56,7 +57,9 @@ export default function CookieConsent() {
   </aside>;
 }
 function ConsentAnalytics({consent}:{consent:ConsentState|null}) {
+  const pathname=usePathname();
   const id=process.env.NEXT_PUBLIC_GA_ID;
+  if (pathname === "/reset-password" || pathname === "/forgot-password") return null;
   if (consent?.analytics!=="granted" || !id || !/^G-[A-Z0-9]+$/.test(id)) return null;
   return <>
     <Script id="radar-consent-config" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments)};window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});window.gtag('js',new Date());window.gtag('config','${id}',{allow_google_signals:false,allow_ad_personalization_signals:false,cookie_expires:15552000,cookie_update:false});`}</Script>

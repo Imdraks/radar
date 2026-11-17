@@ -853,8 +853,8 @@ function MembersSection({
 
   const handleAddMember = async () => {
     if (!addEmail.trim()) return;
-    if (isSuperUser && addAuthProvider === "credentials" && addPassword.length < 6) {
-      setAddError("Le mot de passe doit contenir au moins 6 caractères");
+    if (isSuperUser && addAuthProvider === "credentials" && addPassword.length < 12) {
+      setAddError("Le mot de passe doit contenir au moins 12 caractères");
       return;
     }
     setIsAdding(true);
@@ -1309,7 +1309,7 @@ function MembersSection({
                     <Label>Mot de passe temporaire</Label>
                     <Input
                       type="password"
-                      placeholder="Min. 6 caractères"
+                      placeholder="12 caractères, majuscule, minuscule, chiffre, symbole"
                       value={addPassword}
                       onChange={(e) => setAddPassword(e.target.value)}
                     />

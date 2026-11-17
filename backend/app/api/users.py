@@ -119,6 +119,13 @@ def update_user(
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    if 'password' in update_dict:
+        if user.id == current_user.id:
+            raise HTTPException(409, 'Pour votre propre compte, utilisez le changement de mot de passe avec ancien mot de passe et A2F.')
+        if not current_user.is_superuser:
+            raise HTTPException(403, 'La réinitialisation administrative du mot de passe exige un administrateur de plateforme.')
+        if update_dict['password'] is None:
+            raise HTTPException(422, 'Un nouveau mot de passe est requis.')
     if 'password' in update_dict or ('email' in update_dict and update_dict['email'] != user.email):
         user.mfa_version = (user.mfa_version or 0) + 1
     

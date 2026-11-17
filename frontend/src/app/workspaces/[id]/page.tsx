@@ -313,8 +313,8 @@ function WorkspaceDetailContent() {
 
   const addMember = async () => {
     if (!memberEmail.trim()) return;
-    if (memberAuthProvider === 'credentials' && memberPassword.length < 6) {
-      setMemberError('Le mot de passe doit contenir au moins 6 caractères');
+    if (memberAuthProvider === 'credentials' && memberPassword.length < 12) {
+      setMemberError('Le mot de passe doit contenir au moins 12 caractères');
       return;
     }
     setAddingMember(true);
@@ -755,7 +755,7 @@ function WorkspaceDetailContent() {
                 <Label>Mot de passe temporaire</Label>
                 <Input
                   type="password"
-                  placeholder="Min. 6 caractères"
+                  placeholder="12 caractères, majuscule, minuscule, chiffre, symbole"
                   value={memberPassword}
                   onChange={(e) => setMemberPassword(e.target.value)}
                 />

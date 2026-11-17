@@ -32,7 +32,9 @@ async def main():
                 body = route.request.post_data_json if route.request.method == 'POST' else None
                 calls.append((path, body))
                 status = 200
-                if path.endswith('/auth/setup-check'): data = {'needs_setup': False}
+                if path.endswith('/auth/password-policy'): data = {'min_length': 12, 'max_bytes': 72, 'uppercase': True, 'lowercase': True, 'digit': True, 'special': True, 'reset_expiry_minutes': 15}
+                elif path.endswith('/auth/password/status'): data = {'has_password': True}
+                elif path.endswith('/auth/setup-check'): data = {'needs_setup': False}
                 elif path.endswith('/auth/sso/providers'): data = {'providers': []}
                 elif path.endswith('/auth/login'): data = {'requires_2fa': True, 'temp_token': TOKEN, 'methods': ['totp', 'email', 'sms', 'recovery'], 'destinations': {'email': 'm•••@example.com', 'sms': '••••5678'}}
                 elif path.endswith('/auth/mfa/send'):
