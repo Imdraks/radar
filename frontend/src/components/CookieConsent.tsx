@@ -38,15 +38,15 @@ export default function CookieConsent() {
   };
   if (!visible) return <>
     <ConsentAnalytics consent={consent}/>
-    <button type="button" onClick={()=>{setAnalytics(consent?.analytics==="granted");setVisible(true);}} className="fixed bottom-2 right-3 z-50 rounded bg-white px-2 py-1 text-xs text-slate-700 shadow-sm">Préférences cookies</button>
+    <button type="button" onClick={()=>{setAnalytics(consent?.analytics==="granted");setVisible(true);}} className="fixed bottom-2 right-3 z-50 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-sm">Préférences cookies</button>
   </>;
-  const choiceClass="rounded-lg border border-violet-200 bg-white px-4 py-2 text-sm font-medium text-violet-900 hover:bg-violet-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600";
+  const choiceClass="radar-button rounded-lg border border-primary/25 bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary";
   return <aside aria-label="Choix des cookies" className="fixed bottom-0 left-0 right-0 z-[9999] p-4">
-    <div className="mx-auto max-w-2xl rounded-2xl border bg-white p-5 text-slate-900 shadow-xl">
+    <div className="mx-auto max-w-2xl rounded-2xl border bg-popover p-5 text-popover-foreground shadow-xl">
       <h2 className="font-semibold">Respect de votre vie privée</h2>
       <p className="mt-2 text-sm leading-relaxed">Le fonctionnement et la sécurité utilisent des stockages nécessaires. Avec votre accord uniquement, Google Analytics peut mesurer l’audience si ce service est activé. Refuser ne limite pas l’accès. Le choix est conservé six mois et peut être retiré à tout moment.</p>
       <p className="mt-2 text-xs">Éditeur : {legal.companyName || "identité à renseigner avant ouverture commerciale"}. Prestataire de mesure, si activé : Google. Aucune publicité personnalisée n’est activée par ce choix.</p>
-      {details && <label className="mt-3 flex items-start gap-3 rounded-lg bg-violet-50 p-3 text-sm"><input type="checkbox" checked={analytics} onChange={e=>setAnalytics(e.target.checked)} className="mt-1"/><span>Mesure d’audience Google Analytics. Les données peuvent être pseudonymes ; elles ne sont pas présentées comme anonymes.</span></label>}
+      {details && <label className="mt-3 flex items-start gap-3 rounded-lg bg-primary/5 p-3 text-sm"><input type="checkbox" checked={analytics} onChange={e=>setAnalytics(e.target.checked)} className="mt-1"/><span>Mesure d’audience Google Analytics. Les données peuvent être pseudonymes ; elles ne sont pas présentées comme anonymes.</span></label>}
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" onClick={()=>save(false)} className={choiceClass}>Tout refuser</button>
         <button type="button" onClick={()=>save(true)} className={choiceClass}>Tout accepter</button>

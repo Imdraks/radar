@@ -25,9 +25,9 @@ function Requests() {
       try { await subscriptionFetch(`admin/requests/${request.id}/decision`, undefined, { method: 'POST', body: JSON.stringify({ approve: form.get('decision') === 'approve', authorization_reference: form.get('reference'), contract_acceptance_id: form.get('acceptance') ? Number(form.get('acceptance')) : null }) }); setMessage('Décision enregistrée.'); await cache.invalidateQueries({ queryKey: ['subscription-requests'] }); }
       catch { setMessage('Décision non enregistrée. Vérifiez que la demande est toujours en attente.'); }
       finally { setPending(false); }
-    }}><h2>Workspace {request.workspace_id} · {request.kind} · {request.requested_value}</h2><label className="block">Référence d’autorisation<input required minLength={5} maxLength={2000} name="reference" className="block border rounded p-2 w-full text-black" /></label>
+    }}><h2>Workspace {request.workspace_id} · {request.kind} · {request.requested_value}</h2><label className="block">Référence d’autorisation<input required minLength={5} maxLength={2000} name="reference" className="block border rounded p-2 w-full bg-card text-foreground" /></label>
       <AcceptanceSelector workspaceId={request.workspace_id} plan={request.requested_value}/>
-      <select name="decision" className="border rounded p-2 text-black"><option value="reject">Refuser</option>{request.kind === 'plan' && <option value="approve">Approuver et activer les droits</option>}</select><button disabled={pending} className="block rounded bg-purple-700 text-white p-2 disabled:opacity-50">Enregistrer la décision</button>
+      <select name="decision" className="border rounded p-2 bg-card text-foreground"><option value="reject">Refuser</option>{request.kind === 'plan' && <option value="approve">Approuver et activer les droits</option>}</select><button disabled={pending} className="block rounded bg-purple-700 text-white p-2 disabled:opacity-50">Enregistrer la décision</button>
       {request.kind === 'addon' && <p>Les extensions nécessitent une livraison et des droits spécifiques validés séparément.</p>}
     </form>)}
   </div>;

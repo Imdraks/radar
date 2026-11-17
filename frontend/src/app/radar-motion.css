@@ -1,0 +1,55 @@
+/* Radar motion: short feedback, a single signal sweep, no delayed interaction. */
+:root {
+  --radar-motion-fast: 140ms;
+  --radar-motion-base: 220ms;
+  --radar-motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+.radar-button {
+  transition-property: color, background-color, border-color, box-shadow, opacity, scale;
+  transition-duration: var(--radar-motion-fast);
+  transition-timing-function: ease-out;
+}
+.radar-button:not(:disabled):not([aria-disabled="true"]):active { scale: .98; }
+.radar-card { animation: radar-surface-enter var(--radar-motion-base) ease-out; }
+.radar-tabs-content[data-state="active"] { animation: radar-surface-enter 180ms ease-out; }
+
+.radar-desktop-sidebar { transition: width var(--radar-motion-base) var(--radar-motion-ease); }
+.radar-app-frame { transition: padding-left var(--radar-motion-base) var(--radar-motion-ease); }
+.radar-nav-link { transition: color 140ms, background-color 140ms, border-color 140ms, box-shadow 140ms; }
+.radar-nav-link > span:first-child { transition: background-color 140ms, color 140ms; }
+.radar-nav-active::before { animation: radar-surface-enter 180ms ease-out; }
+.radar-content :where(tbody tr) { transition: background-color 140ms ease-out; }
+.radar-content :where(input, textarea, select) { transition: border-color 140ms, box-shadow 140ms; }
+
+/* Rotate the decorative scan once on arrival, rather than an endless spinner. */
+.radar-field { animation: radar-signal-sweep 1400ms var(--radar-motion-ease); }
+.radar-orbit-label { animation: radar-label-enter 400ms var(--radar-motion-ease) both; }
+.radar-orbit-label-1 { animation-delay: 60ms; }
+.radar-orbit-label-2 { animation-delay: 120ms; }
+.radar-orbit-label-3 { animation-delay: 180ms; }
+
+@keyframes radar-surface-enter { from { opacity: .65; } to { opacity: 1; } }
+@keyframes radar-label-enter {
+  from { opacity: .5; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes radar-signal-sweep { from { rotate: -50deg; } to { rotate: 0deg; } }
+
+@media (hover: hover) and (pointer: fine) {
+  .radar-card:has(a[href], button:not(:disabled)):hover { border-color: hsl(var(--primary) / .24); }
+  .radar-card { transition: border-color 180ms, box-shadow 180ms; }
+  .radar-domain-card { transition: border-color 180ms, box-shadow 180ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .radar-card, .radar-tabs-content, .radar-field, .radar-orbit-label, .radar-nav-active::before {
+    animation: none !important;
+  }
+  .radar-button:active { scale: none !important; }
+  .radar-desktop-sidebar, .radar-app-frame, .radar-button { transition: none !important; }
+}
+@media print {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

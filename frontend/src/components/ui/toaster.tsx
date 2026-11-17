@@ -77,16 +77,16 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const Icon = icons[toast.type];
 
   const colors = {
-    success: "bg-green-500 text-white",
-    error: "bg-red-500 text-white",
-    info: "bg-blue-500 text-white",
-    warning: "bg-yellow-500 text-white",
+    success: "border-l-green-500",
+    error: "border-l-red-500",
+    info: "border-l-blue-500",
+    warning: "border-l-amber-500",
   };
 
   return (
     <div
       className={cn(
-        "flex items-start gap-3 p-4 rounded-lg shadow-lg animate-in slide-in-from-right-full duration-300",
+        "flex items-start gap-3 border border-border border-l-4 bg-popover text-popover-foreground p-4 rounded-lg shadow-lg animate-in slide-in-from-right-full duration-200",
         colors[toast.type]
       )}
     >
@@ -98,8 +98,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
         )}
       </div>
       <button
+        type="button"
+        aria-label="Fermer la notification"
         onClick={onClose}
-        className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+        className="flex-shrink-0 p-1 rounded hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
       >
         <X className="h-4 w-4" />
       </button>

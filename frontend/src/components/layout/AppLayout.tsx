@@ -89,11 +89,11 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
   return <div className="radar-app min-h-screen bg-background text-foreground">
     <a href="#radar-main" className="sr-only z-[100] rounded-lg bg-primary p-3 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Aller au contenu</a>
-    <aside data-onboarding="sidebar" className={`fixed inset-y-0 left-0 z-40 hidden border-r lg:block ${collapsed ? 'w-[80px]' : 'w-[280px]'}`}>
+    <aside data-onboarding="sidebar" className={`radar-desktop-sidebar fixed inset-y-0 left-0 z-40 hidden border-r lg:block ${collapsed ? 'w-[80px]' : 'w-[280px]'}`}>
       <Button variant="outline" size="icon" className="absolute -right-3.5 top-7 z-50 h-7 w-7 rounded-full bg-card shadow-sm" aria-label={collapsed ? 'Déplier la barre latérale' : 'Rétracter la barre latérale'} aria-expanded={!collapsed} aria-controls="radar-desktop-navigation" onClick={toggleSidebar}>{collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}</Button>
       {renderSidebar(collapsed)}
     </aside>
-    <div className={`min-w-0 ${collapsed ? 'lg:pl-[80px]' : 'lg:pl-[280px]'}`}>
+    <div className={`radar-app-frame min-w-0 ${collapsed ? 'lg:pl-[80px]' : 'lg:pl-[280px]'}`}>
       <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between gap-2 border-b bg-card/95 px-4 backdrop-blur-md sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Sheet open={open} onOpenChange={setOpen}>
