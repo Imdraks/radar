@@ -8,6 +8,8 @@ import { useMemo } from "react";
 import { useAuthStore } from "@/store/auth";
 import { useSubscriptionStore } from "@/store/subscriptionStore";
 import dynamic from "next/dynamic";
+import { MotionConfig } from "framer-motion";
+import { SiteMotion } from "@/components/ui/site-motion";
 
 // Lazy load devtools only in development
 const ReactQueryDevtools = dynamic(
@@ -53,7 +55,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <TooltipProvider delayDuration={300}>
           <ToastProvider>
-            {children}
+            <MotionConfig reducedMotion="user">
+              <SiteMotion />
+              {children}
+            </MotionConfig>
           </ToastProvider>
         </TooltipProvider>
       </ThemeProvider>
