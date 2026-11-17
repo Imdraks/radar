@@ -4,9 +4,9 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PublicPage } from '@/components/landing/PublicPage';
+import { ForceLightMode } from '@/components/landing/ForceLightMode';
+import { ContactNavigation } from '@/components/landing/ContactNavigation';
 import { workspaceFetch } from '@/lib/workspace-fetch';
-import legal from '@/config/legal.json';
 import './contact.css';
 
 const PLANS = [
@@ -106,11 +106,12 @@ export default function ContactPage() {
   const copy = COPY[step];
   const inputProps = { className: 'radar-contact-input', 'aria-invalid': Boolean(fieldError), 'aria-describedby': fieldError ? 'contact-field-error' : undefined };
 
-  return <PublicPage>
+  return <ForceLightMode><div className="radar-public radar-contact-shell">
+    <a href="#main-content" className="sr-only fixed left-4 top-4 z-50 rounded-xl bg-white p-3 text-primary shadow focus:not-sr-only">Aller au contenu</a>
+    <ContactNavigation />
     <main id="main-content" className="radar-contact-main">
       <h1 className="sr-only">Contactez l’équipe Radar</h1>
       <div className="radar-contact-frame">
-        <div className="radar-contact-topline"><span>Une conversation commence ici.</span><span>RADAR / CONTACT</span></div>
         {isSuccess ? <div ref={panel} className="radar-contact-success" role="status">
           <span className="radar-contact-success-mark"><Check size={28} strokeWidth={1.8} /></span>
           <p className="radar-contact-kicker">La suite commence maintenant</p>
@@ -144,10 +145,10 @@ export default function ContactPage() {
               <Button type="submit" disabled={!ready || status === 'loading'} className="radar-contact-continue">{status === 'loading' ? <><Loader2 size={16} className="animate-spin" />Envoi en cours…</> : step === 5 ? <>Envoyer le message<Send size={15} /></> : <>{editing ? 'Valider la modification' : 'Continuer'}<ArrowRight size={16} /></>}</Button>
             </div>
           </div>
-          <div className="radar-contact-bottomline">{step > 0 ? <button type="button" disabled={status === 'loading'} onClick={() => { move(editing ? 5 : step - 1); setEditing(false); }}><ArrowLeft size={14} />{editing ? 'Récapitulatif' : 'Précédent'}</button> : <Link href="/pricing"><ArrowLeft size={14} />Les offres Radar</Link>}<span>{step === 5 ? 'Un envoi, après votre confirmation.' : step === 4 ? 'Puis, vérifiez votre demande.' : 'Entrée pour continuer'}</span></div>
+          <div className="radar-contact-bottomline">{step > 0 ? <button type="button" disabled={status === 'loading'} onClick={() => { move(editing ? 5 : step - 1); setEditing(false); }}><ArrowLeft size={14} />{editing ? 'Récapitulatif' : 'Précédent'}</button> : <span aria-hidden="true" />}<span>{step === 5 ? 'Un envoi, après votre confirmation.' : step === 4 ? 'Puis, vérifiez votre demande.' : 'Entrée pour continuer'}</span></div>
         </form>}
       </div>
-      <div className="radar-contact-caption"><p id="contact-privacy">Nom, e-mail et message : pour répondre à votre demande professionnelle. Société, téléphone et offre sont facultatifs. Aucune inscription à une newsletter. <Link href="/privacy#contact">Utilisation des données et vos droits<ArrowUpRight size={11} /></Link></p><Link href={legal.contactEmail ? `mailto:${legal.contactEmail}` : '/legal'}>{legal.contactEmail || 'Autre moyen de nous contacter'}<ArrowUpRight size={13} /></Link></div>
+      <div className="radar-contact-caption"><p id="contact-privacy">Nom, e-mail et message : pour répondre à votre demande professionnelle. Société, téléphone et offre sont facultatifs. Aucune inscription à une newsletter. <Link href="/privacy#contact">Utilisation des données et vos droits<ArrowUpRight size={11} /></Link></p></div>
     </main>
-  </PublicPage>;
+  </div></ForceLightMode>;
 }

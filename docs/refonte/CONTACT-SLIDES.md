@@ -2,7 +2,14 @@
 
 La page `/contact` devient une conversation en six étapes : nom, e-mail,
 agence/téléphone, offre, message et récapitulatif. L’esthétique reprend une
-surface blanche, de grands espaces, des champs arrondis et le violet Radar.
+surface blanche immersive, de grands espaces, des champs arrondis et le violet Radar.
+Le formulaire occupe la hauteur de l’écran, sans footer ni bandeau de navigation.
+Un petit bouton circulaire fixe en haut à droite ouvre les destinations publiques,
+la connexion et les liens juridiques. Le menu se ferme au clic ou avec Échap,
+restitue le focus et ne remonte pas le formulaire. Les destinations sont partagées
+avec le header habituel des autres pages. La notice de confidentialité et les
+préférences cookies restent accessibles. Les contenus longs, le zoom et le clavier
+mobile peuvent faire défiler la page : aucune hauteur fixe ne masque les champs.
 Les transitions sont courtes et désactivées en mouvement réduit. Aucun
 défilement ou raccourci global n’est intercepté.
 

@@ -31,7 +31,11 @@ async def main():
     await page.goto(BASE+path,wait_until='networkidle')
     if await page.get_by_role('button',name='Tout refuser',exact=True).is_visible():
      await page.get_by_role('button',name='Tout refuser',exact=True).click()
-    assert await page.get_by_role('img',name='Radar',exact=True).count()>0,path
+    if path=='/contact':
+     assert await page.get_by_role('button',name='Ouvrir le menu du site',exact=True).count()==1
+     assert await page.locator('footer').count()==0
+    else:
+     assert await page.get_by_role('img',name='Radar',exact=True).count()>0,path
     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(path,width)
     assert await page.locator('a button').count()==0,(path,'nested buttons')
     if path=='/':

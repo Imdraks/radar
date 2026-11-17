@@ -5,8 +5,8 @@ import { Menu, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RadarLogo } from '@/components/brand/RadarBrand';
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { PUBLIC_NAV_LINKS as links } from './navigation';
 
-const links = [{ href: '/#produit', label: 'La plateforme' }, { href: '/mcp', label: 'ChatGPT / MCP' }, { href: '/pricing', label: 'Abonnements' }, { href: '/doc', label: 'Documentation' }, { href: '/contact', label: 'Contact' }];
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
   return <header className="radar-public-header fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-white/95 backdrop-blur-xl">

@@ -40,6 +40,29 @@ async def main():
             progress = page.get_by_role('progressbar', name='Progression du formulaire')
             name = page.get_by_label('Nom complet', exact=True)
             await expect(name).to_be_visible()
+            assert await page.locator('footer').count() == 0
+            menu = page.get_by_role('button', name='Ouvrir le menu du site', exact=True)
+            await expect(menu).to_be_visible()
+            bounds = await menu.bounding_box()
+            assert abs(bounds['width'] - bounds['height']) < 1 and 40 <= bounds['width'] <= 52
+            assert bounds['y'] < 60 and width - bounds['x'] - bounds['width'] <= 40
+            assert await menu.evaluate('e => parseFloat(getComputedStyle(e).borderRadius) >= e.clientWidth / 2')
+            assert await page.evaluate('document.documentElement.scrollHeight <= innerHeight + 1')
+            await name.fill('TEST brouillon conservé')
+            await menu.click()
+            dialog = page.get_by_role('dialog', name='Navigation du site Radar', exact=True)
+            await expect(dialog).to_be_visible()
+            for destination in ['La plateforme', 'ChatGPT / MCP', 'Abonnements', 'Documentation', 'Contact', 'Se connecter', 'Confidentialité', 'Mentions légales']:
+                assert await dialog.get_by_role('link', name=destination, exact=True).count() == 1
+            await page.screenshot(path=f'/tmp/radar-contact-menu-{width}.png', full_page=True)
+            await page.get_by_role('button', name='Fermer le menu du site', exact=True).click()
+            await expect(dialog).to_be_hidden()
+            await menu.click()
+            await page.keyboard.press('Escape')
+            await expect(dialog).to_be_hidden()
+            await expect(menu).to_be_focused()
+            await expect(name).to_have_value('TEST brouillon conservé')
+            await name.fill('')
             await next_step(page)
             await expect(progress).to_have_attribute('aria-valuenow', '1')
             await name.fill('  ')
