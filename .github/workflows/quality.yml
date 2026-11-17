@@ -135,5 +135,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Fetch pinned deployment baselines
-        run: git fetch --no-tags --depth=1 origin fea31f45df4154677febd43bc01412327150490e 67e1efa2e888586e44934f7735ebff684e5f3038 90f6758bde238ac0d7a4d2f2896012d1a953e05f
+        run: git fetch --no-tags --depth=1 origin fea31f45df4154677febd43bc01412327150490e 67e1efa2e888586e44934f7735ebff684e5f3038 90f6758bde238ac0d7a4d2f2896012d1a953e05f 5a3e019ea6388e30360fcb30aa792a09d2251724 477e3a88b4c574a37d92bff320f0482276996248
       - run: python3 -m unittest discover -s integrations/deploy-mfa -p 'test_*.py' -v

@@ -68,3 +68,22 @@ Le script autonome `fix_google_sso.py --apply` répare uniquement le paramètre
 Request manquant du callback Google sur une installation A2F déjà déployée.
 Il sauvegarde le fichier et l’image backend, reconstruit le backend et redémarre
 backend/worker/scheduler sans migration de base. Le reste du fichier est préservé.
+
+## Mise à jour du message de mot de passe sur une instance A2F existante
+
+`update_password_prompt.py --apply` est indépendant de l’installateur initial
+réservé à la révision 056. Il applique les seuls changements de trois fichiers
+entre `5a3e019` et `477e3a8` : message serveur de réauthentification, helper des
+échecs A2F et affichage du compte dans les paramètres. Il ne migre pas la base,
+ne réinitialise aucun mot de passe et ne modifie pas les facteurs déjà actifs.
+
+Il vérifie le patch, construit backend/frontend à partir de copies temporaires
+des sources locales pendant que le site tourne, sauvegarde les fichiers et les
+anciennes images, puis redémarre backend/worker/scheduler/frontend. Le MCP, les
+variables d’environnement, Compose et Nginx sont conservés. Une modification
+concurrente des fichiers bloque l’écriture. Une erreur rétablit les fichiers
+écrits et les images sauvegardées, puis les anciens services si nécessaire.
+
+Sans `--apply`, il vérifie la compatibilité sans toucher aux sources du site.
+Les tests locaux utilisent Docker simulé et des arbres Git épinglés ; ils ne
+prétendent pas avoir exécuté un déploiement réel sur le VPS.
