@@ -23,12 +23,11 @@ import {
   X,
   ChevronDown,
   Bell,
-  Moon,
-  Sun,
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { RadarLogo } from '@/components/brand/RadarBrand';
 
 interface AdminLayoutProps {
@@ -60,7 +59,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toolsExpanded, setToolsExpanded] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     // Check if user is admin
@@ -68,22 +66,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       router.push('/today');
     }
   }, [user, router]);
-
-  useEffect(() => {
-    // Load dark mode preference
-    const isDark = localStorage.getItem('theme') === 'dark';
-    setDarkMode(isDark);
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem('theme', newMode ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', newMode);
-  };
 
   const handleLogout = () => {
     logout();
@@ -99,7 +81,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-slate-950">
+    <div className="radar-admin flex h-screen bg-background text-foreground">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -112,14 +94,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 lg:translate-x-0 lg:static",
-          "bg-neutral-950 text-white",
+          "bg-card text-card-foreground border-r border-border",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-800">
-            <div><RadarLogo inverted /><p className="mt-2 text-xs text-muted-foreground">Administration plateforme</p></div>
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
+            <div><RadarLogo /><p className="mt-2 text-xs text-muted-foreground">Administration plateforme</p></div>
           </div>
 
           {/* Navigation */}
@@ -134,8 +116,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-violet-600 text-white"
-                      : "text-gray-300 hover:bg-neutral-800 hover:text-white"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -146,12 +128,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             })}
 
             {/* Divider */}
-            <div className="my-4 border-t border-gray-800" />
+            <div className="my-4 border-t border-border" />
 
             {/* Tools Section */}
             <button
               onClick={() => setToolsExpanded(!toolsExpanded)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-neutral-800 hover:text-white transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <Settings className="h-5 w-5" />
               <span className="flex-1 text-left">Outils Techniques</span>
@@ -162,7 +144,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </button>
 
             {toolsExpanded && (
-              <div className="ml-4 space-y-1 border-l border-neutral-800 pl-4">
+              <div className="ml-4 space-y-1 border-l border-border pl-4">
                 {toolsNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
@@ -172,8 +154,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                         isActive
-                        ? "bg-neutral-800 text-white"
-                        : "text-gray-400 hover:bg-neutral-800 hover:text-gray-200"
+                        ? "bg-secondary text-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                       )}
                       onClick={() => setSidebarOpen(false)}
                     >
@@ -186,7 +168,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             )}
 
             {/* Divider */}
-            <div className="my-4 border-t border-neutral-800" />
+            <div className="my-4 border-t border-border" />
 
             {/* Bottom Navigation */}
             {bottomNavigation.map((item) => {
@@ -198,8 +180,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-neutral-800 text-white"
-                      : "text-gray-300 hover:bg-neutral-800 hover:text-white"
+                      ? "bg-secondary text-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -211,19 +193,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
 
           {/* User Section */}
-          <div className="px-4 py-4 border-t border-neutral-800">
+          <div className="px-4 py-4 border-t border-border">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="h-9 w-9 rounded-full bg-violet-600 flex items-center justify-center text-sm font-medium">
+              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
                 {user.full_name?.charAt(0) || 'A'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
-                <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                <p className="text-sm font-medium text-foreground truncate">{user.full_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
             <Button
               variant="ghost"
-              className="w-full mt-2 text-gray-400 hover:text-white hover:bg-neutral-800"
+              className="w-full mt-2 text-muted-foreground hover:text-foreground hover:bg-secondary"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -236,25 +218,23 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700/50 px-4 py-3">
+        <header className="bg-card border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800"
+                className="lg:hidden p-2 rounded-lg hover:bg-secondary"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-foreground">
                 {adminNavigation.find(n => pathname === n.href)?.name || 
                  toolsNavigation.find(n => pathname === n.href)?.name ||
                  'Administration'}
               </h2>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
-                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
+              <ThemeToggle />
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -263,7 +243,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950">
+        <main className="flex-1 overflow-y-auto bg-background">
           {children}
         </main>
       </div>

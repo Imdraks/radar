@@ -28,7 +28,7 @@
 }
 
 .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
-  color: #111827 !important;
+  color: hsl(var(--foreground));
 }
 
 /* Exception for gradient text */
@@ -41,131 +41,7 @@
    CSS VARIABLES - LIGHT THEME
    ============================================ */
 @layer base {
-  :root {
-    /* Core Colors */
-    --background: 240 20% 98%;
-    --foreground: 230 22% 17%;
-    
-    /* Cards & Surfaces */
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    
-    /* Popovers & Dropdowns */
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    
-    /* Primary - Pure Blue #7c3aed */
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    
-    /* Secondary */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 71% 4%;
-    
-    /* Muted */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    
-    /* Accent */
-    --accent: 220 14% 96%;
-    --accent-foreground: 224 71% 4%;
-    
-    /* Destructive */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    
-    /* Success */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-    
-    /* Warning */
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    
-    /* Info */
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
-    
-    /* Borders */
-    --border: 240 10% 91%;
-    --input: 240 10% 86%;
-    --ring: 262 83% 58%;
-    
-    /* Radius */
-    --radius: 0.75rem;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  }
-
-  /* Dark mode - Complete theme - SOFT DARK (easier on eyes) */
-  .dark {
-    /* Fond principal: gris très foncé avec légère teinte bleue, pas noir pur */
-    --background: 222 20% 10%;
-    --foreground: 210 20% 90%;
-    
-    /* Cartes: légèrement plus clair que le fond */
-    --card: 222 18% 13%;
-    --card-foreground: 210 20% 90%;
-    
-    /* Popovers */
-    --popover: 222 18% 13%;
-    --popover-foreground: 210 20% 90%;
-    
-    /* Primary - Violet plus doux */
-    --primary: 270 80% 65%;
-    --primary-foreground: 0 0% 100%;
-    
-    /* Secondary */
-    --secondary: 222 15% 18%;
-    --secondary-foreground: 210 20% 88%;
-    
-    /* Muted - texte secondaire moins contrasté */
-    --muted: 222 15% 20%;
-    --muted-foreground: 215 15% 55%;
-    
-    /* Accent */
-    --accent: 222 15% 22%;
-    --accent-foreground: 210 20% 90%;
-    
-    /* Destructive */
-    --destructive: 0 60% 55%;
-    --destructive-foreground: 0 0% 100%;
-    
-    /* Success */
-    --success: 142 60% 50%;
-    --success-foreground: 0 0% 100%;
-    
-    /* Warning */
-    --warning: 38 85% 55%;
-    --warning-foreground: 0 0% 0%;
-    
-    /* Info */
-    --info: 199 80% 55%;
-    --info-foreground: 0 0% 100%;
-    
-    /* Bordures plus douces */
-    --border: 222 15% 22%;
-    --input: 222 15% 22%;
-    --ring: 270 80% 65%;
-  }
-
-  /* Dark mode typography - softer contrast */
-  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
-    color: hsl(210 20% 92%);
-  }
-
-  .dark p {
-    color: hsl(215 15% 65%);
-  }
-
-  .dark a {
-    color: hsl(240 80% 75%);
-  }
-
+  /* Theme tokens are defined once in radar-brand.css. */
   /* Base Reset */
   * {
     @apply border-border;
@@ -188,7 +64,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: hsl(224 71% 4%);
+    color: hsl(var(--foreground));
     line-height: 1.25;
   }
 
@@ -223,7 +99,7 @@
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-[#6d28d9] active:bg-[#5b21b6];
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80;
     @apply focus:ring-primary/50 shadow-md shadow-blue-500/20;
   }
 
@@ -234,7 +110,7 @@
 
   .btn-outline {
     @apply bg-transparent border-2 border-primary text-primary;
-    @apply hover:bg-primary hover:text-white;
+    @apply hover:bg-primary hover:text-primary-foreground;
   }
 
   .btn-ghost {
@@ -776,7 +652,7 @@
 
 /* Dark Buttons */
 .dark .btn-primary {
-  @apply bg-primary hover:bg-primary active:bg-[#5555FF];
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80;
   @apply shadow-lg shadow-blue-500/30;
 }
 
@@ -789,7 +665,7 @@
 }
 
 .dark .btn-outline {
-  @apply border-primary text-primary hover:bg-primary hover:text-white;
+  @apply border-primary text-primary hover:bg-primary hover:text-primary-foreground;
 }
 
 /* Dark Cards */

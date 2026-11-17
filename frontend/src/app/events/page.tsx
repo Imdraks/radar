@@ -33,10 +33,10 @@ function Events() {
       finally { setPending(false); }
     }}>
       <h2 className="text-lg font-medium">Créer un événement{artist ? ' avec l’artiste sélectionné' : ''}</h2>
-      <label className="block">Nom<input required name="name" maxLength={255} className="border rounded p-2 block w-full text-black" /></label>
-      <label className="block">Lieu<input name="venue" maxLength={500} className="border rounded p-2 block w-full text-black" /></label>
-      <div className="flex flex-wrap gap-4"><label>Début (UTC)<input required type="datetime-local" name="start" className="border rounded p-2 block text-black" /></label><label>Fin (UTC)<input required type="datetime-local" name="end" className="border rounded p-2 block text-black" /></label></div>
-      <label className="block">Budget prévisionnel (€)<input type="number" min="0" step="0.01" name="budget" className="border rounded p-2 block text-black" /></label>
+      <label className="block">Nom<input required name="name" maxLength={255} className="border rounded p-2 block w-full bg-card text-foreground" /></label>
+      <label className="block">Lieu<input name="venue" maxLength={500} className="border rounded p-2 block w-full bg-card text-foreground" /></label>
+      <div className="flex flex-wrap gap-4"><label>Début (UTC)<input required type="datetime-local" name="start" className="border rounded p-2 block bg-card text-foreground" /></label><label>Fin (UTC)<input required type="datetime-local" name="end" className="border rounded p-2 block bg-card text-foreground" /></label></div>
+      <label className="block">Budget prévisionnel (€)<input type="number" min="0" step="0.01" name="budget" className="border rounded p-2 block bg-card text-foreground" /></label>
       <button disabled={pending} className="bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2.5 rounded-xl font-medium disabled:opacity-50">{pending ? 'Création…' : 'Créer l’événement'}</button>
     </form>
     {isLoading ? <p role="status">Chargement…</p> : isError ? <p role="alert">Impossible de charger les événements.</p> : !events?.length ? <p>Aucun événement enregistré.</p> : <div className="grid md:grid-cols-2 gap-4">{events.map(event => <article key={event.id} className="border rounded-2xl bg-card p-5 space-y-3 shadow-sm">

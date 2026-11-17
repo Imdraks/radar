@@ -10,6 +10,13 @@ import { useSubscriptionStore } from "@/store/subscriptionStore";
 import dynamic from "next/dynamic";
 import { MotionConfig } from "framer-motion";
 import { SiteMotion } from "@/components/ui/site-motion";
+import { usePathname } from "next/navigation";
+
+const PUBLIC_PATHS = new Set([
+  '/', '/pricing', '/contact', '/mcp', '/legal', '/privacy', '/terms',
+  '/sales-terms', '/cookies', '/data-processing', '/subprocessors',
+  '/reversibility', '/accessibility', '/contracts', '/retention',
+]);
 
 // Lazy load devtools only in development
 const ReactQueryDevtools = dynamic(
@@ -18,6 +25,8 @@ const ReactQueryDevtools = dynamic(
 );
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const publicPage = PUBLIC_PATHS.has(pathname) || pathname === '/doc' || pathname.startsWith('/doc/');
   const userId = useAuthStore(s => s.user?.id);
   const loadedWorkspaceId = useSubscriptionStore(s => s.subscription?.workspace_id);
   // Subscription refresh clears its payload temporarily; preserve the selected
@@ -50,7 +59,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider
         attribute="class"
         defaultTheme="light"
-        enableSystem={false}
+        enableSystem
+        forcedTheme={publicPage ? 'light' : undefined}
         disableTransitionOnChange
       >
         <TooltipProvider delayDuration={300}>
