@@ -14,12 +14,37 @@ import subprocess
 import tempfile
 import time
 import urllib.request
+import urllib.error
 
 BASE = '5a3e019ea6388e30360fcb30aa792a09d2251724'
 TARGET = 'a487e9de50e1644dd28cda84b6331f8b68376a1f'
 FILES = ['backend/app/api/mfa.py', 'backend/app/api/passwords.py', 'backend/app/api/users.py', 'backend/app/api/workspace.py', 'backend/app/core/mfa.py', 'backend/app/core/passwords.py', 'backend/app/core/security_middleware.py', 'backend/app/main.py', 'backend/app/schemas/user.py', 'backend/app/services/mfa_delivery.py', 'backend/app/services/password_email.py', 'backend/app/services/password_recovery.py', 'backend/app/workers/celery_app.py', 'backend/app/workers/password_tasks.py', 'frontend/next.config.js', 'frontend/src/app/forgot-password/page.tsx', 'frontend/src/app/login/page.tsx', 'frontend/src/app/reset-password/page.tsx', 'frontend/src/app/settings/page.tsx', 'frontend/src/app/workspaces/[id]/page.tsx', 'frontend/src/components/CookieConsent.tsx', 'frontend/src/components/auth/PasswordFields.tsx', 'frontend/src/components/auth/PasswordRecovery.tsx', 'frontend/src/components/settings/PasswordSettings.tsx', 'frontend/src/components/settings/TwoFactorSettings.tsx', 'frontend/src/components/settings/WorkspaceSettings.tsx', 'frontend/src/content/documentation.ts', 'frontend/src/lib/api.ts']
 NEW_FILES = {'backend/app/api/passwords.py', 'backend/app/services/password_email.py', 'frontend/src/app/reset-password/page.tsx', 'backend/app/services/password_recovery.py', 'frontend/src/components/auth/PasswordFields.tsx', 'frontend/src/components/settings/PasswordSettings.tsx', 'frontend/src/app/forgot-password/page.tsx', 'frontend/src/components/auth/PasswordRecovery.tsx', 'backend/app/core/passwords.py', 'backend/app/workers/password_tasks.py'}
 SERVICES = ['backend', 'worker', 'scheduler', 'frontend']
+
+# FastAPI 0.149 stores included routers as lazy _IncludedRouter objects.
+# The public OpenAPI representation resolves them; not every app.routes item
+# has a path attribute. Keep this exact probe executable by backend tests.
+BACKEND_CHECK = "from app.main import app; from app.core.passwords import POLICY; p=app.openapi()['paths']; assert POLICY['reset_expiry_minutes']==15, 'Expiration de récupération incorrecte'; assert '/api/v1/auth/forgot-password' in p, 'Route forgot-password absente'; assert '/api/v1/auth/password/change' in p, 'Route password/change absente'; assert '/api/v1/auth/reset-password' in p, 'Route reset-password absente'"
+
+
+def verify_frontend():
+    for path in ['/login', '/forgot-password', '/reset-password', '/api/v1/auth/password-policy']:
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:13000' + path, timeout=5) as response:
+                if response.status != 200:
+                    raise RuntimeError(f'Frontend {path}: HTTP {response.status}')
+                if path.endswith('/password-policy'):
+                    try:
+                        policy = json.loads(response.read())
+                    except (ValueError, UnicodeError):
+                        raise RuntimeError(f'Frontend {path}: réponse JSON invalide') from None
+                    if not isinstance(policy, dict) or policy.get('reset_expiry_minutes') != 15:
+                        raise RuntimeError(f'Frontend {path}: politique de récupération incorrecte')
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(f'Frontend {path}: HTTP {error.code}') from None
+        except urllib.error.URLError:
+            raise RuntimeError(f'Frontend {path}: connexion indisponible') from None
 
 
 def run(args, **kwargs):
@@ -176,22 +201,31 @@ def main():
                 written.append(name)
                 write(root / name, (stage / name).read_bytes(), original[name][1])
             run([*compose, 'up', '-d', '--no-deps', '--no-build', *SERVICES])
-            check = "from app.main import app; from app.core.passwords import POLICY; p={r.path for r in app.routes}; assert POLICY['reset_expiry_minutes']==15; assert '/api/v1/auth/forgot-password' in p; assert '/api/v1/auth/password/change' in p"
             healthy = False
+            last_failure = 'Contrôle non exécuté'
             for attempt in range(30):
                 try:
-                    run([*compose, 'exec', '-T', 'backend', 'python', '-c', check], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    for path in ['/login', '/forgot-password', '/reset-password']:
-                        with urllib.request.urlopen('http://127.0.0.1:13000' + path, timeout=3) as response:
-                            assert response.status == 200
-                    healthy = True
-                except Exception:
-                    healthy = False
+                    run([*compose, 'exec', '-T', 'backend', 'python', '-c', BACKEND_CHECK], capture_output=True, text=True, timeout=20)
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+                    last_failure = f'Contrôle backend : {type(error).__name__}'
+                    # Store details privately before rollback; do not print a traceback
+                    # that could contain configuration or provider details to the chat.
+                    stdout, stderr = getattr(error, 'stdout', ''), getattr(error, 'stderr', '')
+                    def readable(value):
+                        return value.decode(errors='replace') if isinstance(value, bytes) else (value or '')
+                    (backup / 'backend-readiness.log').write_text(readable(stdout) + '\n' + readable(stderr))
+                else:
+                    try:
+                        verify_frontend()
+                        healthy = True
+                    except Exception as error:
+                        last_failure = str(error) if isinstance(error, RuntimeError) else f'Contrôle frontend : {type(error).__name__}'
                 if healthy:
                     break
+                (backup / 'readiness.json').write_text(json.dumps({'attempt': attempt + 1, 'failure': last_failure}, ensure_ascii=False, indent=2))
                 time.sleep(2)
             if not healthy:
-                raise RuntimeError('Vérification du correctif et du frontend non confirmée.')
+                raise RuntimeError(f'{last_failure}. Diagnostic conservé : {backup / "readiness.json"}')
             worker_check = "from app.workers.celery_app import celery_app; i=celery_app.control.inspect(timeout=3); r=i.registered() or {}; q=i.active_queues() or {}; assert any(any(t.split(' [',1)[0]=='app.workers.password_tasks.request_password_reset' for t in tasks) and any(x.get('name')=='celery' for x in q.get(name,[])) for name,tasks in r.items()), 'Worker de récupération absent ou file celery non consommée'"
             worker_ready = False
             for attempt in range(8):
@@ -208,6 +242,11 @@ def main():
             run([*compose, 'ps', *SERVICES])
             print('Correctif installé. Aucune migration et aucun mot de passe modifié.', flush=True)
         except BaseException:
+            try:
+                state = run([*compose, 'ps', '--all', '--format', 'json'], capture_output=True, text=True, timeout=15)
+                (backup / 'services-before-rollback.json').write_text(state.stdout)
+            except Exception:
+                pass  # Diagnostics must never prevent restoration of the old site.
             for name in reversed(written):
                 if original[name][0] is None:
                     (root / name).unlink(missing_ok=True)

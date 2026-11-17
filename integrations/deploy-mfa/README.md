@@ -111,3 +111,19 @@ Le script affiche uniquement si l’envoi d’e-mails est configuré. Ce contrô
 prouve pas la réception d’un message réel. Configurer le fournisseur Resend ou SMTP
 TLS/SSL et tester ensuite avec une adresse autorisée. Le lien de récupération
 expire quinze minutes après sa création par le worker et est à usage unique.
+
+### Compatibilité du contrôle de démarrage avec FastAPI 0.149
+
+Les routeurs inclus sont représentés par des objets `_IncludedRouter` sans attribut
+`.path` dans cette version. Le contrôle du déploiement résout donc les chemins via
+`app.openapi()['paths']`. Un test backend exécute le code exact du contrôle avec
+l’application réelle ; des tests négatifs vérifient qu’une route absente ou une
+expiration incorrecte déclenche toujours un échec. Le script contrôle également
+la politique réellement servie à travers le frontend, avec une expiration de 15 minutes.
+
+Avant un retour arrière, les derniers détails du contrôle backend sont conservés
+sous `backend-readiness.log` et le dernier échec public sous `readiness.json`, dans
+la sauvegarde réservée à root. L’état des services est conservé sous
+`services-before-rollback.json` si Docker permet de le lire. Le script n’affiche
+pas de variables d’environnement ni de trace privée complète dans le terminal.
+Les journaux privés doivent être relus et expurgés de tout secret avant partage.

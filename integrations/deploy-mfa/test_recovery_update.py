@@ -56,6 +56,36 @@ class PatchTests(unittest.TestCase):
             self.assertEqual((root / names[0]).read_bytes(), b'custom business code\n')
 
 
+class FrontendProbeTests(unittest.TestCase):
+    def test_policy_is_checked_through_frontend_rewrite(self):
+        class Healthy:
+            status = 200
+            def read(self): return b'{"reset_expiry_minutes":15}'
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+        with patch.object(update.urllib.request, 'urlopen', return_value=Healthy()) as fetch:
+            update.verify_frontend()
+        self.assertEqual(fetch.call_count, 4)
+        self.assertIn('/api/v1/auth/password-policy', fetch.call_args.args[0])
+
+    def test_missing_page_is_not_accepted_as_success(self):
+        from urllib.error import HTTPError
+        error = HTTPError('http://127.0.0.1:13000/reset-password', 404, 'missing', {}, None)
+        with patch.object(update.urllib.request, 'urlopen', side_effect=error):
+            with self.assertRaisesRegex(RuntimeError, 'HTTP 404'):
+                update.verify_frontend()
+
+    def test_wrong_policy_is_rejected(self):
+        class Wrong:
+            status = 200
+            def read(self): return b'{"reset_expiry_minutes":60}'
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+        with patch.object(update.urllib.request, 'urlopen', return_value=Wrong()):
+            with self.assertRaisesRegex(RuntimeError, 'politique de récupération incorrecte'):
+                update.verify_frontend()
+
+
 class DeploymentTests(unittest.TestCase):
     def exercise(self, failure=None):
         real_run = subprocess.run
@@ -89,11 +119,14 @@ class DeploymentTests(unittest.TestCase):
                 if 'up' in args:
                     starts.append(args)
                     if failure == 'restart' and len(starts) == 1: raise subprocess.CalledProcessError(1, args)
+                if failure == 'backend' and update.BACKEND_CHECK in args:
+                    raise subprocess.CalledProcessError(1, args, output='private configuration output', stderr='private traceback')
                 if failure == 'worker' and any('Worker de récupération' in value for value in args):
                     raise subprocess.CalledProcessError(1, args)
                 return SimpleNamespace(stdout='', returncode=0)
             class Healthy:
                 status = 200
+                def read(self): return b'{"reset_expiry_minutes":15}'
                 def __enter__(self): return self
                 def __exit__(self, *args): pass
             argv = ['update_password_recovery.py', '--apply', '--root', str(root), '--backup-root', str(Path(temporary) / 'backups')]
@@ -112,6 +145,10 @@ class DeploymentTests(unittest.TestCase):
                 if failure in ['build', 'concurrent']:
                     self.assertFalse(stops); self.assertFalse(starts)
                 else: self.assertEqual(len(starts), 2)
+                if failure == 'backend':
+                    diagnostic = next((Path(temporary) / 'backups').glob('*/backend-readiness.log'))
+                    self.assertIn('private traceback', diagnostic.read_text())
+                    self.assertTrue(list((Path(temporary) / 'backups').glob('*/readiness.json')))
             else:
                 self.assertFalse(restores)
                 self.assertLess(build, stops[0])
@@ -125,6 +162,7 @@ class DeploymentTests(unittest.TestCase):
     def test_failed_restart_removes_new_files_and_restores_old_sources(self): self.exercise('restart')
     def test_unready_worker_prevents_false_success_and_rolls_back(self): self.exercise('worker')
     def test_concurrent_edit_is_preserved(self): self.exercise('concurrent')
+    def test_failed_backend_probe_still_rolls_back(self): self.exercise('backend')
 
 
 if __name__ == '__main__': unittest.main()
