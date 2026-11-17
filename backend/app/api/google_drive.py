@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional, List
 from urllib.parse import urlencode
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -14,7 +14,8 @@ from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.workspace import Workspace
 from app.db.models.agency import Client, Project, Deliverable
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_workspace
+from app.core import integration_oauth
 from app.api.workspace import _user_has_workspace_access
 from app.services.google_workspace import get_google_workspace_service, GoogleAPIError, TokenExpiredError, GOOGLE_WORKSPACE_SCOPES
 from app.core.config import settings
@@ -22,8 +23,7 @@ from app.core.cache import cache_get, cache_set
 
 router = APIRouter(prefix="/drive", tags=["google-drive"])
 
-# OAuth state storage (use Redis in production)
-_oauth_states: dict = {}
+callback_router = APIRouter(prefix="/drive", tags=["google-drive"])
 
 
 # ============================================================================
@@ -43,6 +43,9 @@ class ConnectionStatus(BaseModel):
 
 @router.get("/auth/init", response_model=AuthInitResponse)
 async def init_google_workspace_oauth(
+    request: Request,
+    db: Session = Depends(get_db),
+    workspace=Depends(get_current_workspace),
     redirect: Optional[str] = Query(None, description="Path to redirect after auth"),
     current_user: User = Depends(get_current_user),
 ):
@@ -55,16 +58,8 @@ async def init_google_workspace_oauth(
             detail="Google OAuth is not configured"
         )
     
-    # Generate state for CSRF protection
-    state = secrets.token_urlsafe(32)
-    
-    # Store state with user ID and redirect path
-    _oauth_states[state] = {
-        "user_id": current_user.id,
-        "redirect": redirect or "/workspace/settings",
-        "created_at": datetime.utcnow(),
-    }
-    
+    state = integration_oauth.issue(db, current_user, workspace, request, 'drive', redirect)
+
     redirect_uri = f"{settings.backend_url}/api/v1/drive/auth/callback"
     
     # Include email and profile scopes too
@@ -88,7 +83,7 @@ async def init_google_workspace_oauth(
     return AuthInitResponse(auth_url=auth_url, state=state)
 
 
-@router.get("/auth/callback")
+@callback_router.get("/auth/callback")
 async def google_workspace_callback(
     code: str,
     state: str,
@@ -100,23 +95,9 @@ async def google_workspace_callback(
     """
     import httpx
     
-    # Verify state
-    stored_state = _oauth_states.pop(state, None)
-    if not stored_state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired state"
-        )
-    
-    # Check state age (max 10 minutes)
-    if datetime.utcnow() - stored_state["created_at"] > timedelta(minutes=10):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="State expired"
-        )
-    
-    user_id = stored_state["user_id"]
-    redirect_path = stored_state.get("redirect", "/workspace/settings")
+    stored_state = integration_oauth.consume(db, state, 'drive')
+    user_id = stored_state['user_id']
+    redirect_path = integration_oauth.safe_redirect(stored_state.get('redirect'))
     redirect_uri = f"{settings.backend_url}/api/v1/drive/auth/callback"
     
     try:
@@ -147,8 +128,8 @@ async def google_workspace_callback(
             user_info = user_info_response.json()
         
         # Store tokens in cache
-        cache_set(
-            f"google_workspace_tokens:{user_id}",
+        integration_oauth.save_tokens(
+            db, stored_state, f"google_workspace_tokens:{user_id}",
             {
                 "access_token": tokens.get("access_token"),
                 "refresh_token": tokens.get("refresh_token"),
@@ -156,18 +137,17 @@ async def google_workspace_callback(
                 "email": user_info.get("email"),
                 "scopes": tokens.get("scope", "").split(" "),
             },
-            ttl=86400 * 30  # 30 days
         )
         
         # Redirect to frontend with success
         return RedirectResponse(
-            url=f"{settings.frontend_url}{redirect_path}?google_connected=true"
+            url=f"{settings.frontend_url}{redirect_path}{'&' if '?' in redirect_path else '?'}google_connected=true"
         )
         
     except Exception as e:
         # Redirect to frontend with error
         return RedirectResponse(
-            url=f"{settings.frontend_url}{redirect_path}?google_error={str(e)}"
+            url=f"{settings.frontend_url}{redirect_path}{'&' if '?' in redirect_path else '?'}google_error=connection_failed"
         )
 
 

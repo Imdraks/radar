@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -16,13 +16,13 @@ import httpx
 from app.db import get_db
 from app.db.models.user import User
 from app.db.models.opportunity import Opportunity, OpportunityStatus
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_workspace
+from app.core import integration_oauth
 from app.core.config import settings
 
 router = APIRouter(prefix="/calendar/google", tags=["google-calendar"])
 
-# OAuth state storage (use Redis in production)
-_oauth_states: dict = {}
+callback_router = APIRouter(prefix="/calendar/google", tags=["google-calendar"])
 
 # Google Calendar API constants
 GOOGLE_CALENDAR_SCOPES = [
@@ -61,6 +61,9 @@ class SyncResult(BaseModel):
 
 @router.get("/init")
 async def init_google_calendar_oauth(
+    request: Request,
+    db: Session = Depends(get_db),
+    workspace=Depends(get_current_workspace),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -73,16 +76,8 @@ async def init_google_calendar_oauth(
             detail="Google OAuth is not configured"
         )
     
-    # Generate state for CSRF protection
-    state = secrets.token_urlsafe(32)
-    
-    # Store state with user ID
-    _oauth_states[state] = {
-        "user_id": current_user.id,
-        "type": "calendar",
-        "created_at": datetime.utcnow(),
-    }
-    
+    state = integration_oauth.issue(db, current_user, workspace, request, 'calendar')
+
     # Use different redirect URI for calendar (vs login)
     redirect_uri = f"{settings.backend_url}/api/v1/calendar/google/callback"
     
@@ -101,7 +96,7 @@ async def init_google_calendar_oauth(
     return {"auth_url": auth_url, "state": state}
 
 
-@router.get("/callback")
+@callback_router.get("/callback")
 async def google_calendar_callback(
     code: str,
     state: str,
@@ -111,22 +106,8 @@ async def google_calendar_callback(
     Handle Google Calendar OAuth callback.
     Exchanges code for tokens and stores them for the user.
     """
-    # Verify state
-    stored_state = _oauth_states.pop(state, None)
-    if not stored_state or stored_state.get("type") != "calendar":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired state"
-        )
-    
-    # Check state age (max 10 minutes)
-    if datetime.utcnow() - stored_state["created_at"] > timedelta(minutes=10):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="State expired"
-        )
-    
-    user_id = stored_state["user_id"]
+    stored_state = integration_oauth.consume(db, state, 'calendar')
+    user_id = stored_state['user_id']
     redirect_uri = f"{settings.backend_url}/api/v1/calendar/google/callback"
     
     try:
@@ -156,28 +137,18 @@ async def google_calendar_callback(
             )
             user_info = user_info_response.json()
         
-        # Store tokens in user record or separate table
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            # Store in user's extra data or a separate table
-            # For now, we'll use a simple approach with user metadata
-            if not hasattr(user, 'calendar_tokens'):
-                # Add to user's settings/preferences
-                pass
-            
-            # Store tokens securely (in production, encrypt these)
-            from app.core.cache import cache_set
-            cache_set(
-                f"google_calendar_tokens:{user_id}",
-                {
-                    "access_token": tokens.get("access_token"),
-                    "refresh_token": tokens.get("refresh_token"),
-                    "expires_at": datetime.utcnow().timestamp() + tokens.get("expires_in", 3600),
-                    "email": user_info.get("email"),
-                },
-                ttl=86400 * 30  # 30 days
-            )
-        
+        # Revalidate the originating account, session and workspace after Google
+        # responds, and report success only if the server-side cache write works.
+        integration_oauth.save_tokens(
+            db, stored_state, f"google_calendar_tokens:{user_id}",
+            {
+                "access_token": tokens.get("access_token"),
+                "refresh_token": tokens.get("refresh_token"),
+                "expires_at": datetime.utcnow().timestamp() + tokens.get("expires_in", 3600),
+                "email": user_info.get("email"),
+            },
+        )
+
         # Redirect to frontend settings page with success
         return RedirectResponse(
             url=f"{settings.frontend_url}/settings?tab=calendar&connected=true"
@@ -186,7 +157,7 @@ async def google_calendar_callback(
     except Exception as e:
         # Redirect to frontend with error
         return RedirectResponse(
-            url=f"{settings.frontend_url}/settings?tab=calendar&error={str(e)}"
+            url=f"{settings.frontend_url}/settings?tab=calendar&error=google_connection_failed"
         )
 
 

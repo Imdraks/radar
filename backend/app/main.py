@@ -76,7 +76,7 @@ from app.api.market_intelligence import router as market_intelligence_router
 from app.api.analytics_v2 import router as analytics_v2_router
 from app.api.map_calendar import router as map_router, calendar_router
 from app.api.tags_comments import router as tags_router, comments_router, favorites_router
-from app.api.google_calendar import router as google_calendar_router
+from app.api.google_calendar import router as google_calendar_router, callback_router as google_calendar_callback_router
 
 # ============================================================================
 # AGENCY COCKPIT V2 - New Agency Management System
@@ -91,7 +91,7 @@ from app.api.project_detail import router as project_detail_router
 # ============================================================================
 from app.api.workspace import router as workspace_router
 from app.api.inbox import router as inbox_router
-from app.api.google_drive import router as google_drive_router
+from app.api.google_drive import router as google_drive_router, callback_router as google_drive_callback_router
 # ============================================================================
 # SUBSCRIPTION - Plans, Packs & Features
 # ============================================================================
@@ -317,6 +317,7 @@ app.include_router(market_intelligence_router, dependencies=[Depends(get_current
 app.include_router(analytics_v2_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.ANALYTICS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Analytics V2"])
 app.include_router(map_router, dependencies=[Depends(get_current_workspace), Depends(require_feature(Feature.EVENTS)), Depends(require_workspace_write)], prefix="/api/v1", tags=["Map"])
 app.include_router(calendar_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Calendar"])
+app.include_router(google_calendar_callback_router, prefix="/api/v1")
 app.include_router(google_calendar_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Google Calendar"])
 app.include_router(tags_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Tags"])
 app.include_router(comments_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Comments"])
@@ -335,6 +336,7 @@ app.include_router(project_detail_router, dependencies=[Depends(get_current_work
 # ============================================================================
 app.include_router(workspace_router, prefix="/api/v1", tags=["Workspaces"])
 app.include_router(inbox_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Inbox"])
+app.include_router(google_drive_callback_router, prefix="/api/v1")
 app.include_router(google_drive_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Google Drive"])
 
 # ============================================================================

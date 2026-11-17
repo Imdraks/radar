@@ -286,67 +286,27 @@ async def delete_workspace(
     if workspace.owner_user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Only owner or admin can delete workspace")
     
-    # Use raw SQL to cascade-delete all related data safely
-    # First, find which tables actually have a workspace_id column
-    from sqlalchemy import text
-    
-    result = db.execute(text("""
-        SELECT table_name FROM information_schema.columns
-        WHERE column_name = 'workspace_id'
-        AND table_schema = 'public'
-    """))
-    tables_with_workspace_id = {row[0] for row in result}
-    
-    # Ordered list – children before parents to respect FK constraints
-    related_tables = [
-        # Banking
-        "banking_sync_logs", "banking_consents", "banking_accounts", "banking_connections",
-        # Billing
-        "billing_invoice_items", "billing_invoices", "billing_clients",
-        # Discovery
-        "discovery_enrichment_jobs", "discovery_comparison_lists",
-        "discovery_candidates", "discovery_artists",
-        # Collections
-        "lead_items", "collections",
-        # CRM
-        "opportunities", "contacts", "clients",
-        # Entities & briefs
-        "entities",
-        # Profiles
-        "profiles",
-        # Inbox
-        "inbox_items",
-        # Artist data
-        "artist_analyses", "artist_snapshots",
-        # Jobs
-        "spotify_search_jobs",
-        # Drive
-        "drive_folder_map",
-        # Agency
-        "agency_tasks", "agency_projects",
-        # Tags / comments / favorites
-        "tags", "comments", "favorites",
-        # Activity & audit
-        "activity_logs", "audit_logs",
-        # Radar
-        "radar_configs", "radar_harvest_reports",
-        # Workspace core (last)
-        "workspace_invites", "workspace_members",
-    ]
-    
-    for table in related_tables:
-        if table in tables_with_workspace_id:
-            db.execute(
-                text(f"DELETE FROM {table} WHERE workspace_id = :wid"),
-                {"wid": workspace_id},
-            )
-    
-    # Delete the workspace itself
-    db.execute(
-        text("DELETE FROM workspaces WHERE id = :wid"),
-        {"wid": workspace_id},
-    )
-    db.commit()
+    # Business, financial and contractual records require the controlled data
+    # retention process. Never erase a whole agency using an incomplete table list.
+    from sqlalchemy import inspect, select, delete, or_
+    from sqlalchemy.exc import IntegrityError
+    from app.db.base import Base
+    db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
+    existing = set(inspect(db.get_bind()).get_table_names())
+    for table in Base.metadata.tables.values():
+        if table.name not in existing or table.name in {'workspaces', 'workspace_members', 'workspace_invites'}:
+            continue
+        columns = [column for column in table.c if column.name == 'workspace_id' or any(fk.target_fullname == 'workspaces.id' for fk in column.foreign_keys)]
+        if columns and db.execute(select(1).select_from(table).where(or_(*(column == workspace_id for column in columns))).limit(1)).first():
+            raise HTTPException(409, 'Cet espace contient des données à conserver. Utilisez Données et droits pour la résiliation ou une suppression contrôlée.')
+    try:
+        db.execute(delete(WorkspaceInvite).where(WorkspaceInvite.workspace_id == workspace_id))
+        db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id))
+        db.execute(delete(Workspace).where(Workspace.id == workspace_id))
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, 'Des données liées empêchent cette suppression. Utilisez la procédure contrôlée de conservation et suppression.') from None
 
 
 # ============================================================================
