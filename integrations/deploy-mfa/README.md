@@ -87,3 +87,27 @@ concurrente des fichiers bloque l’écriture. Une erreur rétablit les fichiers
 Sans `--apply`, il vérifie la compatibilité sans toucher aux sources du site.
 Les tests locaux utilisent Docker simulé et des arbres Git épinglés ; ils ne
 prétendent pas avoir exécuté un déploiement réel sur le VPS.
+
+## Déployer les nouveaux parcours complets de mot de passe
+
+`update_password_recovery.py --apply` livre les formulaires de récupération et
+changement, la politique partagée, les contrôles A2F, la tâche d’envoi et les pages
+publiques. Il accepte une instance en révision 058, sans créer de migration ni
+réinitialiser de mot de passe. Les archives sont épinglées à `5a3e019` et `a487e9d`.
+Les fichiers déjà conformes sont conservés. Pour le contenu de la documentation,
+la version complète connue `fea31f4` est aussi acceptée (guide A2F anciennement
+absent du VPS). Toute autre incompatibilité de contexte bloque le déploiement.
+
+Le script construit les images sur des copies temporaires avant interruption,
+sauvegarde les sources concernées et les images, installe les fichiers nécessaires
+puis redémarre backend/frontend/worker/scheduler. Il contrôle les nouvelles routes,
+les trois pages publiques et un worker enregistrant la tâche de récupération et
+consommant la file `celery`. Un worker indisponible entraîne un retour aux anciens
+fichiers et images. Les nouveaux fichiers créés sont retirés lors d’un rollback ;
+aucune base de données n’est restaurée automatiquement, car l’installateur n’y écrit pas.
+Compose, Nginx, les variables d’environnement et le connecteur MCP sont conservés.
+
+Le script affiche uniquement si l’envoi d’e-mails est configuré. Ce contrôle ne
+prouve pas la réception d’un message réel. Configurer le fournisseur Resend ou SMTP
+TLS/SSL et tester ensuite avec une adresse autorisée. Le lien de récupération
+expire quinze minutes après sa création par le worker et est à usage unique.
