@@ -253,6 +253,7 @@ class Project(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relations
+    owner: Mapped[Optional["User"]] = relationship("User", foreign_keys=[owner_id])
     deliverables: Mapped[List["Deliverable"]] = relationship("Deliverable", back_populates="project", cascade="all, delete-orphan")
     assets: Mapped[List["Asset"]] = relationship("Asset", back_populates="project", cascade="all, delete-orphan")
     tasks: Mapped[List["AgencyTask"]] = relationship("AgencyTask", back_populates="project", cascade="all, delete-orphan")
@@ -437,6 +438,7 @@ class AgencyTask(Base):
     
     # Assignee
     assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
+    assignee: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assignee_id])
     
     # Auto-generated (pour relances auto)
     is_auto_generated: Mapped[bool] = mapped_column(Boolean, default=False)
