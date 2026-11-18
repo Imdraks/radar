@@ -30,6 +30,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { navigation, subscription, isLoading, error, fetchSubscription, setAdmin } = useSubscriptionStore();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [subscriptionRequested, setSubscriptionRequested] = useState(false);
   useEffect(() => {
     try { setCollapsed(localStorage.getItem('radar-sidebar-collapsed') === 'true'); } catch { /* Storage can be unavailable. */ }
   }, []);
@@ -45,7 +46,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const activeSection = Object.entries(navigation || {}).find(([, items]) => items.some(item => item.path === activeItem?.path))?.[0];
   const initials = (user?.full_name || user?.email || 'R').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   useEffect(() => {
-    const refresh = () => { void fetchSubscription(selectedWorkspace()); };
+    const refresh = () => { setSubscriptionRequested(true); void fetchSubscription(selectedWorkspace()); };
     refresh();
     window.addEventListener('storage', refresh);
     window.addEventListener('workspace-changed', refresh);
@@ -106,7 +107,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><BackgroundTasksIndicator /><NotificationCenter /><Button asChild variant="ghost" size="icon"><Link href="/doc" aria-label="Documentation Radar" title="Documentation Radar"><BookOpen size={19} /></Link></Button><OnboardingTrigger /><ThemeToggle /><Link href="/settings" aria-label="Paramètres du compte" className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex">{initials}</Link></div>
       </header>
-      <main id="radar-main" tabIndex={-1} className="radar-content mx-auto max-w-[1520px] px-4 py-6 pb-28 outline-none sm:px-8 sm:py-8 lg:px-10 lg:pb-10">
+      <main id="radar-main" tabIndex={-1} aria-busy={!subscriptionRequested || isLoading} className="radar-content mx-auto max-w-[1520px] px-4 py-6 pb-28 outline-none sm:px-8 sm:py-8 lg:px-10 lg:pb-10">
         {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>
           {(activeItem?.context_links?.length || 0) > 1 && <nav aria-label={`Parcours ${activeItem?.label}`} className="mb-7 flex flex-wrap gap-1.5 rounded-2xl border bg-card p-1.5">{activeItem?.context_links?.map(link => <Link key={link.path} href={link.path} aria-current={activeContext?.path === link.path ? 'page' : undefined} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${activeContext?.path === link.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}><NavigationIcon name={link.icon} className="h-4 w-4" />{link.label}</Link>)}</nav>}
           <LegacyToolNotice pathname={pathname} />{children}

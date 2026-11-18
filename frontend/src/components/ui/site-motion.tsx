@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { RouteTransition } from './route-transition';
 
 /** Progressive enhancement: content stays visible without JS or animation APIs. */
 export function SiteMotion() {
@@ -27,9 +28,6 @@ export function SiteMotion() {
     const start = () => {
       stop();
       if (preference.matches) return;
-      // Opacity only: no transformed ancestor for fixed-position menus/modals.
-      const page = document.querySelector('main, .radar-auth-card');
-      if (page) animate(page, [{ opacity: 0.65 }, { opacity: 1 }], 220);
       if (!('IntersectionObserver' in window)) return;
       observer = new IntersectionObserver(entries => {
         for (const entry of entries) {
@@ -50,5 +48,5 @@ export function SiteMotion() {
     return () => { stop(); preference.removeEventListener('change', start); };
   }, [pathname]);
 
-  return null;
+  return <RouteTransition />;
 }
