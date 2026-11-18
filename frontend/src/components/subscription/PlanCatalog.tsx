@@ -5,21 +5,34 @@ import Link from 'next/link';
 import { Check, CheckCircle2, LayoutGrid, Sparkles, Briefcase, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlanInfo, Plan } from '@/store/subscriptionStore';
+import { PricingCatalog } from './PricingCatalog';
 
 const planIcons = { core: LayoutGrid, premium: Sparkles, business: Briefcase };
 
-export function PlanCatalog({ onRequest, currentPlan }: { onRequest?: (plan: Plan) => Promise<void>; currentPlan?: Plan }) {
+export function PlanCatalog({ onRequest, currentPlan, detailed = false }: { onRequest?: (plan: Plan) => Promise<void>; currentPlan?: Plan; detailed?: boolean }) {
   const [plans, setPlans] = useState<PlanInfo[]>([]);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState<Plan | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const currentFeatures = plans.find(plan => plan.name === currentPlan)?.available_features;
   useEffect(() => {
     const controller = new AbortController();
     workspaceFetch('/api/v1/subscription/plans', { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(setPlans).catch(e => { if (e.name !== 'AbortError') setError(true); });
+      .then(data => {
+        if (!Array.isArray(data) || !data.length || !data.every(plan =>
+          ['core', 'premium', 'business'].includes(plan?.name)
+          && typeof plan.display_name === 'string' && typeof plan.description === 'string'
+          && Number.isSafeInteger(plan.max_seats) && plan.max_seats > 0
+          && Array.isArray(plan.features_bullets) && plan.features_bullets.every((value: unknown) => typeof value === 'string')
+          && (plan.available_features === undefined || (Array.isArray(plan.available_features) && plan.available_features.every((value: unknown) => typeof value === 'string')))
+        )) throw new Error('Invalid plan catalog');
+        setPlans(data);
+      }).catch(e => { if (e.name !== 'AbortError') setError(true); });
     return () => controller.abort();
-  }, []);
+  }, [attempt]);
+
+  if (detailed) return <PricingCatalog plans={plans} error={error} onRetry={() => { setError(false); setPlans([]); setAttempt(value => value + 1); }} />;
 
   return <div className="space-y-5">
     {error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Catalogue indisponible. Réessayez ultérieurement ou contactez notre équipe.</p>}
