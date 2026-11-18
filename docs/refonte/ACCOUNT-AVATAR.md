@@ -15,13 +15,16 @@ Il fonctionne sur ordinateur et mobile, avec le clavier et le focus Radix.
 - Retirer la photo personnalisée rétablit la photo de connexion si elle existe.
 - Une image indisponible affiche les initiales ; aucune photo fictive n’est affichée.
 - Les images distantes sont chargées avec `referrerPolicy="no-referrer"`.
-- Contour violet épais, liseré blanc et arcs extérieurs décoratifs.
-- Le même style fixe est appliqué à tous les abonnements, sans animation.
+- Anneau violet épais, liseré blanc, aucun arc extérieur. La photo reste fixe.
+- Core : violet uni et fixe. Premium : reflet lumineux tournant sur sept secondes.
+- Business : dégradé de plusieurs nuances violettes, tournant sur douze secondes.
+- Le mouvement réduit et l’impression désactivent les animations de l’anneau.
 
 Le nom d’abonnement du menu provient du workspace sélectionné et de l’API
 authentifiée. Si l’abonnement ne peut pas être lu, le menu invite à le consulter.
-L’apparence de l’avatar est indépendante de cette information. Les contours
-sont décoratifs et n’attribuent aucun droit.
+L’anneau reprend le niveau confirmé par l’API. Un abonnement expiré reçoit
+l’anneau Core ; un abonnement inconnu conserve un anneau uni. Les animations
+sont décoratives et n’attribuent aucun droit.
 
 ## Import et conservation
 

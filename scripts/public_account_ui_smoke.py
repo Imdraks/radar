@@ -70,12 +70,16 @@ async def main():
                 ring = header.locator('.radar-account-ring')
                 await expect(ring).to_have_attribute('data-tier', expected)
                 animation = await ring.evaluate("e => getComputedStyle(e,'::before').animationName")
-                assert animation == 'none', animation
+                assert animation == ('radar-account-sheen' if expected == 'premium' else 'radar-account-spectrum' if expected == 'business' else 'none'), animation
+                gradient = await ring.evaluate("e => getComputedStyle(e,'::before').backgroundImage")
+                assert ('conic-gradient' in gradient) == (expected in ['premium','business'])
+                assert await ring.evaluate("e => getComputedStyle(e,'::after').content") == 'none'
                 await expect(ring).to_have_css('width','56px')
                 if mode == 'broken-photo':
                     await expect(ring).to_have_text('TA')
                 else:
                     await expect(ring.locator('img')).to_have_attribute('referrerpolicy','no-referrer')
+                    await expect(ring.locator('img')).to_have_css('transform','none')
                 await page.emulate_media(reduced_motion='reduce')
                 await expect(ring).to_have_css('position','relative')
                 assert await ring.evaluate("e => getComputedStyle(e,'::before').animationName") == 'none'
