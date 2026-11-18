@@ -70,7 +70,8 @@ async def main():
                 ring = header.locator('.radar-account-ring')
                 await expect(ring).to_have_attribute('data-tier', expected)
                 animation = await ring.evaluate("e => getComputedStyle(e,'::before').animationName")
-                assert animation == ('radar-account-orbit' if expected == 'business' else 'radar-account-glow' if expected == 'premium' else 'none'), animation
+                assert animation == 'none', animation
+                await expect(ring).to_have_css('width','56px')
                 if mode == 'broken-photo':
                     await expect(ring).to_have_text('TA')
                 else:
@@ -78,6 +79,7 @@ async def main():
                 await page.emulate_media(reduced_motion='reduce')
                 await expect(ring).to_have_css('position','relative')
                 assert await ring.evaluate("e => getComputedStyle(e,'::before').animationName") == 'none'
+                assert await ring.evaluate("e => getComputedStyle(e,'::after').animationName") == 'none'
                 await button.focus()
                 await page.keyboard.press('Enter')
                 await expect(page.get_by_role('menuitem',name='Paramètres du compte',exact=True)).to_be_visible()

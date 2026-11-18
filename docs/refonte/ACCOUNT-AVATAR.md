@@ -15,14 +15,13 @@ Il fonctionne sur ordinateur et mobile, avec le clavier et le focus Radix.
 - Retirer la photo personnalisée rétablit la photo de connexion si elle existe.
 - Une image indisponible affiche les initiales ; aucune photo fictive n’est affichée.
 - Les images distantes sont chargées avec `referrerPolicy="no-referrer"`.
-- Core : contour violet fixe. Premium : halo doux sur cinq secondes.
-- Business : halo renforcé et orbite sur neuf secondes.
-- Les animations s’arrêtent en mouvement réduit et à l’impression.
+- Contour violet épais, liseré blanc et arcs extérieurs décoratifs.
+- Le même style fixe est appliqué à tous les abonnements, sans animation.
 
-Le niveau provient du workspace sélectionné et de l’API d’abonnement authentifiée.
-Un abonnement expiré reçoit le contour Core. Si l’abonnement ne peut pas être lu,
-le compte reste disponible avec un contour neutre violet, sans prétendre connaître
-son offre. Ces effets sont décoratifs et n’attribuent aucun droit.
+Le nom d’abonnement du menu provient du workspace sélectionné et de l’API
+authentifiée. Si l’abonnement ne peut pas être lu, le menu invite à le consulter.
+L’apparence de l’avatar est indépendante de cette information. Les contours
+sont décoratifs et n’attribuent aucun droit.
 
 ## Import et conservation
 
