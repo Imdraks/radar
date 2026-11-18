@@ -3,14 +3,14 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Contactez l'équipe Radar. Une question sur nos offres ? Besoin d'une démo personnalisée ? Nous répondons sous 24h.",
+    "Présentez votre agence et votre besoin à l’équipe Radar, en quelques étapes. Un contact dédié aux professionnels.",
   alternates: {
     canonical: "/contact",
   },
   openGraph: {
     title: "Contactez-nous | Radar",
     description:
-      "Une question sur Radar ? Notre équipe vous répond sous 24h.",
+      "Une question, un projet ou un besoin sur mesure ? Présentez votre demande professionnelle à l’équipe Radar.",
     url: "/contact",
   },
 };

@@ -1,300 +1,154 @@
-"use client";
-import { workspaceFetch } from "@/lib/workspace-fetch";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import legal from "@/config/legal.json";
-import {
-  Radar,
-  Send,
-  Mail,
-  MapPin,
-  ArrowLeft,
-  CheckCircle2,
-  Loader2,
-  Shield,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ForceLightMode } from "@/components/landing/ForceLightMode";
-import { LandingWrapper } from "@/components/landing/LandingWrapper";
-import { LandingHeader } from "@/components/landing/LandingHeader";
-import { LandingFooter } from "@/components/landing/LandingFooter";
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Loader2, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ForceLightMode } from '@/components/landing/ForceLightMode';
+import { ContactNavigation } from '@/components/landing/ContactNavigation';
+import { workspaceFetch } from '@/lib/workspace-fetch';
+import './contact.css';
 
-const PLAN_OPTIONS = [
-  { value: "", label: "Sélectionnez une offre (optionnel)" },
-  { value: "core", label: "Radar Core" },
-  { value: "business", label: "Radar Business" },
-  { value: "premium", label: "Radar Premium" },
-  { value: "custom", label: "Radar Addons — besoin sur mesure" },
+const PLANS = [
+  { value: '', label: 'Je souhaite être conseillé' },
+  { value: 'core', label: 'Radar Core' },
+  { value: 'premium', label: 'Radar Premium' },
+  { value: 'business', label: 'Radar Business' },
+  { value: 'custom', label: 'Radar Addons — besoin sur mesure' },
 ];
+const STEPS = ['Votre nom', 'Votre e-mail', 'Votre agence', 'Votre offre', 'Votre message', 'Récapitulatif'];
+const COPY = [
+  { kicker: 'Pour commencer', title: 'Commençons par', accent: 'votre nom.', description: 'Derrière chaque beau projet, il y a une rencontre.' },
+  { kicker: 'Restons en contact', title: 'Où pouvons-nous', accent: 'vous répondre ?', description: 'Votre adresse professionnelle, pour poursuivre la conversation.' },
+  { kicker: 'Un peu de contexte', title: 'Parlons de', accent: 'votre agence.', description: 'Ces informations sont facultatives. Vous pouvez passer cette étape.' },
+  { kicker: 'Le bon point de départ', title: 'Radar, à', accent: 'votre mesure.', description: 'Une offre en tête ? Sinon, nous pouvons vous aider à choisir.' },
+  { kicker: 'À vous de jouer', title: 'Qu’avez-vous', accent: 'en tête ?', description: 'Votre organisation, une question, un besoin précis. On vous écoute.' },
+  { kicker: 'Un dernier regard', title: 'Tout est prêt', accent: 'pour échanger.', description: 'Vérifiez votre demande avant de nous la transmettre.' },
+];
+const EMPTY = { name: '', email: '', company: '', phone: '', plan: '', message: '' };
 
 export default function ContactPage() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    company: "",
-    phone: "",
-    plan: "",
-    message: "",
-  });
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [form, setForm] = useState(EMPTY);
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [editing, setEditing] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldError, setFieldError] = useState('');
+  const panel = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+  const sending = useRef(false);
+  const isSuccess = status === 'success';
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('offer') === 'mcp') {
-      setForm(previous => ({ ...previous, plan: previous.plan || 'custom', message: previous.message || 'Je souhaite connaître les conditions et l’activation du connecteur ChatGPT / MCP pour mon workspace Radar.' }));
+    setReady(true);
+    const params = new URLSearchParams(window.location.search);
+    const plan = params.get('plan') || '';
+    if (params.get('offer') === 'mcp') {
+      setForm(previous => ({ ...previous, plan: 'custom', message: 'Je souhaite connaître les conditions et l’activation du connecteur ChatGPT / MCP pour mon workspace Radar.' }));
+    } else if (PLANS.some(option => option.value === plan)) {
+      setForm(previous => ({ ...previous, plan }));
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("loading");
-    setErrorMsg("");
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    (panel.current?.querySelector<HTMLElement>('input, select, textarea') ?? panel.current?.querySelector<HTMLElement>('h2'))?.focus();
+  }, [step, isSuccess]);
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-      const res = await workspaceFetch(`${apiUrl}/api/v1/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, privacy_notice_version: "2026-11-13" }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Erreur serveur");
-      }
-
-      setStatus("success");
-    } catch {
-      setStatus("error");
-      setErrorMsg("Le message n’a pas pu être transmis. Consultez le contact publié dans les mentions légales.");
-    }
+  const update = (key: keyof typeof EMPTY, value: string) => {
+    setForm(previous => ({ ...previous, [key]: value }));
+    setFieldError('');
   };
+  const move = (next: number) => {
+    setDirection(next < step ? 'back' : 'forward');
+    setFieldError('');
+    setStep(next);
+  };
+  const invalidStep = () => {
+    if (form.name.trim().length < 2) return 0;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 1;
+    if (form.company.length > 200 || form.phone.length > 40) return 2;
+    if (!PLANS.some(option => option.value === form.plan)) return 3;
+    if (form.message.trim().length < 5) return 4;
+    return null;
+  };
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (sending.current) return;
+    const invalid = invalidStep();
+    if (invalid === step || (step === 5 && invalid !== null)) {
+      if (step === 5) { setEditing(true); move(invalid!); }
+      setFieldError(invalid === 0 ? 'Indiquez au moins deux caractères pour votre nom.' : invalid === 1 ? 'Indiquez une adresse e-mail valide.' : invalid === 4 ? 'Décrivez votre demande en au moins cinq caractères.' : 'Vérifiez les informations de cette étape.');
+      return;
+    }
+    if (step < 5) { move(editing ? 5 : step + 1); setEditing(false); return; }
+    sending.current = true;
+    setStatus('loading');
+    setError('');
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+      const response = await workspaceFetch(`${apiUrl}/api/v1/contact`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, name: form.name.trim(), email: form.email.trim(),
+          company: form.company.trim(), phone: form.phone.trim(), message: form.message.trim(),
+          privacy_notice_version: '2026-11-13' }),
+      });
+      if (!response.ok || (await response.json()).status !== 'ok') throw new Error('Delivery not confirmed');
+      setStatus('success');
+    } catch {
+      setStatus('error');
+      setError('Votre message n’a pas pu être transmis. Vos informations sont conservées sur cette page : réessayez ou utilisez le contact des mentions légales.');
+    } finally { sending.current = false; }
+  };
+  const edit = (index: number) => { setEditing(true); move(index); };
+  const copy = COPY[step];
+  const inputProps = { className: 'radar-contact-input', 'aria-invalid': Boolean(fieldError), 'aria-describedby': fieldError ? 'contact-field-error' : undefined };
 
-  return (
-    <ForceLightMode>
-      <LandingWrapper>
-        <LandingHeader />
-
-        <main className="radar-public min-h-screen pt-32 pb-20">
-          <div className="container mx-auto px-6 max-w-5xl">
-            {/* Back link */}
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors mb-8 text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour aux abonnements
-            </Link>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-              {/* Left side - Info */}
-              <div className="lg:col-span-2">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="h-10 w-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <Radar className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-2xl font-bold text-gray-900">Radar</span>
-                </div>
-
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  Contactez notre équipe
-                </h1>
-                <p className="text-gray-600 mb-8">
-                  Une question sur nos offres ? Besoin d'une démo personnalisée ?
-                  Nous étudions les demandes des professionnels.
-                </p>
-
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Mail className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Email</p>
-                      <a
-                        href={legal.contactEmail ? `mailto:${legal.contactEmail}` : undefined}
-                        className="text-purple-600 hover:text-purple-700 text-sm"
-                      >
-                        {legal.contactEmail || "Contact à renseigner"}
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Localisation</p>
-                      <p className="text-gray-600 text-sm">{legal.address || "Adresse à renseigner"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trust */}
-                <div className="mt-10 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                    <Shield className="h-3.5 w-3.5" /> Demandes professionnelles • Informations de confidentialité accessibles
-                  </p>
-                </div>
-              </div>
-
-              {/* Right side - Form */}
-              <div className="lg:col-span-3">
-                {status === "success" ? (
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-10 text-center">
-                    <div className="flex justify-center mb-6">
-                      <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-8 w-8 text-green-600" />
-                      </div>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                      Message envoyé !
-                    </h2>
-                    <p className="text-gray-600 mb-6">
-                      Merci pour votre message. Votre demande a été transmise à notre équipe.
-                    </p>
-                    <Link href="/">
-                      <Button variant="outline" className="rounded-xl">
-                        Retour à l'accueil
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <form
-                    onSubmit={handleSubmit}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8"
-                  >
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                      Envoyez-nous un message
-                    </h2>
-
-                    <div className="space-y-5">
-                      {/* Name + Email */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Nom complet *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            id="contact-name" value={form.name}
-                            onChange={(e) => setForm({ ...form, name: e.target.value })}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
-                            placeholder="Jean Dupont"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Email professionnel *
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            id="contact-email" value={form.email}
-                            onChange={(e) => setForm({ ...form, email: e.target.value })}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
-                            placeholder="jean@agence.com"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Company + Phone */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="contact-company" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Société
-                          </label>
-                          <input
-                            type="text"
-                            id="contact-company" value={form.company}
-                            onChange={(e) => setForm({ ...form, company: e.target.value })}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
-                            placeholder="Mon Agence"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Téléphone
-                          </label>
-                          <input
-                            type="tel"
-                            id="contact-phone" value={form.phone}
-                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
-                            placeholder="06 12 34 56 78"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Pack */}
-                      <div>
-                        <label htmlFor="contact-plan" className="block text-sm font-medium text-gray-700 mb-1.5">
-                          Pack qui vous intéresse
-                        </label>
-                        <select
-                          id="contact-plan" value={form.plan}
-                          onChange={(e) => setForm({ ...form, plan: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors bg-white"
-                        >
-                          {PLAN_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Message */}
-                      <div>
-                        <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-1.5">
-                          Message *
-                        </label>
-                        <textarea
-                          required
-                          rows={5}
-                          id="contact-message" value={form.message}
-                          onChange={(e) => setForm({ ...form, message: e.target.value })}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors resize-none"
-                          placeholder="Décrivez votre besoin, posez vos questions..."
-                        />
-                      </div>
-
-                      <p id="contact-privacy" className="text-xs leading-relaxed text-gray-600">Le nom, l’email et le message servent à répondre à votre demande professionnelle. Société, téléphone et offre sont facultatifs. Aucun abonnement à une newsletter n’en découle. N’envoyez ni identifiant secret ni donnée sensible. <Link href="/privacy#contact">Finalités, base juridique, destinataires, conservation et droits</Link>.</p>
-                      {/* Error */}
-                      {status === "error" && (
-                        <p role="alert" className="text-red-600 text-sm">{errorMsg}</p>
-                      )}
-
-                      {/* Submit */}
-                      <Button
-                        type="submit"
-                        disabled={status === "loading"}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 rounded-xl shadow-lg shadow-purple-500/25"
-                      >
-                        {status === "loading" ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Envoi en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Envoyer le message
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-              </div>
+  return <ForceLightMode><div className="radar-public radar-contact-shell">
+    <a href="#main-content" className="sr-only fixed left-4 top-4 z-50 rounded-xl bg-white p-3 text-primary shadow focus:not-sr-only">Aller au contenu</a>
+    <ContactNavigation />
+    <main id="main-content" className="radar-contact-main">
+      <h1 className="sr-only">Contactez l’équipe Radar</h1>
+      <div className="radar-contact-frame">
+        {isSuccess ? <div ref={panel} className="radar-contact-success" role="status">
+          <span className="radar-contact-success-mark"><Check size={28} strokeWidth={1.8} /></span>
+          <p className="radar-contact-kicker">La suite commence maintenant</p>
+          <h2 tabIndex={-1}>Message envoyé.<br /><span>Merci, {form.name.trim().split(/\s+/)[0]}.</span></h2>
+          <p>Votre demande a été transmise à notre équipe.</p>
+          <Button asChild className="mt-7 rounded-full px-6"><Link href="/">Retour à l’accueil<ArrowUpRight size={16} className="ml-2" /></Link></Button>
+        </div> : <form method="post" onSubmit={submit} aria-describedby="contact-privacy" className="radar-contact-form">
+          <noscript><p className="radar-contact-error">Ce formulaire par étapes nécessite JavaScript. Vous pouvez aussi utiliser le <Link href="/legal">contact publié dans les mentions légales</Link>.</p></noscript>
+          <div className="radar-contact-progress" role="progressbar" aria-label="Progression du formulaire" aria-valuemin={1} aria-valuemax={6} aria-valuenow={step + 1} aria-valuetext={`${step + 1} sur 6 : ${STEPS[step]}`}>
+            {STEPS.map((label, index) => <span key={label} data-reached={index <= step} />)}
+          </div>
+          <p className="radar-contact-step-count" role="status" aria-live="polite">{String(step + 1).padStart(2, '0')} <span>/ 06</span></p>
+          <div ref={panel} key={step} className="radar-contact-step" data-direction={direction}>
+            <p className="radar-contact-kicker">{copy.kicker}</p>
+            <h2 id="contact-step-title" tabIndex={-1}>{copy.title}<br /><span>{copy.accent}</span></h2>
+            <p className="radar-contact-description">{copy.description}</p>
+            <div className="radar-contact-fields" aria-labelledby="contact-step-title">
+              {step === 0 && <><label htmlFor="contact-name" className="sr-only">Nom complet</label><input {...inputProps} id="contact-name" name="name" autoComplete="name" required minLength={2} maxLength={150} placeholder="Votre prénom et votre nom" value={form.name} onChange={e => update('name', e.target.value)} /></>}
+              {step === 1 && <><label htmlFor="contact-email" className="sr-only">Email professionnel</label><input {...inputProps} id="contact-email" name="email" type="email" autoComplete="email" required maxLength={254} placeholder="vous@votre-agence.fr" value={form.email} onChange={e => update('email', e.target.value)} /></>}
+              {step === 2 && <div className="space-y-4"><div><label htmlFor="contact-company" className="radar-contact-label">Société <span>facultatif</span></label><input {...inputProps} id="contact-company" name="company" autoComplete="organization" maxLength={200} placeholder="Le nom de votre agence" value={form.company} onChange={e => update('company', e.target.value)} /></div><div><label htmlFor="contact-phone" className="radar-contact-label">Téléphone <span>facultatif</span></label><input {...inputProps} id="contact-phone" name="phone" type="tel" autoComplete="tel" maxLength={40} placeholder="Votre numéro de téléphone" value={form.phone} onChange={e => update('phone', e.target.value)} /></div></div>}
+              {step === 3 && <><label htmlFor="contact-plan" className="sr-only">Offre qui vous intéresse, facultatif</label><select {...inputProps} id="contact-plan" name="plan" value={form.plan} onChange={e => update('plan', e.target.value)}>{PLANS.map(plan => <option key={plan.value} value={plan.value}>{plan.label}</option>)}</select><p className="radar-contact-field-hint">Ce choix ne vous engage à aucun abonnement.</p></>}
+              {step === 4 && <><label htmlFor="contact-message" className="sr-only">Votre message</label><textarea {...inputProps} id="contact-message" name="message" required minLength={5} maxLength={5000} rows={4} placeholder="Racontez-nous votre besoin…" value={form.message} onChange={e => update('message', e.target.value)} /><p className="radar-contact-field-hint">N’envoyez ni mot de passe, ni clé API, ni donnée sensible.</p></>}
+              {step === 5 && <dl className="radar-contact-summary">{[
+                { label: 'Nom', value: form.name, index: 0 }, { label: 'E-mail', value: form.email, index: 1 },
+                { label: 'Agence et téléphone', value: [form.company, form.phone].filter(Boolean).join(' · ') || 'Non renseignés', index: 2 },
+                { label: 'Offre', value: PLANS.find(plan => plan.value === form.plan)?.label, index: 3 },
+                { label: 'Message', value: form.message, index: 4 },
+              ].map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd><button type="button" disabled={status === 'loading'} aria-label={`Modifier : ${row.label}`} onClick={() => edit(row.index)}>Modifier</button></div>)}</dl>}
+              {fieldError && <p id="contact-field-error" role="alert" className="radar-contact-error">{fieldError}</p>}
+              {step === 5 && error && <p role="alert" className="radar-contact-error">{error}</p>}
+              <Button type="submit" disabled={!ready || status === 'loading'} className="radar-contact-continue">{status === 'loading' ? <><Loader2 size={16} className="animate-spin" />Envoi en cours…</> : step === 5 ? <>Envoyer le message<Send size={15} /></> : <>{editing ? 'Valider la modification' : 'Continuer'}<ArrowRight size={16} /></>}</Button>
             </div>
           </div>
-        </main>
-
-        <LandingFooter />
-      </LandingWrapper>
-    </ForceLightMode>
-  );
+          <div className="radar-contact-bottomline">{step > 0 ? <button type="button" disabled={status === 'loading'} onClick={() => { move(editing ? 5 : step - 1); setEditing(false); }}><ArrowLeft size={14} />{editing ? 'Récapitulatif' : 'Précédent'}</button> : <span aria-hidden="true" />}<span>{step === 5 ? 'Un envoi, après votre confirmation.' : step === 4 ? 'Puis, vérifiez votre demande.' : 'Entrée pour continuer'}</span></div>
+        </form>}
+      </div>
+      <div className="radar-contact-caption"><p id="contact-privacy">Nom, e-mail et message : pour répondre à votre demande professionnelle. Société, téléphone et offre sont facultatifs. Aucune inscription à une newsletter. <Link href="/privacy#contact">Utilisation des données et vos droits<ArrowUpRight size={11} /></Link></p></div>
+    </main>
+  </div></ForceLightMode>;
 }

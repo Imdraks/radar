@@ -31,7 +31,11 @@ async def main():
     await page.goto(BASE+path,wait_until='networkidle')
     if await page.get_by_role('button',name='Tout refuser',exact=True).is_visible():
      await page.get_by_role('button',name='Tout refuser',exact=True).click()
-    assert await page.get_by_role('img',name='Radar',exact=True).count()>0,path
+    if path=='/contact':
+     assert await page.get_by_role('button',name='Ouvrir le menu du site',exact=True).count()==1
+     assert await page.locator('footer').count()==0
+    else:
+     assert await page.get_by_role('img',name='Radar',exact=True).count()>0,path
     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),(path,width)
     assert await page.locator('a button').count()==0,(path,'nested buttons')
     if path=='/':
@@ -45,8 +49,8 @@ async def main():
       await trigger.click();await page.get_by_role('dialog').wait_for()
       await page.keyboard.press('Escape');await page.get_by_role('dialog').wait_for(state='hidden')
     if path=='/contact':
-     assert await page.get_by_role('option',name='Radar Premium',exact=True).count()==1
-     assert await page.get_by_role('option',name='Radar Talents',exact=True).count()==0
+     await page.get_by_label('Nom complet',exact=True).wait_for()
+     assert await page.get_by_role('progressbar',name='Progression du formulaire').get_attribute('aria-valuenow')=='1'
     if path=='/login':
      assert await page.get_by_role('button',name='Continuer avec Google',exact=True).count()==(1 if width==768 else 0)
      await page.get_by_label('Email',exact=True).fill('test@radar.example')

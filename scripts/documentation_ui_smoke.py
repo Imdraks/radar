@@ -61,9 +61,15 @@ async def main():
             await page.screenshot(path=str(ARTIFACTS / f'mcp-{width}.png'), full_page=True)
             await page.get_by_role('link', name='Demander l’extension', exact=True).click()
             await page.wait_for_url('**/contact?offer=mcp')
-            await page.wait_for_function("document.querySelector('#contact-plan')?.value === 'custom'")
-            assert 'connecteur ChatGPT / MCP' in await page.locator('#contact-message').input_value()
+            await page.get_by_label('Nom complet', exact=True).fill('TEST MCP Documentation')
+            await page.get_by_role('button', name='Continuer', exact=True).click()
             assert await page.locator('#contact-email').input_value() == ''
+            await page.get_by_label('Email professionnel', exact=True).fill('contact@example.com')
+            await page.get_by_role('button', name='Continuer', exact=True).click()
+            await page.get_by_role('button', name='Continuer', exact=True).click()
+            await page.wait_for_function("document.querySelector('#contact-plan')?.value === 'custom'")
+            await page.get_by_role('button', name='Continuer', exact=True).click()
+            assert 'connecteur ChatGPT / MCP' in await page.locator('#contact-message').input_value()
 
             await visit('/doc')
             if width < 1024:

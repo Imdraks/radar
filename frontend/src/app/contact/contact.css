@@ -1,0 +1,62 @@
+/* A quiet, focused conversation: one question per slide, no scroll interception. */
+.radar-contact-shell { min-height: 100svh; background: #fff; }
+.radar-contact-main { display: flex; flex-direction: column; min-height: 100svh; padding: 26px 34px 18px; background: #fff; }
+.radar-contact-frame { display: flex; flex: 1; flex-direction: column; width: 100%; min-width: 0; margin: 0 auto; }
+.radar-contact-form { display: flex; flex: 1; flex-direction: column; width: 100%; min-width: 0; }
+.radar-contact-progress { display: flex; flex-shrink: 0; gap: 5px; width: 132px; margin: 16px auto 0; }
+.radar-contact-progress > span { flex: 1; height: 3px; background: #ececf2; border-radius: 999px; transition: background-color 180ms ease; }
+.radar-contact-progress > [data-reached=true] { background: hsl(var(--primary)); }
+.radar-contact-step-count { margin-top: 12px; text-align: center; color: #42424c; font-size: 11px; font-variant-numeric: tabular-nums; }
+.radar-contact-step-count > span { color: hsl(var(--muted-foreground)); }
+.radar-contact-step { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 660px; min-height: 340px; margin: 32px auto; padding: 20px 0; text-align: center; animation: radar-contact-forward 300ms cubic-bezier(.22,1,.36,1); }
+.radar-contact-step[data-direction=back] { animation-name: radar-contact-back; }
+.radar-contact-kicker { color: #73737f; font-size: 10px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+.radar-contact-step h2, .radar-contact-success h2 { margin-top: 14px; font-size: clamp(32px, 3.6vw, 50px); line-height: 1.12; font-weight: 600; letter-spacing: -.055em; outline: none; }
+.radar-contact-step h2 > span, .radar-contact-success h2 > span { color: hsl(var(--primary)); }
+.radar-contact-description { max-width: 410px; margin: 18px auto 0; color: #70707b; font-size: 13px; line-height: 1.7; }
+.radar-contact-fields { width: 100%; max-width: 440px; margin: 30px auto 0; }
+.radar-contact-input { display: block; width: 100%; min-height: 56px; border: 1px solid #9a86c0; border-radius: 999px; padding: 15px 23px; background: #f8f8fb; color: #20202a; font-size: 16px; line-height: 1.5; outline: none; transition: background-color 160ms, border-color 160ms, box-shadow 160ms; }
+.radar-contact-input::placeholder { color: hsl(var(--muted-foreground)); }
+.radar-contact-input:focus-visible { border-color: hsl(var(--primary)); background: #fff; box-shadow: 0 0 0 4px hsl(var(--primary) / .09); }
+.radar-contact-input[aria-invalid=true] { border-color: #b91c1c; }
+textarea.radar-contact-input { min-height: 148px; border-radius: 24px; resize: vertical; }
+select.radar-contact-input { padding-right: 16px; }
+.radar-contact-label { display: flex; justify-content: space-between; margin: 0 12px 7px; color: #55545f; font-size: 11px; }
+.radar-contact-label span { color: hsl(var(--muted-foreground)); }
+.radar-contact-field-hint { margin: 12px 8px 0; color: hsl(var(--muted-foreground)); font-size: 10px; line-height: 1.6; }
+.radar-contact-continue { gap: 10px; min-height: 42px; height: auto; margin-top: 24px; padding: 11px 23px; border-radius: 999px; font-size: 12px; }
+.radar-contact-bottomline { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: hsl(var(--muted-foreground)); font-size: 10px; }
+.radar-contact-bottomline > a, .radar-contact-bottomline > button { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 0; color: #62616e; }
+.radar-contact-bottomline > button:disabled { opacity: .5; }
+.radar-contact-bottomline > :first-child:hover { color: hsl(var(--primary)); }
+.radar-contact-caption { width: 100%; max-width: 700px; margin: 14px auto 0; color: hsl(var(--muted-foreground)); font-size: 10px; line-height: 1.8; text-align: center; }
+.radar-contact-caption p { max-width: 690px; }
+.radar-contact-caption a { display: inline-flex; align-items: center; gap: 4px; color: #615b78; text-decoration: underline; text-underline-offset: 3px; }
+.radar-contact-summary { margin-top: -6px; text-align: left; }
+.radar-contact-summary > div { display: grid; grid-template-columns: 1fr auto; gap: 5px 16px; padding: 14px 0; border-bottom: 1px solid #ededf2; }
+.radar-contact-summary dt { color: hsl(var(--muted-foreground)); font-size: 10px; }
+.radar-contact-summary dd { grid-column: 1; min-width: 0; color: #34333e; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.radar-contact-summary button { grid-column: 2; grid-row: 1 / span 2; align-self: center; min-height: 32px; color: hsl(var(--primary)); font-size: 10px; }
+.radar-contact-error { margin-top: 16px; color: #b91c1c; font-size: 12px; line-height: 1.6; }
+.radar-contact-success { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 600px; min-height: 420px; margin: 32px auto; padding: 20px 0; text-align: center; animation: radar-contact-forward 300ms ease-out; }
+.radar-contact-success-mark { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-bottom: 28px; border-radius: 50%; color: hsl(var(--primary)); background: hsl(var(--primary) / .07); }
+.radar-contact-success > p:last-of-type { margin-top: 20px; color: #70707b; font-size: 13px; }
+.radar-contact-main :where(a, button):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 4px; border-radius: 6px; }
+@keyframes radar-contact-forward { from { opacity: .5; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes radar-contact-back { from { opacity: .5; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+@media (max-width: 600px) {
+  .radar-contact-main { padding: 24px 18px 14px; }
+  .radar-contact-step { min-height: 320px; margin: 28px auto; padding: 12px 0; }
+  .radar-contact-description { font-size: 12px; }
+  .radar-contact-input { padding: 14px 18px; }
+  .radar-contact-bottomline > span { max-width: 130px; text-align: right; font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { .radar-contact-step, .radar-contact-success { animation: none; } .radar-contact-progress > span { transition: none; } }
+
+.radar-contact-floating-header { position: fixed; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right)); z-index: 60; }
+.radar-contact-menu-trigger { width: 46px; height: 46px; border-color: #ddd9e8; background: rgb(255 255 255 / .94); color: #484252; box-shadow: 0 4px 22px -8px rgb(38 25 70 / .16); backdrop-filter: blur(12px); }
+.radar-contact-menu-trigger[data-state=open] { border-color: hsl(var(--primary) / .35); background: hsl(var(--primary) / .05); color: hsl(var(--primary)); }
+.radar-contact-nav-panel { max-height: calc(100svh - 100px); overflow-y: auto; box-shadow: 0 18px 55px -22px rgb(38 25 70 / .24); }
+.radar-contact-nav-link { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 42px; padding: 10px 13px; border-radius: 14px; color: hsl(var(--foreground)); font-size: 13px; transition: background-color 140ms, color 140ms; }
+.radar-contact-nav-link:hover, .radar-contact-nav-link[aria-current=page] { background: hsl(var(--primary) / .06); color: hsl(var(--primary)); }
+.radar-contact-nav-panel :where(a, button):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
