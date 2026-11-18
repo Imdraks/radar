@@ -96,6 +96,7 @@ jobs:
           python ../scripts/brand_ui_smoke.py
           python ../scripts/motion_ui_smoke.py
           python ../scripts/route_transition_ui_smoke.py
+          python ../scripts/pricing_ui_smoke.py
           python ../scripts/theme_ui_smoke.py
           python ../scripts/contact_ui_smoke.py
           python ../scripts/documentation_ui_smoke.py
