@@ -143,7 +143,7 @@ def account_export(db: Session = Depends(get_db), user=Depends(get_current_user)
         "generated_at": datetime.utcnow().isoformat(),
         "scope": "account_identity_and_own_requests",
         "account": {
-            k: getattr(user, k) for k in ("id", "email", "full_name", "created_at")
+            k: getattr(user, k) for k in ("id", "email", "full_name", "created_at", "profile_avatar_url")
         },
         "requests": [
             serialize(row)

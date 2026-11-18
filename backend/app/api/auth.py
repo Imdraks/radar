@@ -3,7 +3,7 @@ Authentication endpoints
 """
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from secrets import compare_digest
@@ -211,6 +211,27 @@ def get_current_user_info(
     current_user: User = Depends(get_current_user)
 ):
     """Get current user information"""
+    return current_user
+
+
+@router.post('/me/avatar', response_model=UserResponse)
+def upload_avatar(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from app.services.profile_avatar import thumbnail, MAX_UPLOAD
+    try:
+        content = file.file.read(MAX_UPLOAD + 1)
+    finally:
+        file.file.close()
+    current_user.avatar_image = thumbnail(content)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.delete('/me/avatar', response_model=UserResponse)
+def remove_avatar(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    current_user.avatar_image = None
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 

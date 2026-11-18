@@ -4,7 +4,7 @@ User management endpoints
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, undefer
 
 from app.db import get_db
 from app.db.models.user import User, Role
@@ -28,7 +28,7 @@ def user_to_response(user: User) -> dict:
         "created_at": user.created_at,
         "last_login_at": user.last_login_at,
         "auth_provider": user.auth_provider,
-        "avatar_url": user.avatar_url,
+        "avatar_url": user.profile_avatar_url,
         "linked_accounts": [
             {
                 "provider": acc.provider,
@@ -48,7 +48,7 @@ def list_users(
     current_user: User = Depends(require_admin),
 ):
     """List all users (admin only)"""
-    query = db.query(User)
+    query = db.query(User).options(undefer(User.avatar_image))
     
     if role:
         query = query.filter(User.role == role)

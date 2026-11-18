@@ -93,6 +93,17 @@ def run():
             if start is None:
                 from check_migrated_api import run as check_api
 
+                # A photo is user data: never drop it automatically on rollback.
+                with engine.begin() as conn:
+                    conn.execute(text("INSERT INTO users (id,email,avatar_image) VALUES (987653,'photo-migration@example.com',decode('ffd8ffd9','hex'))"))
+                migrate('058_revocable_sessions', direction='downgrade', expected_failure='Exporter les photos personnalisées')
+                with engine.begin() as conn:
+                    assert bytes(conn.execute(text('SELECT avatar_image FROM users WHERE id=987653')).scalar_one()) == bytes.fromhex('ffd8ffd9')
+                    conn.execute(text('DELETE FROM users WHERE id=987653'))
+                migrate('058_revocable_sessions', direction='downgrade')
+                migrate('head')
+                print('PASS profile photo migration: clean rollback and used-photo rollback refused', flush=True)
+
                 # Check a truly unused schema before API logins create sessions.
                 migrate('057_multichannel_mfa', direction='downgrade')
                 migrate('head')
