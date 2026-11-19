@@ -11,10 +11,10 @@
 }
 .radar-guide[data-state='open'] { animation: radar-guide-in 240ms ease both; }
 .radar-guide[data-state='closed'] { animation: radar-guide-out 160ms ease both; }
-.radar-guide-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 76px 22px 36px; flex-shrink: 0; }
+.radar-guide-header { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 24px; padding: 22px 36px; flex-shrink: 0; }
 .radar-guide-brand { font-size: 26px; font-weight: 700; letter-spacing: -1.2px; }
 .radar-guide-brand > span { color: hsl(var(--primary)); }
-.radar-guide-steps { display: flex; align-items: center; gap: 32px; }
+.radar-guide-steps { grid-column: 2; justify-self: center; display: flex; align-items: center; gap: 32px; }
 .radar-guide-steps li { display: flex; align-items: center; gap: 9px; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .radar-guide-step-number { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid hsl(var(--border)); font-size: 11px; }
 .radar-guide-steps li[aria-current='step'] { color: hsl(var(--primary)); font-weight: 600; }
@@ -37,7 +37,7 @@
 @keyframes radar-guide-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes radar-guide-out { from { opacity: 1; } to { opacity: 0; } }
 @media (max-width: 700px) {
-  .radar-guide-header { padding: 18px 60px 18px 20px; gap: 12px; }
+  .radar-guide-header { padding: 18px 20px; gap: 12px; }
   .radar-guide-brand { font-size: 23px; }
   .radar-guide-steps { gap: 10px; }
   .radar-guide-step-label { display: none; }
