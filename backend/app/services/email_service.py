@@ -28,6 +28,7 @@ class EmailService:
         subject: str,
         html: str,
         text: Optional[str] = None,
+        idempotency_key: Optional[str] = None,
     ) -> dict:
         """
         Send an email via Resend API
@@ -54,13 +55,13 @@ class EmailService:
         if text:
             payload["text"] = text
         
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.BASE_URL}/emails",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json=payload,
                 timeout=30.0,
             )

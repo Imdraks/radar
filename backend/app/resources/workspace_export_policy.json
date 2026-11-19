@@ -1631,6 +1631,9 @@
     },
     "external_client_contracts": {
       "exclude": "Signed commercial evidence and binary documents; controlled restitution through the platform administrator."
+    },
+    "contact_inquiries": {
+      "exclude": "Global public business inquiries, not workspace-owned; controlled review by platform administrator for subject access and retention."
     }
   }
 }

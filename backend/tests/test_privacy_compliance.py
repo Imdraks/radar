@@ -1,6 +1,4 @@
 from datetime import datetime
-from unittest.mock import AsyncMock
-import pytest
 from app.db.models.privacy import PrivacyRequest
 
 
@@ -174,19 +172,9 @@ def test_partial_account_export_excludes_credentials_and_other_people(
     assert response.json()["coverage_note"]
 
 
-@pytest.fixture
-def contact_delivery(monkeypatch):
-    from app.api.contact import settings
-    from app.services.email_service import EmailService
+def test_contact_information_version_and_minimization(client, db_session, caplog):
+    from app.db.models.contact_inquiry import ContactInquiry
 
-    monkeypatch.setattr(settings, "contact_receiver_email", "test-operator@example.com")
-    monkeypatch.setattr(EmailService, "is_configured", property(lambda self: True))
-    send = AsyncMock(return_value={"id": "test-delivery-id"})
-    monkeypatch.setattr(EmailService, "send_email", send)
-    return send
-
-
-def test_contact_information_version_and_minimization(client, contact_delivery, caplog):
     body = {
         "name": "TEST contact",
         "email": "test-contact@example.com",
@@ -206,39 +194,7 @@ def test_contact_information_version_and_minimization(client, contact_delivery, 
     )
     result = client.post("/api/v1/contact", json=body)
     assert result.status_code == 200, result.text
-    assert "Notice présentée : 2026-11-13" in contact_delivery.call_args.kwargs["text"]
-    assert "test-contact@example.com" not in caplog.text
-
-
-def test_contact_never_reports_unconfirmed_delivery(client, contact_delivery, caplog):
-    body = {
-        "name": "TEST contact",
-        "email": "test-contact@example.com",
-        "message": "TEST request",
-        "privacy_notice_version": "2026-11-13",
-    }
-    for reply in [{"error": "TEST-sensitive-provider-response"}, {}]:
-        contact_delivery.return_value = reply
-        assert client.post("/api/v1/contact", json=body).status_code == 500
-    assert "TEST-sensitive-provider-response" not in caplog.text
-
-
-def test_unconfigured_contact_channel_is_explicit(
-    client, contact_delivery, monkeypatch
-):
-    from app.api.contact import settings
-
-    monkeypatch.setattr(settings, "contact_receiver_email", "")
-    assert (
-        client.post(
-            "/api/v1/contact",
-            json={
-                "name": "TEST name",
-                "email": "test@example.com",
-                "message": "TEST request",
-                "privacy_notice_version": "2026-11-13",
-            },
-        ).status_code
-        == 503
-    )
-    contact_delivery.assert_not_called()
+    row = db_session.query(ContactInquiry).one()
+    assert row.privacy_notice_version == "2026-11-13" and row.message == body["message"]
+    assert row.status == "new" and row.acknowledgement_status == "not_requested"
+    assert row.email not in caplog.text

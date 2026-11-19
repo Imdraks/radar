@@ -75,6 +75,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: python ../scripts/check_release.py --check-template
       - run: node --test ../scripts/consent-policy.test.mjs
+      - run: node ../scripts/contact-submission.test.mjs
       - run: node ../scripts/mascot-expressions.test.mjs
       - run: npm run type-check
       - run: npm run build
@@ -103,6 +104,7 @@ jobs:
           python ../scripts/companion_ui_smoke.py
           python ../scripts/theme_ui_smoke.py
           python ../scripts/contact_ui_smoke.py
+          python ../scripts/contact_inbox_ui_smoke.py
           python ../scripts/documentation_ui_smoke.py
           python ../scripts/mfa_ui_smoke.py
           python ../scripts/password_ui_smoke.py

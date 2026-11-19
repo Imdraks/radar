@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Loader2, Send } from 'lucid
 import { Button } from '@/components/ui/button';
 import { ForceLightMode } from '@/components/landing/ForceLightMode';
 import { ContactNavigation } from '@/components/landing/ContactNavigation';
-import { workspaceFetch } from '@/lib/workspace-fetch';
+import { submitContactMessage } from '@/lib/contact';
 import './contact.css';
 
 const PLANS = [
@@ -88,18 +88,13 @@ export default function ContactPage() {
     setStatus('loading');
     setError('');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-      const response = await workspaceFetch(`${apiUrl}/api/v1/contact`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, name: form.name.trim(), email: form.email.trim(),
-          company: form.company.trim(), phone: form.phone.trim(), message: form.message.trim(),
-          privacy_notice_version: '2026-11-13' }),
-      });
-      if (!response.ok || (await response.json()).status !== 'ok') throw new Error('Delivery not confirmed');
+      await submitContactMessage({ ...form, name: form.name.trim(), email: form.email.trim(),
+        company: form.company.trim(), phone: form.phone.trim(), message: form.message.trim(),
+        privacy_notice_version: '2026-11-13' });
       setStatus('success');
-    } catch {
+    } catch (failure) {
       setStatus('error');
-      setError('Votre message n’a pas pu être transmis. Vos informations sont conservées sur cette page : réessayez ou utilisez le contact des mentions légales.');
+      setError(failure instanceof Error ? failure.message : 'Le service de contact est indisponible. Vos informations restent sur cette page.');
     } finally { sending.current = false; }
   };
   const edit = (index: number) => { setEditing(true); move(index); };
@@ -115,8 +110,8 @@ export default function ContactPage() {
         {isSuccess ? <div ref={panel} className="radar-contact-success" role="status">
           <span className="radar-contact-success-mark"><Check size={28} strokeWidth={1.8} /></span>
           <p className="radar-contact-kicker">La suite commence maintenant</p>
-          <h2 tabIndex={-1}>Message envoyé.<br /><span>Merci, {form.name.trim().split(/\s+/)[0]}.</span></h2>
-          <p>Votre demande a été transmise à notre équipe.</p>
+          <h2 tabIndex={-1}>Demande enregistrée.<br /><span>Merci, {form.name.trim().split(/\s+/)[0]}.</span></h2>
+          <p>Votre demande est disponible pour notre équipe Radar. Vous recevrez un e-mail lorsque votre dossier sera ouvert.</p>
           <Button asChild className="mt-7 rounded-full px-6"><Link href="/">Retour à l’accueil<ArrowUpRight size={16} className="ml-2" /></Link></Button>
         </div> : <form method="post" onSubmit={submit} aria-describedby="contact-privacy" className="radar-contact-form">
           <noscript><p className="radar-contact-error">Ce formulaire par étapes nécessite JavaScript. Vous pouvez aussi utiliser le <Link href="/legal">contact publié dans les mentions légales</Link>.</p></noscript>

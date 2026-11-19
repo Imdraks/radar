@@ -188,3 +188,5 @@ from .client_admin import ClientInvitation
 from .passkey import PasskeyCredential, PasskeyChallenge
 
 from .platform_sales import PlatformQuote, ExternalClientContract
+
+from .contact_inquiry import ContactInquiry

@@ -2,17 +2,20 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Users, Activity, Settings, Shield, LogOut, LayoutDashboard, Rss, HeartPulse, Menu, ChevronDown, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Building2, Users, Activity, Settings, Shield, LogOut, LayoutDashboard, Rss, HeartPulse, Menu, ChevronDown, ShoppingCart, ArrowLeft, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useQuery } from '@tanstack/react-query';
+import { inquiryRequest } from '@/lib/contact-inquiries';
 import { RadarLogo } from '@/components/brand/RadarBrand';
 
 const navigation = [
   { name: 'Vue d’ensemble', href: '/admin', icon: LayoutDashboard },
   { name: 'Entreprises clientes', href: '/admin/clients', icon: Building2 },
+  { name: 'Demandes de contact', href: '/admin/contact-requests', icon: Inbox },
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Utilisateurs', href: '/users', icon: Users },
   { name: 'Contrats et éditeur', href: '/admin/legal', icon: Shield },
@@ -29,6 +32,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const contacts = useQuery<{ new_count: number }>({ queryKey: ['admin-contact', 'count'], queryFn: () => inquiryRequest('/count'), enabled: Boolean(user?.is_superuser), retry: false, refetchInterval: 60000 });
   const [mobile, setMobile] = useState(false);
   const [tools, setTools] = useState(() => technical.some(item => matches(item.href, pathname)));
   useEffect(() => { if (user && !user.is_superuser) router.replace('/today'); }, [user, router]);
@@ -43,7 +47,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const sidebar = (isMobile = false) => <div className="flex h-full flex-col">
     <Link href="/admin" className="px-6 pb-5 pt-7" onClick={() => setMobile(false)}><RadarLogo /><span className="mt-3 block text-[10px] font-semibold uppercase tracking-[.16em] text-muted-foreground">Administration de plateforme</span></Link>
     <nav aria-label="Administration de plateforme" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-3">
-      {navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setMobile(false)} aria-current={matches(item.href, pathname) ? 'page' : undefined} className={cn('flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors', matches(item.href, pathname) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}><item.icon size={18} className="shrink-0" /><span>{item.name}</span></Link>)}
+      {navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setMobile(false)} aria-current={matches(item.href, pathname) ? 'page' : undefined} className={cn('flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors', matches(item.href, pathname) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}><item.icon size={18} className="shrink-0" /><span>{item.name}</span>{item.href === '/admin/contact-requests' && Boolean(contacts.data?.new_count) && <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary" aria-label={`${contacts.data?.new_count} demande(s) à ouvrir`}>{contacts.data?.new_count}</span>}</Link>)}
       <div className="pb-2 pt-5"><button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-secondary" aria-expanded={tools} aria-controls={isMobile ? 'admin-mobile-tools' : 'admin-desktop-tools'} onClick={() => setTools(value => !value)}><Settings size={17} /><span className="flex-1 text-left">Outils techniques</span><ChevronDown size={15} className={tools ? 'rotate-180' : ''} /></button>{tools && <div id={isMobile ? 'admin-mobile-tools' : 'admin-desktop-tools'} className="ml-5 mt-1 space-y-1 border-l pl-3">{technical.map(item => <Link key={item.href} href={item.href} onClick={() => setMobile(false)} aria-current={matches(item.href, pathname) ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-lg px-3 py-3 text-xs', matches(item.href, pathname) ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary')}><item.icon size={15} />{item.name}</Link>)}</div>}</div>
     </nav>
     <footer className="space-y-2 border-t p-4"><div className="mb-3 rounded-xl bg-secondary/60 px-3 py-3"><p className="truncate text-sm font-medium">{user.full_name || 'Mon compte'}</p><p className="mt-1 truncate text-xs text-muted-foreground">{user.email}</p></div><Link href="/account/security" className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"><Settings size={16} />Sécurité de mon compte</Link><Link href="/account/workspaces" className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"><ArrowLeft size={16} />Mes espaces de travail</Link><Button variant="ghost" className="w-full justify-start gap-3" onClick={() => { logout(); router.replace('/login'); }}><LogOut size={16} />Déconnexion</Button></footer>

@@ -93,6 +93,31 @@ def run():
             if start is None:
                 from check_migrated_api import run as check_api
 
+                # Only this disposable database is used for contact retention checks.
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "INSERT INTO contact_inquiries (id,name,email,company,phone,plan,message,privacy_notice_version,status,created_at,acknowledgement_status) VALUES ('00000000-0000-4000-8000-000000000001','TEST Inquiry','test@example.com','','','','TEST preserved','2026-11-13','new',now(),'not_requested')"
+                        )
+                    )
+                migrate(
+                    "063_collaborator_entry",
+                    direction="downgrade",
+                    expected_failure="demandes de contact",
+                )
+                with engine.begin() as conn:
+                    assert (
+                        conn.execute(
+                            text("SELECT count(*) FROM contact_inquiries")
+                        ).scalar_one()
+                        == 1
+                    )
+                    conn.execute(text("DELETE FROM contact_inquiries"))
+                print(
+                    "PASS contact inquiry migration: used-inbox rollback refused without data loss",
+                    flush=True,
+                )
+
                 # New lifecycle, factor and document guards are tested on this
                 # disposable database only; production evidence is never removed.
                 with engine.begin() as conn:

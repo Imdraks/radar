@@ -38,7 +38,8 @@ Les secrets génériques de production sont retirés de l'environnement de prév
 | Groq | `RADAR_TEST_GROQ_API_KEY` |
 | Recherche Tavily | `RADAR_TEST_TAVILY_API_KEY` |
 | Concerts Ticketmaster | `RADAR_TEST_TICKETMASTER_API_KEY` |
-| Contact via Resend | `RADAR_TEST_RESEND_API_KEY`, `RADAR_TEST_RESEND_FROM_EMAIL` (expéditeur vérifié), `RADAR_TEST_CONTACT_RECEIVER_EMAIL` |
+| Formulaire de contact | PostgreSQL et migration 064 ; aucun e-mail à la soumission. |
+| Accusé à la première ouverture du dossier | Resend ou SMTP configuré pour les tests, worker actif et destinataire de test autorisé. |
 | SMTP | `RADAR_TEST_SMTP_HOST`, `RADAR_TEST_SMTP_PORT`, `RADAR_TEST_SMTP_USER`, `RADAR_TEST_SMTP_PASSWORD`, `RADAR_TEST_SMTP_FROM_EMAIL`, si besoin `RADAR_TEST_SMTP_USE_TLS` |
 | IMAP | `RADAR_TEST_IMAP_HOST`, `RADAR_TEST_IMAP_PORT`, `RADAR_TEST_IMAP_USER`, `RADAR_TEST_IMAP_PASSWORD`, éventuellement `RADAR_TEST_IMAP_FOLDER` et `RADAR_TEST_IMAP_USE_SSL` |
 | Collecte Viberate | `RADAR_TEST_VIBERATE_ENABLED=true`, si besoin `RADAR_TEST_VIBERATE_REQUEST_DELAY` |

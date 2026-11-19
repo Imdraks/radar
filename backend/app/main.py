@@ -134,6 +134,7 @@ from app.api.spotify_search import router as spotify_search_router
 from app.api.artists import router as artists_v2_router
 from app.api.events import router as events_router
 from app.api.contact import router as public_contact_router
+from app.api.admin_contact import router as admin_contact_router
 # Configure logging
 logging.basicConfig(
     level=logging.INFO if not settings.debug else logging.DEBUG,
@@ -390,6 +391,7 @@ app.include_router(artists_v2_router, dependencies=[Depends(get_current_workspac
 # ============================================================================
 app.include_router(events_router, prefix="/api/v1", tags=["Events"])
 app.include_router(public_contact_router, prefix="/api/v1", tags=["Public Contact"])
+app.include_router(admin_contact_router, prefix="/api/v1")
 
 # Progress streaming (SSE)
 app.include_router(progress_router, prefix="/api/v1", tags=["Progress"])
