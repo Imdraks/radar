@@ -127,6 +127,13 @@ def get_current_platform_admin(current_user: User = Depends(get_current_user)) -
 def resolve_workspace_id(db: Session, user: User, workspace_id: Optional[int] = None) -> int:
     from app.db.models.workspace import Workspace, WorkspaceMember
     from sqlalchemy import or_
+    # Dependencies and endpoint helpers share one request Session. Never reset
+    # its validated workspace to the first membership during a second lookup.
+    scoped_id = db.info.get("workspace_id")
+    if scoped_id is not None:
+        if workspace_id is not None and workspace_id != scoped_id:
+            raise HTTPException(status_code=403, detail="WORKSPACE_CONTEXT_MISMATCH")
+        workspace_id = scoped_id
     query = db.query(Workspace).outerjoin(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
     query = query.filter(or_(Workspace.owner_user_id == user.id, WorkspaceMember.user_id == user.id))
     if workspace_id is not None:

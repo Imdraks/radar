@@ -64,10 +64,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <Link href="/today" aria-label="Radar — Accueil" onClick={() => setOpen(false)} className={`flex shrink-0 items-center gap-3 py-6 text-foreground hover:no-underline ${compact ? 'justify-center px-2' : 'px-6'}`}>
       <span><RadarLogo compact={compact} />{!compact && <span className="mt-2 block text-[10px] tracking-wide text-muted-foreground">Le point de repère de votre agence</span>}</span>
     </Link>
-    {!compact && <div className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm">
+    {!compact && <Link href="/account/workspaces" aria-label="Changer de workspace" onClick={() => setOpen(false)} className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm hover:border-primary/30">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary"><Building2 size={17} /></span>
       <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Espace de travail</p><p className="truncate text-sm font-medium text-foreground" title={subscription?.workspace_name}>{subscription?.workspace_name || 'Votre agence'}</p></div>
-    </div>}
+    </Link>}
     <nav id={mobile ? undefined : 'radar-desktop-navigation'} aria-label="Navigation principale" className={`min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 scrollbar-thin ${compact ? 'px-2' : 'px-4'}`}>
       {Object.entries(navigation || {}).filter(([, items]) => items.length > 0).map(([section, items]) => <div key={section} className="radar-nav-section">
         <p className={compact ? 'sr-only' : 'mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground'}>{section}</p>
