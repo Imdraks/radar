@@ -75,6 +75,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: python ../scripts/check_release.py --check-template
       - run: node --test ../scripts/consent-policy.test.mjs
+      - run: node ../scripts/mascot-expressions.test.mjs
       - run: npm run type-check
       - run: npm run build
         env:

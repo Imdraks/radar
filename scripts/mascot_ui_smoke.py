@@ -62,16 +62,20 @@ async def main():
             await page.wait_for_timeout(14000)
             changes=await page.evaluate('window.__sphereChanges')
             assert any(name=='data-blink' and value=='true' for name,value in changes),changes
-            assert any(name=='data-expression' and value in ['dreamy','yawn','wink'] for name,value in changes),changes
+            assert any(name=='data-expression' and value in ['smile','satisfied','sleepy','yawn','wink'] for name,value in changes),changes
+            mouth_before=await sphere.locator('.radar-mascot-mouth').bounding_box()
             box=await sphere.bounding_box()
             await page.mouse.move(box['x']+box['width']+22,box['y']+box['height']/2)
-            await page.wait_for_timeout(150)
+            await page.wait_for_timeout(400)
+            mouth_after=await sphere.locator('.radar-mascot-mouth').bounding_box()
+            assert abs(mouth_after['x']+mouth_after['width']/2-mouth_before['x']-mouth_before['width']/2)<1
+            assert abs(mouth_after['y']+mouth_after['height']/2-mouth_before['y']-mouth_before['height']/2)<1
             await expect(sphere).to_have_attribute('data-mood','curious')
             assert abs(float(await sphere.evaluate("e=>parseFloat(e.style.getPropertyValue('--look-x'))")))>0
             await page.mouse.move(0,500)
             await page.wait_for_timeout(150)
             await button.focus()
-            await expect(sphere).to_have_attribute('data-expression','awake')
+            await expect(sphere).to_have_attribute('data-expression','smile')
             await page.keyboard.press('Enter')
             dialog=page.get_by_role('dialog',name='Bienvenue sur Radar',exact=True)
             await expect(dialog).to_be_visible()
@@ -79,9 +83,13 @@ async def main():
             guide_sphere=dialog.locator('.radar-mascot')
             await expect(guide_sphere).to_have_attribute('data-moving','true')
             await expect(dialog).to_contain_text('TEST — Studio Radar')
+            await expect(guide_sphere).to_have_attribute('data-expression','neutral')
+            assert await guide_sphere.locator('.radar-mascot-eye > span').all_text_contents()==['.','.']
+            await expect(guide_sphere.locator('.radar-mascot-mouth')).to_have_text('-')
+            assert await guide_sphere.evaluate('e=>{const b=[...e.querySelectorAll(".radar-mascot-brow")].map(x=>x.getBoundingClientRect());return Math.abs((b[0].y+b[0].height/2)-(b[1].y+b[1].height/2))<1}')
             assert await guide_sphere.locator('img,svg,canvas').count()==0
             assert 'inter' in (await guide_sphere.evaluate('e=>getComputedStyle(e).fontFamily')).lower()
-            assert await guide_sphere.locator('.radar-mascot-brow').all_text_contents()==['(','(']
+            assert await guide_sphere.locator('.radar-mascot-brow').all_text_contents()==['(',')']
             bounds=await dialog.bounding_box()
             assert bounds and abs(bounds['x'])<1 and abs(bounds['y'])<1,bounds
             assert abs(bounds['width']-width)<1 and abs(bounds['height']-950)<1,bounds
@@ -113,7 +121,9 @@ async def main():
             await expect(dialog).to_be_hidden()
             await expect(button).to_be_focused()
             await expect(sphere).to_have_attribute('data-moving','true')
-            assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            # Focus restoration can briefly reposition the help tooltip after closing.
+            # Poll the same no-overflow requirement instead of sampling that intermediate frame.
+            await expect(page.locator('html')).to_have_js_property('scrollWidth', width)
             assert not mutations and not errors,(mutations,errors)
             await page.emulate_media(reduced_motion='reduce')
             await expect(sphere).to_have_attribute('data-moving','false')
