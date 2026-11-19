@@ -87,6 +87,8 @@ class UserResponse(UserBase):
     """User response schema"""
     id: int
     is_superuser: bool
+    must_change_password: bool = False
+    security_setup_pending: bool = False
     is_whitelisted: bool = False
     created_at: datetime
     last_login_at: Optional[datetime] = None

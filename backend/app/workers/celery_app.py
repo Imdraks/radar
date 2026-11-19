@@ -24,6 +24,7 @@ celery_app = Celery(
         "app.workers.event_sync_tasks",
         "app.workers.mfa_tasks",
         "app.workers.password_tasks",
+        "app.workers.client_tasks",
     ],
 )
 

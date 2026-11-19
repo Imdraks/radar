@@ -1,254 +1,56 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Building2,
-  Users,
-  FolderOpen,
-  Activity,
-  Settings,
-  Shield,
-  Mail,
-  Loader2,
-  LogOut,
-  LayoutDashboard,
-  Rss,
-  HeartPulse,
-  Sliders,
-  BarChart3,
-  Brain,
-  Menu,
-  X,
-  ChevronDown,
-  Bell,
-} from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Building2, Users, Activity, Settings, Shield, LogOut, LayoutDashboard, Rss, HeartPulse, Menu, ChevronDown, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuthStore } from '@/store/auth';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { RadarLogo } from '@/components/brand/RadarBrand';
 
-interface AdminLayoutProps {
-  children: React.ReactNode;
-}
-
-const adminNavigation = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Workspaces', href: '/workspaces', icon: Building2 },
+const navigation = [
+  { name: 'Vue d’ensemble', href: '/admin', icon: LayoutDashboard },
+  { name: 'Entreprises clientes', href: '/admin/clients', icon: Building2 },
+  { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Utilisateurs', href: '/users', icon: Users },
-  { name: 'Contrats', href: '/admin/legal', icon: Shield },
-  { name: 'Abonnements', href: '/admin/subscription-requests', icon: Building2 },
-  { name: 'Demandes de droits', href: '/admin/privacy-requests', icon: Shield },
-  { name: 'Logs Activité', href: '/admin/activity', icon: Activity },
+  { name: 'Contrats et éditeur', href: '/admin/legal', icon: Shield },
+  { name: 'Demandes RGPD', href: '/admin/privacy-requests', icon: Shield },
+  { name: 'Journal d’activité', href: '/admin/activity', icon: Activity },
 ];
-
-const toolsNavigation = [
+const technical = [
   { name: 'Sources', href: '/sources', icon: Rss },
-  { name: 'Source Health', href: '/source-health', icon: HeartPulse },
+  { name: 'État des sources', href: '/source-health', icon: HeartPulse },
 ];
+const matches = (path: string, current: string) => current === path || (path !== '/admin' && current.startsWith(path + '/'));
 
-const bottomNavigation = [
-  { name: 'Paramètres', href: '/settings', icon: Settings },
-];
-
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toolsExpanded, setToolsExpanded] = useState(true);
-
+  const [mobile, setMobile] = useState(false);
+  const [tools, setTools] = useState(() => technical.some(item => matches(item.href, pathname)));
+  useEffect(() => { if (user && !user.is_superuser) router.replace('/today'); }, [user, router]);
   useEffect(() => {
-    // Check if user is admin
-    if (user && user.role !== 'admin') {
-      router.push('/today');
-    }
-  }, [user, router]);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="radar-admin flex h-screen bg-background text-foreground">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 lg:translate-x-0 lg:static",
-          "bg-card text-card-foreground border-r border-border",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-            <div><RadarLogo /><p className="mt-2 text-xs text-muted-foreground">Administration plateforme</p></div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {/* Main Admin Navigation */}
-            {adminNavigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-
-            {/* Divider */}
-            <div className="my-4 border-t border-border" />
-
-            {/* Tools Section */}
-            <button
-              onClick={() => setToolsExpanded(!toolsExpanded)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              <Settings className="h-5 w-5" />
-              <span className="flex-1 text-left">Outils Techniques</span>
-              <ChevronDown className={cn(
-                "h-4 w-4 transition-transform",
-                toolsExpanded ? "rotate-180" : ""
-              )} />
-            </button>
-
-            {toolsExpanded && (
-              <div className="ml-4 space-y-1 border-l border-border pl-4">
-                {toolsNavigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                        isActive
-                        ? "bg-secondary text-foreground"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      )}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Divider */}
-            <div className="my-4 border-t border-border" />
-
-            {/* Bottom Navigation */}
-            {bottomNavigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* User Section */}
-          <div className="px-4 py-4 border-t border-border">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                {user.full_name?.charAt(0) || 'A'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{user.full_name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full mt-2 text-muted-foreground hover:text-foreground hover:bg-secondary"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Déconnexion
-            </Button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="bg-card border-b border-border px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-secondary"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <h2 className="text-lg font-semibold text-foreground">
-                {adminNavigation.find(n => pathname === n.href)?.name || 
-                 toolsNavigation.find(n => pathname === n.href)?.name ||
-                 'Administration'}
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+    const viewport = window.matchMedia('(min-width: 1024px)');
+    const close = () => { if (viewport.matches) setMobile(false); };
+    viewport.addEventListener('change', close);
+    return () => viewport.removeEventListener('change', close);
+  }, []);
+  if (!user?.is_superuser) return null;
+  const active = [...navigation, ...technical].find(item => matches(item.href, pathname));
+  const sidebar = (isMobile = false) => <div className="flex h-full flex-col">
+    <Link href="/admin" className="px-6 pb-5 pt-7" onClick={() => setMobile(false)}><RadarLogo /><span className="mt-3 block text-[10px] font-semibold uppercase tracking-[.16em] text-muted-foreground">Administration de plateforme</span></Link>
+    <nav aria-label="Administration de plateforme" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-3">
+      {navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setMobile(false)} aria-current={matches(item.href, pathname) ? 'page' : undefined} className={cn('flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors', matches(item.href, pathname) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground')}><item.icon size={18} className="shrink-0" /><span>{item.name}</span></Link>)}
+      <div className="pb-2 pt-5"><button type="button" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-secondary" aria-expanded={tools} aria-controls={isMobile ? 'admin-mobile-tools' : 'admin-desktop-tools'} onClick={() => setTools(value => !value)}><Settings size={17} /><span className="flex-1 text-left">Outils techniques</span><ChevronDown size={15} className={tools ? 'rotate-180' : ''} /></button>{tools && <div id={isMobile ? 'admin-mobile-tools' : 'admin-desktop-tools'} className="ml-5 mt-1 space-y-1 border-l pl-3">{technical.map(item => <Link key={item.href} href={item.href} onClick={() => setMobile(false)} aria-current={matches(item.href, pathname) ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-lg px-3 py-3 text-xs', matches(item.href, pathname) ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary')}><item.icon size={15} />{item.name}</Link>)}</div>}</div>
+    </nav>
+    <footer className="space-y-2 border-t p-4"><div className="mb-3 rounded-xl bg-secondary/60 px-3 py-3"><p className="truncate text-sm font-medium">{user.full_name || 'Mon compte'}</p><p className="mt-1 truncate text-xs text-muted-foreground">{user.email}</p></div><Link href="/account/security" className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"><Settings size={16} />Sécurité de mon compte</Link><Link href="/account/workspaces" className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-muted-foreground hover:bg-secondary"><ArrowLeft size={16} />Mes espaces de travail</Link><Button variant="ghost" className="w-full justify-start gap-3" onClick={() => { logout(); router.replace('/login'); }}><LogOut size={16} />Déconnexion</Button></footer>
+  </div>;
+  return <div className="radar-admin flex h-dvh min-h-0 bg-background text-foreground">
+    <aside className="hidden w-[260px] shrink-0 border-r bg-card lg:block">{sidebar()}</aside>
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden"><header className="flex min-h-[72px] shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-8"><div className="flex min-w-0 items-center gap-3"><Sheet open={mobile} onOpenChange={setMobile}><SheetTrigger asChild><Button variant="ghost" size="icon" className="shrink-0 lg:hidden" aria-label="Ouvrir le menu administration"><Menu size={20} /></Button></SheetTrigger><SheetContent side="left" closeLabel="Fermer le menu administration" className="radar-admin w-[min(310px,90vw)] bg-card p-0"><SheetTitle className="sr-only">Navigation de l’administration</SheetTitle><SheetDescription className="sr-only">Entreprises clientes, commandes, contrats et utilisateurs.</SheetDescription>{sidebar(true)}</SheetContent></Sheet><p className="truncate text-sm font-medium">{active?.name || 'Administration Radar'}</p></div><ThemeToggle /></header><main className="min-w-0 flex-1 overflow-y-auto bg-background">{children}</main></div>
+  </div>;
 }
-
 export default AdminLayout;

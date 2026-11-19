@@ -37,6 +37,10 @@ def get_current_user(
             detail="User not found",
         )
     
+    if getattr(user, 'must_change_password', False):
+        from datetime import datetime
+        if not user.temporary_password_expires_at or user.temporary_password_expires_at <= datetime.utcnow():
+            raise HTTPException(401, 'Invitation expirée. Demandez un nouvel envoi ou réinitialisez votre mot de passe par e-mail.')
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -115,6 +119,8 @@ def get_current_platform_admin(current_user: User = Depends(get_current_user)) -
     """Platform grants require the explicit superuser flag, never an agency role."""
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Platform administrator required")
+    if getattr(current_user, 'must_change_password', False):
+        raise HTTPException(403, 'PASSWORD_CHANGE_REQUIRED')
     return current_user
 
 
@@ -128,6 +134,10 @@ def resolve_workspace_id(db: Session, user: User, workspace_id: Optional[int] = 
     workspace = query.order_by(Workspace.id).first()
     if not workspace:
         raise HTTPException(status_code=403, detail="NO_WORKSPACE_ACCESS")
+    if getattr(user, 'must_change_password', False):
+        raise HTTPException(status_code=403, detail="PASSWORD_CHANGE_REQUIRED")
+    if workspace.is_suspended:
+        raise HTTPException(status_code=423, detail="Cet espace est suspendu. Contactez votre interlocuteur Radar.")
     db.info["workspace_id"] = workspace.id
     return workspace.id
 

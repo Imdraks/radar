@@ -159,6 +159,83 @@ async def main():
                     }
                 elif path.endswith("/subscription/navigation"):
                     data = {"sections": {}}
+                elif path.endswith("/admin/clients/orders"):
+                    data = {
+                        "items": (
+                            []
+                            if decided
+                            else [
+                                {
+                                    "id": 4,
+                                    "workspace_id": 1,
+                                    "workspace_name": "TEST legal workspace",
+                                    "kind": "plan",
+                                    "value": "business",
+                                    "status": "pending",
+                                    "created_at": "2026-11-13T12:00:00",
+                                }
+                            ]
+                        ),
+                        "total": 0 if decided else 1,
+                        "page": 1,
+                    }
+                elif path.endswith("/admin/clients/1"):
+                    data = {
+                        "id": 1,
+                        "name": "TEST legal workspace",
+                        "owner_user_id": 1,
+                        "owner_name": "TEST operator",
+                        "owner_email": "TEST@radar.example",
+                        "owner_last_login_at": None,
+                        "plan": "business",
+                        "plan_display_name": "Radar Business",
+                        "max_seats": 3,
+                        "current_seats": 1,
+                        "is_suspended": False,
+                        "suspension_reason": None,
+                        "suspended_at": None,
+                        "pending_orders": 0 if decided else 1,
+                        "created_at": "2026-11-13T12:00:00",
+                        "plan_expires_at": None,
+                        "company": {},
+                        "owner": {
+                            "user_id": 1,
+                            "name": "TEST operator",
+                            "email": "TEST@radar.example",
+                            "must_change_password": False,
+                        },
+                        "members": [],
+                        "invitations": [],
+                        "history": [],
+                        "quotes": [],
+                        "external_contracts": [],
+                        "subscription": {"available_features": []},
+                        "orders": [
+                            {
+                                "id": 4,
+                                "kind": "plan",
+                                "value": "business",
+                                "status": "approved" if decided else "pending",
+                                "created_at": "2026-11-13T12:00:00",
+                                "decided_at": None,
+                                "authorization_reference": None,
+                                "contract_acceptance_id": 12 if decided else None,
+                            }
+                        ],
+                        "acceptances": [
+                            {
+                                "id": row["id"],
+                                "bundle_id": row["bundle_id"],
+                                "plan": row["plan"],
+                                "version": bundle["version"],
+                                "reference": row["commercial_reference"],
+                                "accepted_at": row["accepted_at"],
+                                "representative": row["representative"],
+                                "content_hash": bundle["content_hash"],
+                            }
+                            for row in proofs
+                        ],
+                    }
                 elif path.endswith("/subscription/admin/requests"):
                     data = (
                         []
@@ -311,17 +388,27 @@ async def main():
             await page.goto(
                 BASE + "/admin/subscription-requests", wait_until="networkidle"
             )
-            await page.get_by_label(
-                "Acceptation contractuelle pour cette offre", exact=True
-            ).select_option("12")
-            await page.get_by_label("Référence d’autorisation", exact=True).fill(
-                "TEST verified agreement"
-            )
-            await page.locator('select[name="decision"]').select_option("approve")
+            await page.wait_for_url("**/admin/orders")
             await page.get_by_role(
-                "button", name="Enregistrer la décision", exact=True
+                "link", name="Ouvrir le suivi de l’entreprise", exact=True
             ).click()
-            await page.get_by_text("Décision enregistrée.", exact=True).wait_for()
+            await page.get_by_role(
+                "button", name="Traiter la commande", exact=True
+            ).click()
+            decision = page.get_by_role(
+                "dialog", name="Traiter la commande", exact=True
+            )
+            await decision.get_by_label(
+                "Preuve contractuelle", exact=True
+            ).select_option("native:12")
+            await decision.get_by_label(
+                "Référence de l’accord ou du contrôle", exact=True
+            ).fill("TEST verified agreement")
+            await decision.get_by_role("checkbox").check()
+            await decision.get_by_role("button", name="Confirmer", exact=True).click()
+            await page.get_by_text(
+                "Décision de validation enregistrée", exact=True
+            ).wait_for()
             assert requests[-1][1]["contract_acceptance_id"] == 12
             assert await page.evaluate(
                 "document.documentElement.scrollWidth<=innerWidth"

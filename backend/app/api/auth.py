@@ -124,6 +124,9 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    if user.must_change_password and (not user.temporary_password_expires_at or user.temporary_password_expires_at <= datetime.utcnow()):
+        raise HTTPException(401, 'Le mot de passe temporaire a expiré. Demandez une nouvelle invitation ou utilisez le lien de récupération.')
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

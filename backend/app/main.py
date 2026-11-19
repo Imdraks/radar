@@ -90,6 +90,10 @@ from app.api.project_detail import router as project_detail_router
 # V3 - Workspace, Inbox, Google Drive Integration
 # ============================================================================
 from app.api.workspace import router as workspace_router
+from app.api.platform_clients import router as platform_clients_router
+from app.api.passkeys import router as passkeys_router
+from app.api.account_setup import router as account_setup_router
+from app.api.platform_sales import router as platform_sales_router
 from app.api.inbox import router as inbox_router
 from app.api.google_drive import router as google_drive_router, callback_router as google_drive_callback_router
 # ============================================================================
@@ -335,6 +339,10 @@ app.include_router(project_detail_router, dependencies=[Depends(get_current_work
 # V3 - Workspace, Inbox, Google Drive (Daily Hub)
 # ============================================================================
 app.include_router(workspace_router, prefix="/api/v1", tags=["Workspaces"])
+app.include_router(platform_clients_router, prefix="/api/v1")
+app.include_router(passkeys_router, prefix="/api/v1")
+app.include_router(account_setup_router, prefix="/api/v1")
+app.include_router(platform_sales_router, prefix="/api/v1")
 app.include_router(inbox_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Inbox"])
 app.include_router(google_drive_callback_router, prefix="/api/v1")
 app.include_router(google_drive_router, dependencies=[Depends(require_workspace_write), Depends(get_current_workspace)], prefix="/api/v1", tags=["Google Drive"])

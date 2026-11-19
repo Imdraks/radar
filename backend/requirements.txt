@@ -83,3 +83,9 @@ mypy==1.8.0
 
 # Validated, metadata-free account photo thumbnails
 Pillow==13.0.0
+
+# Standards-based passkey registration and assertion verification
+webauthn==3.0.1
+
+# Validate imported external PDF evidence without rewriting its signed bytes
+pypdf==7.1.1

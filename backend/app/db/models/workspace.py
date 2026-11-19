@@ -65,6 +65,12 @@ class Workspace(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     
+    # Platform suspension preserves all client data and is independent of user accounts.
+    is_suspended: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
+    suspended_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    suspension_reason: Mapped[Optional[str]] = mapped_column(String(1000))
+    suspended_by: Mapped[Optional[int]] = mapped_column(Integer)
+
     # Google Drive Integration
     drive_root_folder_id: Mapped[Optional[str]] = mapped_column(String(255))
     templates_folder_id: Mapped[Optional[str]] = mapped_column(String(255))

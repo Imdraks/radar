@@ -67,7 +67,7 @@ api.interceptors.response.use(
     // A rejected step-up code is not an expired API session. Never replay an
     // MFA mutation automatically: it consumes attempts or a one-use proof.
     if (error.response?.status === 401 && originalRequest?.method?.toUpperCase() === 'POST'
-      && /\/auth\/(?:mfa\/|password\/change)/.test(originalRequest.url || '')) {
+      && /\/auth\/(?:mfa\/|passkeys\/|password\/change)/.test(originalRequest.url || '')) {
       return Promise.reject(error);
     }
 

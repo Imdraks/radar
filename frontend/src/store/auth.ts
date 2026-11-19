@@ -4,6 +4,7 @@ import { useSubscriptionStore } from "./subscriptionStore";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "@/lib/types";
+import { authenticatePasskey } from "@/lib/passkeys";
 import { authApi, api } from "@/lib/api";
 
 interface LoginResult {
@@ -104,7 +105,7 @@ export const useAuthStore = create<AuthState>()(
       complete2FA: async (method, code, trustDevice = false) => {
         const pending = get().pending2FA;
         if (!pending) throw new Error('Vérification expirée. Reconnectez-vous.');
-        const result = await authApi.mfaComplete(pending.tempToken, method, code, trustDevice);
+        const result = method === 'passkey' ? await authenticatePasskey(pending.tempToken, trustDevice) : await authApi.mfaComplete(pending.tempToken, method, code, trustDevice);
         await get().setTokens(result.access_token, result.refresh_token);
         set({ pending2FA: null });
       },

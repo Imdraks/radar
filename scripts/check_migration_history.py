@@ -35,7 +35,7 @@ def run():
             "TESTING": "true",
         }
 
-        def migrate(revision, direction='upgrade', expected_failure=None):
+        def migrate(revision, direction="upgrade", expected_failure=None):
             result = subprocess.run(
                 [sys.executable, "-m", "alembic", direction, revision],
                 cwd=ROOT / "backend",
@@ -53,7 +53,7 @@ def run():
                     "Migration failed; private diagnostic at /tmp/radar-migration-history-error.log"
                 )
             if expected_failure:
-                raise AssertionError('An unsafe migration unexpectedly succeeded')
+                raise AssertionError("An unsafe migration unexpectedly succeeded")
 
         try:
             if start:
@@ -93,37 +93,131 @@ def run():
             if start is None:
                 from check_migrated_api import run as check_api
 
+                # New lifecycle, factor and document guards are tested on this
+                # disposable database only; production evidence is never removed.
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "INSERT INTO users (id,email,must_change_password) VALUES (987652,'admin-migration@example.com',true)"
+                        )
+                    )
+                migrate(
+                    "059_profile_avatar",
+                    direction="downgrade",
+                    expected_failure="terminer les parcours de sécurité",
+                )
+                with engine.begin() as conn:
+                    assert conn.execute(
+                        text("SELECT must_change_password FROM users WHERE id=987652")
+                    ).scalar_one()
+                    conn.execute(
+                        text(
+                            "UPDATE users SET must_change_password=false WHERE id=987652"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "INSERT INTO passkey_credentials (id,user_id,credential_id,public_key,sign_count,name,created_at) VALUES ('00000000-0000-0000-0000-000000000001',987652,decode('01','hex'),decode('02','hex'),0,'TEST migration',now())"
+                        )
+                    )
+                migrate(
+                    "060_client_lifecycle",
+                    direction="downgrade",
+                    expected_failure="aucune suppression de facteur automatique",
+                )
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("DELETE FROM passkey_credentials WHERE user_id=987652")
+                    )
+                    conn.execute(
+                        text(
+                            "INSERT INTO platform_quotes (status,issuer,buyer,lines,total_ht,total_tax,total_ttc,currency,valid_until,notes,created_at) VALUES ('draft','{}','{}','[]',0,0,0,'EUR',CURRENT_DATE,'TEST migration',now())"
+                        )
+                    )
+                migrate(
+                    "061_passkeys",
+                    direction="downgrade",
+                    expected_failure="documents commerciaux",
+                )
+                with engine.begin() as conn:
+                    assert (
+                        conn.execute(
+                            text("SELECT count(*) FROM platform_quotes")
+                        ).scalar_one()
+                        == 1
+                    )
+                    conn.execute(text("DELETE FROM platform_quotes"))
+                    conn.execute(text("DELETE FROM users WHERE id=987652"))
+                print(
+                    "PASS platform migration: active setup, credentials and documents prevent destructive downgrade",
+                    flush=True,
+                )
+
                 # A photo is user data: never drop it automatically on rollback.
                 with engine.begin() as conn:
-                    conn.execute(text("INSERT INTO users (id,email,avatar_image) VALUES (987653,'photo-migration@example.com',decode('ffd8ffd9','hex'))"))
-                migrate('058_revocable_sessions', direction='downgrade', expected_failure='Exporter les photos personnalisées')
+                    conn.execute(
+                        text(
+                            "INSERT INTO users (id,email,avatar_image) VALUES (987653,'photo-migration@example.com',decode('ffd8ffd9','hex'))"
+                        )
+                    )
+                migrate(
+                    "058_revocable_sessions",
+                    direction="downgrade",
+                    expected_failure="Exporter les photos personnalisées",
+                )
                 with engine.begin() as conn:
-                    assert bytes(conn.execute(text('SELECT avatar_image FROM users WHERE id=987653')).scalar_one()) == bytes.fromhex('ffd8ffd9')
-                    conn.execute(text('DELETE FROM users WHERE id=987653'))
-                migrate('058_revocable_sessions', direction='downgrade')
-                migrate('head')
-                print('PASS profile photo migration: clean rollback and used-photo rollback refused', flush=True)
+                    assert bytes(
+                        conn.execute(
+                            text("SELECT avatar_image FROM users WHERE id=987653")
+                        ).scalar_one()
+                    ) == bytes.fromhex("ffd8ffd9")
+                    conn.execute(text("DELETE FROM users WHERE id=987653"))
+                migrate("058_revocable_sessions", direction="downgrade")
+                migrate("head")
+                print(
+                    "PASS profile photo migration: clean rollback and used-photo rollback refused",
+                    flush=True,
+                )
 
                 # Check a truly unused schema before API logins create sessions.
-                migrate('057_multichannel_mfa', direction='downgrade')
-                migrate('head')
+                migrate("057_multichannel_mfa", direction="downgrade")
+                migrate("head")
                 check_api(engine)
-                migrate('057_multichannel_mfa', direction='downgrade', expected_failure='Downgrade automatique refusé')
+                migrate(
+                    "057_multichannel_mfa",
+                    direction="downgrade",
+                    expected_failure="Downgrade automatique refusé",
+                )
                 # Only disposable harness records are removed for the legacy MFA check.
                 with engine.begin() as conn:
-                    conn.execute(text('DELETE FROM user_sessions'))
-                    conn.execute(text('DELETE FROM trusted_devices'))
+                    conn.execute(text("DELETE FROM user_sessions"))
+                    conn.execute(text("DELETE FROM trusted_devices"))
                 # A clean MFA schema can roll back. Upgrading a legacy enabled
                 # TOTP account preserves its secret and revokes old sessions.
-                migrate('056_full_credit_notes', direction='downgrade')
+                migrate("056_full_credit_notes", direction="downgrade")
                 with engine.begin() as conn:
-                    conn.execute(text("UPDATE users SET two_factor_enabled = true, two_factor_secret = 'JBSWY3DPEHPK3PXP' WHERE email = 'migrated-api@example.com'"))
-                migrate('head')
+                    conn.execute(
+                        text(
+                            "UPDATE users SET two_factor_enabled = true, two_factor_secret = 'JBSWY3DPEHPK3PXP' WHERE email = 'migrated-api@example.com'"
+                        )
+                    )
+                migrate("head")
                 with engine.connect() as conn:
-                    row = conn.execute(text("SELECT mfa_version,two_factor_secret FROM users WHERE email = 'migrated-api@example.com'")).one()
-                    assert row == (1, 'JBSWY3DPEHPK3PXP')
-                migrate('056_full_credit_notes', direction='downgrade', expected_failure='Downgrade automatique refusé')
-                print('PASS MFA migration: clean rollback, legacy preservation, session revocation, unsafe downgrade refused', flush=True)
+                    row = conn.execute(
+                        text(
+                            "SELECT mfa_version,two_factor_secret FROM users WHERE email = 'migrated-api@example.com'"
+                        )
+                    ).one()
+                    assert row == (1, "JBSWY3DPEHPK3PXP")
+                migrate(
+                    "056_full_credit_notes",
+                    direction="downgrade",
+                    expected_failure="Downgrade automatique refusé",
+                )
+                print(
+                    "PASS MFA migration: clean rollback, legacy preservation, session revocation, unsafe downgrade refused",
+                    flush=True,
+                )
             # A second upgrade must not renumber or recreate existing records.
             migrate("head")
             print("PASS migration path:", start or "empty database", flush=True)

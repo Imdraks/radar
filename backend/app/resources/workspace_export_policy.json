@@ -1493,7 +1493,8 @@
         "decided_at",
         "authorization_reference",
         "contract_acceptance_id",
-        "previous_plan"
+        "previous_plan",
+        "external_contract_id"
       ],
       "excluded_columns": []
     },
@@ -1598,12 +1599,16 @@
         "billing_email",
         "plan_expires_at",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "is_suspended"
       ],
       "excluded_columns": [
         "settings",
         "stripe_customer_id",
-        "stripe_subscription_id"
+        "stripe_subscription_id",
+        "suspended_at",
+        "suspension_reason",
+        "suspended_by"
       ]
     },
     "user_sessions": {
@@ -1611,6 +1616,21 @@
     },
     "trusted_devices": {
       "exclude": "Account authentication and browser authorization records; never included in workspace exports."
+    },
+    "client_invitations": {
+      "exclude": "Platform provisioning and account delivery records; account-level review required."
+    },
+    "passkey_credentials": {
+      "exclude": "Global account authentication credentials; never exported."
+    },
+    "passkey_challenges": {
+      "exclude": "Short-lived global authentication proofs; never exported."
+    },
+    "platform_quotes": {
+      "exclude": "Radar commercial documents and publisher snapshots; restitution through the platform administrator."
+    },
+    "external_client_contracts": {
+      "exclude": "Signed commercial evidence and binary documents; controlled restitution through the platform administrator."
     }
   }
 }

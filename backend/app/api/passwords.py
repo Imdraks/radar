@@ -100,6 +100,8 @@ def reset(data: ResetInput, response: Response, db: Session = Depends(get_db)):
         raise invalid
     password = validate(data, user)
     user.hashed_password = get_password_hash(password)
+    user.must_change_password = False
+    user.temporary_password_expires_at = None
     invalidate_credentials(db, user)
     audit(db, user, 'password.reset_completed')
     db.commit()
@@ -116,6 +118,8 @@ def change(data: ChangeInput, request: Request, response: Response, user: User =
     if not verify_password(data.current_password.get_secret_value(), user.hashed_password):
         _, failed = mfa.create_challenge(db, user, 'password_reauth')
         mfa.reject(db, failed, 'Ancien mot de passe incorrect.')
+    if user.must_change_password and (not user.temporary_password_expires_at or user.temporary_password_expires_at <= datetime.utcnow()):
+        raise HTTPException(401, 'Le mot de passe temporaire a expiré. Demandez une nouvelle invitation.')
     password = validate(data, user)
     if mfa.methods(user) or data.management_token:
         if not data.management_token:
@@ -123,6 +127,8 @@ def change(data: ChangeInput, request: Request, response: Response, user: User =
         _, proof = mfa.load_challenge(db, data.management_token, {'manage_verified'}, user.id)
         proof.used_at = datetime.utcnow()
     user.hashed_password = get_password_hash(password)
+    user.must_change_password = False
+    user.temporary_password_expires_at = None
     invalidate_credentials(db, user, preserve_session=session)
     tokens = mfa.issue_tokens(user, session=session)
     audit(db, user, 'password.changed')

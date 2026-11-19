@@ -2,7 +2,7 @@
 Workspace API - Multi-user workspace management
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -20,7 +20,32 @@ from app.schemas.workspace import (
 )
 from app.services.google_workspace import get_google_workspace_service, GoogleAPIError, TokenExpiredError
 
-router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+def workspace_lifecycle_guard(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Legacy membership/Drive URLs must obey the same suspension and first-login gate."""
+    if user.is_superuser:
+        return
+    if user.must_change_password and request.method not in {'GET', 'HEAD', 'OPTIONS'}:
+        raise HTTPException(403, 'PASSWORD_CHANGE_REQUIRED')
+    raw = request.path_params.get('workspace_id')
+    if raw is None:
+        return
+    try:
+        workspace_id = int(raw)
+    except (TypeError, ValueError):
+        return  # FastAPI path validation handles malformed identifiers.
+    ws = db.get(Workspace, workspace_id)
+    if not ws:
+        return
+    belongs = ws.owner_user_id == user.id or db.query(WorkspaceMember.id).filter_by(workspace_id=ws.id, user_id=user.id).first() is not None
+    if not belongs:
+        return  # The endpoint's permission check avoids revealing other organizations.
+    if user.must_change_password:
+        raise HTTPException(403, 'PASSWORD_CHANGE_REQUIRED')
+    if ws.is_suspended:
+        raise HTTPException(423, 'Cet espace est suspendu. Contactez votre interlocuteur Radar.')
+
+
+router = APIRouter(prefix="/workspaces", tags=["workspaces"], dependencies=[Depends(workspace_lifecycle_guard)])
 
 
 # ============================================================================
