@@ -77,19 +77,6 @@ export const useAuthStore = create<AuthState>()(
           // Fetch user after login
           await get().fetchUser();
           
-          // Auto-select first workspace if none selected
-          const currentWsId = localStorage.getItem("current_workspace_id");
-          if (!currentWsId) {
-            try {
-              const wsResponse = await api.get("/workspaces");
-              const workspaces = wsResponse.data.items;
-              if (workspaces && workspaces.length > 0) {
-                localStorage.setItem("current_workspace_id", workspaces[0].id.toString());
-              }
-            } catch (e) {
-              // Ignore workspace fetch errors
-            }
-          }
           
           return { success: true };
         } catch (error) {
@@ -171,19 +158,6 @@ export const useAuthStore = create<AuthState>()(
         // Fetch user info
         await get().fetchUser();
         
-        // Auto-select first workspace if none selected
-        const currentWsId = localStorage.getItem("current_workspace_id");
-        if (!currentWsId) {
-          try {
-            const wsResponse = await api.get("/workspaces");
-            const workspaces = wsResponse.data.items;
-            if (workspaces && workspaces.length > 0) {
-              localStorage.setItem("current_workspace_id", workspaces[0].id.toString());
-            }
-          } catch (e) {
-            // Ignore workspace fetch errors
-          }
-        }
       },
 
       initializeAuth: async () => {

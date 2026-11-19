@@ -98,8 +98,17 @@ def run():
                 with engine.begin() as conn:
                     conn.execute(
                         text(
-                            "INSERT INTO users (id,email,must_change_password) VALUES (987652,'admin-migration@example.com',true)"
+                            "INSERT INTO users (id,email,must_change_password,is_collaborator) VALUES (987652,'admin-migration@example.com',true,true)"
                         )
+                    )
+                migrate(
+                    "062_platform_sales",
+                    direction="downgrade",
+                    expected_failure="préférences des comptes collaborateurs",
+                )
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("UPDATE users SET is_collaborator=false WHERE id=987652")
                     )
                 migrate(
                     "059_profile_avatar",

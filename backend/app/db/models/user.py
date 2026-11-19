@@ -42,6 +42,8 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     is_whitelisted = Column(Boolean, default=False)  # Only whitelisted users can login
     
+    is_collaborator = Column(Boolean, nullable=False, default=False, server_default='false')
+
     # New client owners must replace their one-time credential before workspace access.
     must_change_password = Column(Boolean, nullable=False, default=False, server_default='false')
     temporary_password_expires_at = Column(DateTime, nullable=True)

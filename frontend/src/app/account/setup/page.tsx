@@ -17,10 +17,10 @@ function Setup() {
   const [choice, setChoice] = useState<'mfa' | 'passkey'>('mfa');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { if (user && !user.must_change_password && !user.security_setup_pending) router.replace('/account/workspaces'); }, [user, router]);
+  useEffect(() => { if (user && !user.must_change_password && !user.security_setup_pending) router.replace('/account/entry'); }, [user, router]);
   const finish = async (security: 'later' | 'configured') => {
     setBusy(true); setError('');
-    try { await api.post('/auth/account/setup/complete', { security }); await fetchUser(); router.replace('/account/workspaces'); }
+    try { await api.post('/auth/account/setup/complete', { security }); await fetchUser(); router.replace('/account/entry'); }
     catch (failure) { setError(mfaError(failure)); } finally { setBusy(false); }
   };
   return <main className="radar-app min-h-screen bg-background px-5 py-8 text-foreground"><div className="mx-auto max-w-2xl space-y-7">

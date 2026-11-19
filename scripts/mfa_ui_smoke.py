@@ -65,6 +65,7 @@ async def main():
                 elif path.endswith('/auth/mfa/enroll/complete'):
                     active[:] = list(dict.fromkeys([method for method in active if method != 'recovery'] + [body['method'], 'recovery']))
                     data = {'enabled': True, 'backup_codes': CODES, 'access_token': 'explicit-fixture-updated-access', 'refresh_token': 'explicit-fixture-updated-refresh'}
+                elif path.endswith('/auth/account/workspaces'): data = [{'id':1,'name':'TEST workspace','is_suspended':False}]
                 elif path.endswith('/auth/me'): data = USER
                 elif path.endswith('/workspaces'): data = {'items': [{'id': 1, 'name': 'TEST workspace', 'members_count': 1}]}
                 elif path.endswith('/subscription/current'): data = {'workspace_id': 1, 'plan': 'core', 'plan_display_name': 'Radar Core', 'available_features': ['cockpit', 'projects'], 'max_seats': 3, 'current_seats': 1}

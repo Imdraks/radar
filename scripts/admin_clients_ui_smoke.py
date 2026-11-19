@@ -84,9 +84,35 @@ async def main():
             calls = []
             errors = []
             fail_creation = True
+            fail_plan = True
+            workspace_rows = [{"id": 1, "name": "TEST agence", "is_suspended": False}]
+            detail["acceptances"] = [
+                {
+                    "id": 12,
+                    "bundle_id": 7,
+                    "plan": "premium",
+                    "version": "TEST-v1",
+                    "reference": "TEST agreement",
+                    "accepted_at": "2026-11-19T00:00:00",
+                    "representative": {"name": "TEST Owner"},
+                    "content_hash": "a" * 64,
+                }
+            ]
+            detail["orders"] = [
+                {
+                    "id": 9,
+                    "kind": "plan",
+                    "value": "business",
+                    "status": "pending",
+                    "created_at": "2026-11-19T00:00:00",
+                    "decided_at": None,
+                    "authorization_reference": None,
+                    "contract_acceptance_id": None,
+                }
+            ]
 
             async def api(route):
-                nonlocal fail_creation
+                nonlocal fail_creation, fail_plan
                 path = urlparse(route.request.url).path
                 method = route.request.method
                 status = 200
@@ -127,7 +153,7 @@ async def main():
                     user["security_setup_pending"] = False
                     data = {"completed": True}
                 elif path.endswith("/auth/account/workspaces"):
-                    data = [{"id": 1, "name": detail["name"], "is_suspended": False}]
+                    data = workspace_rows
                 elif path.endswith("/auth/setup-check"):
                     data = {"needs_setup": False}
                 elif path.endswith("/admin/clients") and method == "POST":
@@ -141,6 +167,40 @@ async def main():
                         }
                 elif path.endswith("/admin/clients"):
                     data = {"items": [detail], "total": 1, "page": 1, "limit": 25}
+                elif path.endswith("/admin/clients/1/orders") and method == "POST":
+                    assert body == {"kind": "plan", "value": "premium"}
+                    row = {
+                        "id": 8,
+                        "kind": "plan",
+                        "value": body["value"],
+                        "status": "pending",
+                        "created_at": "2026-11-19T00:00:00",
+                        "decided_at": None,
+                        "authorization_reference": None,
+                        "contract_acceptance_id": None,
+                    }
+                    detail["orders"].append(row)
+                    data = {"id": 8, "status": "pending"}
+                    status = 201
+                elif path.endswith("/subscription/admin/requests/8/decision"):
+                    assert body["approve"] and body["contract_acceptance_id"] == 12
+                    assert body["authorization_reference"] == "TEST offer authorization"
+                    if fail_plan:
+                        fail_plan = False
+                        status, data = 409, {"detail": "TEST — validation refusée"}
+                    else:
+                        detail["plan"], detail["plan_display_name"] = (
+                            "premium",
+                            "Radar Premium",
+                        )
+                        next(row for row in detail["orders"] if row["id"] == 8)[
+                            "status"
+                        ] = "approved"
+                        data = {
+                            "rights_activated": True,
+                            "payment_confirmed": False,
+                            "status": "approved",
+                        }
                 elif path.endswith("/admin/clients/1/suspension"):
                     detail["is_suspended"] = body["suspended"]
                     detail["suspension_reason"] = body["reason"]
@@ -249,6 +309,68 @@ async def main():
             await page.get_by_role(
                 "heading", name=CLIENT["name"], exact=True
             ).wait_for()
+            apply = page.get_by_role(
+                "button", name="Appliquer la modification", exact=True
+            )
+            assert await apply.is_disabled()
+            await page.get_by_label("Nouvelle offre", exact=True).select_option(
+                "premium"
+            )
+            await apply.click()
+            dialog = page.get_by_role("dialog")
+            await dialog.get_by_role(
+                "heading", name="Confirmer le changement d’offre", exact=True
+            ).wait_for()
+            assert detail["plan"] == "core"
+            await dialog.get_by_label("Preuve contractuelle", exact=True).select_option(
+                "native:12"
+            )
+            await dialog.get_by_label(
+                "Référence de l’accord ou du contrôle", exact=True
+            ).fill("TEST offer authorization")
+            await dialog.get_by_role("checkbox").check()
+            await dialog.get_by_role(
+                "button", name="Appliquer la modification", exact=True
+            ).click()
+            await dialog.get_by_role("alert").filter(
+                has_text="TEST — validation refusée"
+            ).wait_for()
+            assert detail["plan"] == "core"
+            await dialog.get_by_role(
+                "button", name="Appliquer la modification", exact=True
+            ).click()
+            await expect(dialog).not_to_be_visible()
+            await expect(page.get_by_label("Nouvelle offre", exact=True)).to_have_value(
+                "premium"
+            )
+            assert await apply.is_disabled()
+            # Reuse an existing request; cancelling its review changes no rights.
+            await page.get_by_label("Nouvelle offre", exact=True).select_option(
+                "business"
+            )
+            await apply.click()
+            await dialog.get_by_role(
+                "heading", name="Confirmer le changement d’offre", exact=True
+            ).wait_for()
+            assert (
+                await dialog.get_by_label("Preuve contractuelle", exact=True)
+                .locator("option")
+                .count()
+                == 1
+            )
+            await dialog.get_by_role("button", name="Annuler", exact=True).click()
+            assert detail["plan"] == "premium"
+            assert (
+                len(
+                    [
+                        call
+                        for call in calls
+                        if call[0] == "POST"
+                        and call[1].endswith("/admin/clients/1/orders")
+                    ]
+                )
+                == 1
+            )
             for tab in [
                 "Équipe et invitations",
                 "Commandes et accès",
@@ -313,12 +435,48 @@ async def main():
             ).click()
             await page.get_by_role("button", name="Plus tard", exact=True).wait_for()
             await page.get_by_role("button", name="Plus tard", exact=True).click()
-            await page.wait_for_url("**/account/workspaces")
+            await page.wait_for_url("**/today")
+            assert (
+                await page.evaluate("localStorage.getItem('current_workspace_id')")
+                == "1"
+            )
             assert any(
                 path.endswith("/auth/account/setup/complete")
                 and body == {"security": "later"}
                 for _, path, body in calls
             )
+            # Collaborators always choose, even with one workspace and a saved ID.
+            user["is_collaborator"] = True
+            await page.goto(BASE + "/login", wait_until="domcontentloaded")
+            await page.wait_for_url("**/account/workspaces")
+            await page.get_by_role(
+                "heading", name="Vos espaces de travail", exact=True
+            ).wait_for()
+            await page.get_by_role("button", name="Ouvrir l’espace", exact=True).click()
+            await page.wait_for_url("**/today")
+            # Ordinary multi-workspace accounts must choose too, without guessing.
+            user["is_collaborator"] = False
+            workspace_rows.append(
+                {"id": 2, "name": "TEST second", "is_suspended": False}
+            )
+            await page.goto(BASE + "/login", wait_until="domcontentloaded")
+            await page.wait_for_url("**/account/workspaces")
+            await page.get_by_role("listitem").filter(
+                has_text="TEST second"
+            ).get_by_role("button", name="Ouvrir l’espace", exact=True).click()
+            await page.wait_for_url("**/today")
+            assert (
+                await page.evaluate("localStorage.getItem('current_workspace_id')")
+                == "2"
+            )
+            workspace_rows[:] = [
+                {"id": 1, "name": "TEST suspended", "is_suspended": True}
+            ]
+            await page.goto(BASE + "/login", wait_until="domcontentloaded")
+            await page.wait_for_url("**/account/workspaces")
+            await expect(
+                page.get_by_role("button", name="Ouvrir l’espace", exact=True)
+            ).to_be_disabled()
             assert not errors, errors
             await context.close()
             print(f"PASS admin + quote download + first login: {width}px")

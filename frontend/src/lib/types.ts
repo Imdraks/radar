@@ -134,6 +134,7 @@ export interface LinkedAccount {
 }
 
 export interface User {
+  is_collaborator?: boolean;
   must_change_password?: boolean;
   security_setup_pending?: boolean;
   id: number;

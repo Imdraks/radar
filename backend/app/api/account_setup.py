@@ -49,14 +49,14 @@ def complete(
 def workspaces(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.must_change_password:
         raise HTTPException(403, "PASSWORD_CHANGE_REQUIRED")
+    # A membership subquery avoids DISTINCT across PostgreSQL JSON columns.
+    memberships = db.query(WorkspaceMember.workspace_id).filter(
+        WorkspaceMember.user_id == user.id
+    )
     rows = (
         db.query(Workspace)
-        .outerjoin(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
-        .filter(
-            or_(Workspace.owner_user_id == user.id, WorkspaceMember.user_id == user.id)
-        )
-        .distinct()
-        .order_by(Workspace.name)
+        .filter(or_(Workspace.owner_user_id == user.id, Workspace.id.in_(memberships)))
+        .order_by(Workspace.name, Workspace.id)
         .all()
     )
     return [dict(id=ws.id, name=ws.name, is_suspended=ws.is_suspended) for ws in rows]

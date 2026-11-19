@@ -260,6 +260,7 @@ function UserForm({
     full_name: string;
     role: string;
     is_active: boolean;
+    is_collaborator: boolean;
   }>({
     defaultValues: user ? {
       email: user.email,
@@ -267,12 +268,14 @@ function UserForm({
       full_name: user.full_name || "",
       role: user.role,
       is_active: user.is_active,
+      is_collaborator: user.is_collaborator || false,
     } : {
       email: "",
       password: "",
       full_name: "",
       role: "viewer",
       is_active: true,
+      is_collaborator: false,
     },
   });
 
@@ -327,6 +330,10 @@ function UserForm({
         <Label htmlFor="is_active">Utilisateur actif</Label>
       </div>
 
+      <div className="space-y-2 rounded-xl border p-4">
+        <div className="flex items-center gap-2"><Switch id="is_collaborator" checked={watch("is_collaborator")} onCheckedChange={value => setValue("is_collaborator", value)} /><Label htmlFor="is_collaborator">Compte collaborateur</Label></div>
+        <p className="text-xs leading-6 text-muted-foreground">Demander le choix du workspace après chaque connexion. Ce mode n’ajoute aucun droit ni accès à une entreprise.</p>
+      </div>
       <DialogFooter>
         <Button type="submit" disabled={isLoading}>
           {isLoading ? "Enregistrement..." : user ? "Modifier" : "Créer"}

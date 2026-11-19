@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { loginDestination } from '@/lib/login-destination';
 import { useAuthStore } from "@/store/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,7 @@ function AuthCallbackContent() {
         setStatus("success");
         setMessage(isNew ? "Compte créé avec succès !" : "Connexion réussie !");
 
-        const redirectPath = useAuthStore.getState().user?.is_superuser ? '/admin' : '/today';
+        const redirectPath = loginDestination(useAuthStore.getState().user);
 
         // Redirect after a short delay
         setTimeout(() => {

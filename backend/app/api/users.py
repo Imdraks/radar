@@ -24,6 +24,7 @@ def user_to_response(user: User) -> dict:
         "role": user.role,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
+        "is_collaborator": user.is_collaborator,
         "is_whitelisted": user.is_whitelisted or False,
         "created_at": user.created_at,
         "last_login_at": user.last_login_at,
@@ -82,6 +83,8 @@ def create_user(
     current_user: User = Depends(require_admin),
 ):
     """Create a new user"""
+    if user_data.is_collaborator and not current_user.is_superuser:
+        raise HTTPException(403, 'Seul le super-admin peut définir un compte collaborateur.')
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
         raise HTTPException(
@@ -95,6 +98,7 @@ def create_user(
         full_name=user_data.full_name,
         role=user_data.role,
         is_active=user_data.is_active,
+        is_collaborator=user_data.is_collaborator,
         is_whitelisted=True,  # Users created by admin are automatically whitelisted
     )
     db.add(user)
@@ -119,6 +123,11 @@ def update_user(
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    if 'is_collaborator' in update_dict:
+        if not current_user.is_superuser:
+            raise HTTPException(403, 'Seul le super-admin peut changer le mode collaborateur.')
+        if update_dict['is_collaborator'] is None:
+            raise HTTPException(422, 'Choisissez un mode de compte valide.')
     if 'password' in update_dict:
         if user.id == current_user.id:
             raise HTTPException(409, 'Pour votre propre compte, utilisez le changement de mot de passe avec ancien mot de passe et A2F.')
