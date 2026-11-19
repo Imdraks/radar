@@ -1,0 +1,55 @@
+/* A viewport-sized, focus-trapped guide; the account's theme remains unchanged. */
+.radar-guide {
+  --background: 0 0% 100%; --foreground: 240 22% 14%; --card: 0 0% 100%;
+  --muted: 250 30% 97%; --muted-foreground: 240 10% 44%; --border: 245 20% 91%;
+  --primary: 254 73% 60%; --primary-foreground: 0 0% 100%; --accent: 254 80% 97%; --accent-foreground: 254 73% 40%;
+  --ring: 254 73% 60%;
+  inset: 0 !important; transform: none !important; width: 100% !important; max-width: none !important;
+  height: 100vh; height: 100dvh; padding: 0 !important; border: 0; border-radius: 0 !important;
+  display: flex; flex-direction: column; gap: 0; overflow: hidden; box-shadow: none;
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.radar-guide[data-state='open'] { animation: radar-guide-in 240ms ease both; }
+.radar-guide[data-state='closed'] { animation: radar-guide-out 160ms ease both; }
+.radar-guide-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 76px 22px 36px; flex-shrink: 0; }
+.radar-guide-brand { font-size: 26px; font-weight: 700; letter-spacing: -1.2px; }
+.radar-guide-brand > span { color: hsl(var(--primary)); }
+.radar-guide-steps { display: flex; align-items: center; gap: 32px; }
+.radar-guide-steps li { display: flex; align-items: center; gap: 9px; color: hsl(var(--muted-foreground)); font-size: 12px; }
+.radar-guide-step-number { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid hsl(var(--border)); font-size: 11px; }
+.radar-guide-steps li[aria-current='step'] { color: hsl(var(--primary)); font-weight: 600; }
+.radar-guide-steps li[aria-current='step'] .radar-guide-step-number { background: hsl(var(--primary)); color: white; border-color: transparent; }
+.radar-guide-steps li[data-complete='true'] .radar-guide-step-number { background: hsl(var(--accent)); color: hsl(var(--primary)); border-color: transparent; }
+.radar-guide > button:last-child { top: 24px; right: 28px; padding: 5px; }
+.radar-guide-progress { height: 2px; flex-shrink: 0; background: hsl(var(--muted)); }
+.radar-guide-progress > span { display: block; height: 100%; background: hsl(var(--primary)); transition: width 400ms cubic-bezier(.22,1,.36,1); }
+.radar-guide-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.radar-guide-main { display: grid; grid-template-columns: .8fr 1.2fr; align-items: center; gap: clamp(40px, 6vw, 100px); width: 100%; max-width: 1200px; min-height: 100%; margin: 0 auto; padding: 64px 48px; }
+.radar-guide-mascot { display: flex; flex-direction: column; align-items: center; gap: 30px; }
+.radar-guide-mascot > p { max-width: 270px; text-align: center; font-size: 14px; line-height: 1.8; color: hsl(var(--muted-foreground)); }
+.radar-guide-copy { min-width: 0; }
+.radar-guide-copy h2 { font-size: clamp(28px, 3vw, 40px); line-height: 1.15; letter-spacing: -1.3px; }
+.radar-guide-copy section > p:not(.radar-eyebrow) { font-size: 15px; line-height: 1.9; }
+.radar-guide-copy a { outline-offset: 4px; }
+.radar-guide-copy a:hover { background: hsl(var(--accent)); }
+.radar-guide-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px max(28px, calc((100vw - 1104px)/2)); border-top: 1px solid hsl(var(--border)); flex-shrink: 0; }
+.radar-guide-footer > button { min-height: 44px; border-radius: 12px; }
+@keyframes radar-guide-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes radar-guide-out { from { opacity: 1; } to { opacity: 0; } }
+@media (max-width: 700px) {
+  .radar-guide-header { padding: 18px 60px 18px 20px; gap: 12px; }
+  .radar-guide-brand { font-size: 23px; }
+  .radar-guide-steps { gap: 10px; }
+  .radar-guide-step-label { display: none; }
+  .radar-guide > button:last-child { top: 20px; right: 18px; }
+  .radar-guide-main { grid-template-columns: 1fr; gap: 30px; padding: 32px 24px; }
+  .radar-guide-mascot { gap: 8px; }
+  .radar-guide-mascot .radar-mascot { --mascot-size: 160px !important; }
+  .radar-guide-mascot > p { font-size: 12px; max-width: 290px; }
+  .radar-guide-copy h2 { font-size: 28px; letter-spacing: -.8px; }
+  .radar-guide-footer { padding: 14px 18px max(14px, env(safe-area-inset-bottom)); gap: 8px; }
+  .radar-guide-footer > button { font-size: 13px; padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-guide, .radar-guide-progress > span { animation: none !important; transition: none !important; }
+}

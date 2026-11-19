@@ -1,0 +1,27 @@
+/* Every facial part is a real Inter glyph; the font is inherited from next/font. */
+.radar-mascot { display: inline-block; position: relative; flex-shrink: 0; width: var(--mascot-size, 96px); height: var(--mascot-size, 96px); font-size: var(--mascot-size, 96px); font-family: inherit; font-weight: 850; line-height: 1; color: hsl(var(--foreground)); vertical-align: middle; }
+.radar-mascot-brow { position: absolute; left: 33%; top: 27%; display: flex; align-items: center; justify-content: center; width: .5em; height: 1em; font-size: .38em; font-weight: 900; line-height: 1; transform: translate(-50%, -50%) rotate(90deg) scaleY(.75); transition: top 220ms ease, scale 220ms ease; }
+.radar-mascot-brow-right { left: 67%; top: 18%; }
+.radar-mascot-gaze { position: absolute; inset: 0; transform: translate(var(--look-x, 0em), var(--look-y, 0em)); transition: transform 450ms cubic-bezier(.22,1,.36,1); }
+.radar-mascot-eye { position: absolute; left: 33%; top: 46%; display: flex; align-items: center; justify-content: center; width: .7em; height: .7em; font-size: .35em; font-weight: 800; line-height: 1; transform: translate(-50%, -50%); transition: scale 140ms ease; }
+.radar-mascot-eye-right { left: 67%; }
+.radar-mascot-eye > span { display: inline-block; }
+.radar-mascot-eye[data-shape='curve'] > span { font-size: .8em; transform: rotate(90deg) scaleY(.6); }
+.radar-mascot-eye[data-shape='dash'] > span { font-size: .75em; }
+.radar-mascot-mouth { position: absolute; left: 50%; top: 74%; display: flex; align-items: center; justify-content: center; width: .9em; height: 1em; font-size: .35em; font-weight: 800; line-height: 1; transform: translate(-50%, -50%); transition: scale 180ms ease; }
+.radar-mascot-mouth[data-shape='curve'] { font-size: .28em; font-weight: 500; transform: translate(-50%, -50%) rotate(90deg) scaleY(.55); }
+.radar-mascot-mouth[data-shape='open'] { font-size: .23em; font-weight: 450; }
+.radar-mascot[data-expression='awake'] .radar-mascot-eye { scale: 1.16; }
+.radar-mascot[data-expression='awake'] .radar-mascot-brow-left { top: 23%; }
+.radar-mascot[data-expression='awake'] .radar-mascot-brow-right { top: 14%; }
+.radar-mascot[data-expression='dreamy'] .radar-mascot-brow-left, .radar-mascot[data-expression='yawn'] .radar-mascot-brow-left { top: 30%; }
+.radar-mascot[data-expression='dreamy'] .radar-mascot-brow-right, .radar-mascot[data-expression='yawn'] .radar-mascot-brow-right { top: 25%; }
+.radar-mascot[data-expression='wink'] .radar-mascot-brow-right { top: 13%; }
+.radar-mascot[data-mood='idea'] .radar-mascot-brow-left { top: 20%; }
+.radar-mascot[data-mood='idea'] .radar-mascot-brow-right { top: 16%; }
+.radar-mascot[data-blink='true'] .radar-mascot-eye { scale: 1 .3; transition-duration: 70ms; }
+.radar-mascot[data-moving='true'] .radar-mascot-brow { animation: radar-face-idle 5.8s ease-in-out infinite; }
+.radar-mascot[data-moving='true'] .radar-mascot-brow-right { animation-delay: -.8s; }
+@keyframes radar-face-idle { 0%,100% { translate: 0 0; } 50% { translate: 0 -.025em; } }
+@media (prefers-reduced-motion: reduce) { .radar-mascot, .radar-mascot * { animation: none !important; transition: none !important; } }
+@media print { .radar-mascot * { animation: none !important; } }

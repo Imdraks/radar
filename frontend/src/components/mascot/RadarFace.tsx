@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import './radar-sphere.css';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import './radar-face.css';
 
 type Expression = 'neutral' | 'awake' | 'dreamy' | 'yawn' | 'wink';
-export type SphereMood = 'calm' | 'curious' | 'idea';
+export type RadarMood = 'calm' | 'curious' | 'idea';
 
-/** Decorative face: no requests, microphone, cursor storage or animation dependency. */
-export function RadarSphere({ size = 96, mood = 'calm', active = true, attentive = false, cue = 0 }: {
-  size?: number; mood?: SphereMood; active?: boolean; attentive?: boolean; cue?: number;
+/** Real Inter glyphs, animated in the DOM. No image, SVG, canvas or external request. */
+export function RadarFace({ size = 96, mood = 'calm', active = true, attentive = false, cue = 0 }: {
+  size?: number; mood?: RadarMood; active?: boolean; attentive?: boolean; cue?: number;
 }) {
   const root = useRef<HTMLSpanElement>(null);
   const nearby = useRef(false);
@@ -45,8 +45,8 @@ export function RadarSphere({ size = 96, mood = 'calm', active = true, attentive
     };
     const restore = () => setExpression(nearby.current || focused.current ? 'awake' : 'neutral');
     const gaze = (x: number, y: number) => {
-      element.style.setProperty('--look-x', `${x.toFixed(2)}px`);
-      element.style.setProperty('--look-y', `${y.toFixed(2)}px`);
+      element.style.setProperty('--look-x', `${(x / 100).toFixed(4)}em`);
+      element.style.setProperty('--look-y', `${(y / 100).toFixed(4)}em`);
     };
     nearby.current = false; setNear(false); setBlinking(false); gaze(0, 0);
     if (!moving) { setExpression('neutral'); return; }
@@ -93,14 +93,18 @@ export function RadarSphere({ size = 96, mood = 'calm', active = true, attentive
   }, [moving, size, attentive, cue]);
 
   const visibleMood = near ? 'curious' : mood;
-  return <span ref={root} className="radar-sphere" aria-hidden="true" data-mood={visibleMood} data-expression={attentive && moving ? 'awake' : expression} data-blink={blinking} data-moving={moving} data-attentive={near || attentive || expression === 'awake'} style={{ width: size, height: size }}>
-    <svg viewBox="0 0 100 100" focusable="false" className="radar-sphere-face">
-      <g className="radar-sphere-gaze">
-        <g className="radar-sphere-eye radar-sphere-eye-left"><ellipse cx="36" cy="44" rx="8.5" ry="11" /><circle cx="33.5" cy="40" r="2.2" className="radar-sphere-glint" /></g>
-        <g className="radar-sphere-eye radar-sphere-eye-right"><ellipse cx="64" cy="44" rx="8.5" ry="11" /><circle cx="61.5" cy="40" r="2.2" className="radar-sphere-glint" /></g>
-        <path className="radar-sphere-mouth radar-sphere-smile" d="M42 65 Q50 72 58 65" />
-        <ellipse className="radar-sphere-mouth radar-sphere-yawn" cx="50" cy="67" rx="4" ry="5.5" />
-      </g>
-    </svg>
+  const shown = attentive && moving ? 'awake' : expression;
+  const left = blinking || shown === 'yawn' ? '–' : shown === 'dreamy' ? ')' : '•';
+  const right = blinking || shown === 'yawn' ? '–' : shown === 'dreamy' || shown === 'wink' ? ')' : '•';
+  const mouth = shown === 'yawn' || shown === 'awake' ? 'o' : shown === 'dreamy' || shown === 'wink' || mood === 'idea' ? ')' : '•';
+  const shape = (glyph: string) => glyph === ')' ? 'curve' : glyph === '–' ? 'dash' : glyph === 'o' ? 'open' : 'dot';
+  return <span ref={root} className="radar-mascot" aria-hidden="true" data-mood={visibleMood} data-expression={shown} data-blink={blinking} data-moving={moving} data-attentive={near || attentive || expression === 'awake'} style={{ '--mascot-size': `${size}px` } as CSSProperties}>
+    <span className="radar-mascot-brow radar-mascot-brow-left">(</span>
+    <span className="radar-mascot-brow radar-mascot-brow-right">(</span>
+    <span className="radar-mascot-gaze">
+      <span className="radar-mascot-eye radar-mascot-eye-left" data-shape={shape(left)}><span>{left}</span></span>
+      <span className="radar-mascot-eye radar-mascot-eye-right" data-shape={shape(right)}><span>{right}</span></span>
+      <span className="radar-mascot-mouth" data-shape={shape(mouth)}>{mouth}</span>
+    </span>
   </span>;
 }
