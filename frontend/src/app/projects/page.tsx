@@ -1,4 +1,5 @@
 'use client';
+import { useToast } from "@/components/ui/toaster";
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState, useEffect } from 'react';
@@ -74,6 +75,7 @@ export default function ProjectsPage() {
 }
 
 function ProjectsContent() {
+  const { addToast } = useToast();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -164,11 +166,15 @@ function ProjectsContent() {
       });
       
       if (response.ok) {
+        addToast({ type: 'success', title: 'Projet créé' });
         setShowAddModal(false);
         setNewProject({ name: '', client_id: '', deal_id: '', deadline: '', budget: '', description: '' });
         await fetchData();
+      } else {
+        addToast({ type: 'error', title: 'Le projet n’a pas pu être créé', description: 'Vérifiez les champs et vos droits, puis réessayez.' });
       }
     } catch (err) {
+      addToast({ type: 'error', title: 'Connexion impossible', description: 'Le projet n’a pas été confirmé. Réessayez lorsque la connexion est rétablie.' });
       console.error('Failed to create project:', err);
     }
   };
@@ -207,11 +213,15 @@ function ProjectsContent() {
         }),
       });
       if (response.ok) {
+        addToast({ type: 'success', title: 'Projet mis à jour' });
         setShowEditModal(false);
         setSelectedProject(null);
         await fetchData();
+      } else {
+        addToast({ type: 'error', title: 'Le projet n’a pas pu être enregistré' });
       }
     } catch (err) {
+      addToast({ type: 'error', title: 'Connexion impossible', description: 'Les modifications n’ont pas été confirmées.' });
       console.error('Failed to update project:', err);
     }
   };

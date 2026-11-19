@@ -1,5 +1,5 @@
 /* Each part is an actual Inter glyph, inheriting the next/font family. */
-.radar-mascot { display: inline-block; position: relative; flex-shrink: 0; width: var(--mascot-size, 96px); height: var(--mascot-size, 96px); font-size: var(--mascot-size, 96px); font-family: inherit; font-weight: 800; line-height: 1; color: hsl(var(--foreground)); vertical-align: middle; }
+.radar-mascot { pointer-events: none; user-select: none; display: inline-block; position: relative; flex-shrink: 0; width: var(--mascot-size, 96px); height: var(--mascot-size, 96px); font-size: var(--mascot-size, 96px); font-family: inherit; font-weight: 800; line-height: 1; color: hsl(var(--foreground)); vertical-align: middle; }
 .radar-mascot-features { position: absolute; inset: 0; }
 .radar-mascot[data-moving='true']:not([data-expression='neutral']) .radar-mascot-features { animation: radar-expression-settle 200ms cubic-bezier(.2,.8,.3,1) both; }
 .radar-mascot-brow { position: absolute; left: 33%; top: 24%; display: flex; align-items: center; justify-content: center; width: .5em; height: 1em; font-size: .38em; font-weight: 900; line-height: 1; transform: translate(-50%, -50%) rotate(90deg) scaleY(.75); transition: top 220ms ease, scale 220ms ease; }

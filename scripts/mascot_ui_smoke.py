@@ -77,6 +77,7 @@ async def main():
             await button.focus()
             await expect(sphere).to_have_attribute('data-expression','smile')
             await page.keyboard.press('Enter')
+            await page.get_by_role('dialog',name='Piloter un projet',exact=True).get_by_role('button',name='Revoir les premiers pas',exact=True).click()
             dialog=page.get_by_role('dialog',name='Bienvenue sur Radar',exact=True)
             await expect(dialog).to_be_visible()
             await expect(sphere).to_have_attribute('data-moving','false')
@@ -121,8 +122,7 @@ async def main():
             await expect(dialog).to_be_hidden()
             await expect(button).to_be_focused()
             await expect(sphere).to_have_attribute('data-moving','true')
-            # Focus restoration can briefly reposition the help tooltip after closing.
-            # Poll the same no-overflow requirement instead of sampling that intermediate frame.
+            # Wait for closing overlays and focus restoration before checking geometry.
             await expect(page.locator('html')).to_have_js_property('scrollWidth', width)
             assert not mutations and not errors,(mutations,errors)
             await page.emulate_media(reduced_motion='reduce')
@@ -147,6 +147,7 @@ async def main():
         await page.goto(BASE+'/projects',wait_until='networkidle')
         button=page.get_by_role('button',name='Ouvrir l’aide Radar',exact=True)
         await button.click()
+        await page.get_by_role('dialog',name='Piloter un projet',exact=True).get_by_role('button',name='Revoir les premiers pas',exact=True).click()
         dialog=page.get_by_role('dialog',name='Bienvenue sur Radar',exact=True)
         await expect(dialog).to_be_visible()
         await expect(dialog.locator('.radar-mascot')).to_have_attribute('data-moving','false')
@@ -163,6 +164,7 @@ async def main():
         await expect(button).to_be_focused()
         await expect(page.locator('html')).to_have_class('dark')
         await button.click()
+        await page.get_by_role('dialog',name='Piloter un projet',exact=True).get_by_role('button',name='Revoir les premiers pas',exact=True).click()
         await expect(dialog.get_by_role('heading',name='Un même endroit pour avancer.')).to_be_visible()
         print('320px/568px: footer accessible, tools scroll, reduced motion, dark theme preserved, reopen reset OK',flush=True)
         await context.close()

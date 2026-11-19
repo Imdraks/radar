@@ -100,6 +100,7 @@ jobs:
           python ../scripts/pricing_ui_smoke.py
           python ../scripts/public_account_ui_smoke.py
           python ../scripts/mascot_ui_smoke.py
+          python ../scripts/companion_ui_smoke.py
           python ../scripts/theme_ui_smoke.py
           python ../scripts/contact_ui_smoke.py
           python ../scripts/documentation_ui_smoke.py

@@ -16,6 +16,9 @@ export interface OnboardingStep {
 }
 
 interface OnboardingContextType {
+  helpOpen: boolean;
+  openHelp: () => void;
+  closeHelp: () => void;
   guideOpen: boolean;
   openGuide: () => void;
   closeGuide: () => void;
@@ -40,8 +43,14 @@ const ONBOARDING_VERSION = "2.0"; // Increment to re-show onboarding after updat
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [guideOpen, setGuideOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const openHelp = useCallback(() => {
+    setGuideOpen(false); setIsActive(false); setHelpOpen(true);
+    try { localStorage.setItem("opportunities-radar-welcome-shown-v2", "true"); } catch { /* Manual help works without storage. */ }
+  }, []);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
   const [isActive, setIsActive] = useState(false);
-  const openGuide = useCallback(() => { setIsActive(false); setGuideOpen(true); }, []);
+  const openGuide = useCallback(() => { setIsActive(false); setHelpOpen(false); setGuideOpen(true); }, []);
   const closeGuide = useCallback(() => {
     setGuideOpen(false);
     try { localStorage.setItem("opportunities-radar-welcome-shown-v2", "true"); } catch { /* Guide remains usable without storage. */ }
@@ -72,6 +81,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const startOnboarding = useCallback(() => {
     setGuideOpen(false);
+    setHelpOpen(false);
     setCurrentStep(0);
     setIsActive(true);
   }, []);
@@ -116,6 +126,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   return (
     <OnboardingContext.Provider
       value={{
+        helpOpen, openHelp, closeHelp,
         guideOpen, openGuide, closeGuide,
         isActive,
         currentStep,

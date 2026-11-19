@@ -31,7 +31,7 @@ const tools = [
 ];
 
 export function WelcomeModal() {
-  const { guideOpen, openGuide, closeGuide, hasCompletedOnboarding, skipOnboarding } = useOnboarding();
+  const { helpOpen, guideOpen, openGuide, closeGuide, hasCompletedOnboarding, skipOnboarding } = useOnboarding();
   const { navigation, subscription } = useSubscriptionStore();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -44,12 +44,12 @@ export function WelcomeModal() {
 
   useEffect(() => {
     try {
-      if (!guideOpen && !localStorage.getItem(WELCOME_STORAGE_KEY) && !hasCompletedOnboarding) {
+      if (!helpOpen && !guideOpen && !localStorage.getItem(WELCOME_STORAGE_KEY) && !hasCompletedOnboarding) {
         const timer = setTimeout(openGuide, 500);
         return () => clearTimeout(timer);
       }
     } catch { /* Help can still be opened manually when storage is unavailable. */ }
-  }, [guideOpen, hasCompletedOnboarding, openGuide]);
+  }, [helpOpen, guideOpen, hasCompletedOnboarding, openGuide]);
   useLayoutEffect(() => {
     if (guideOpen) {
       setStep(0);
