@@ -1,0 +1,35 @@
+.radar-account-trigger { display: inline-flex; flex-shrink: 0; }
+.radar-account-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  overflow: hidden;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: hsl(var(--primary) / .8);
+  box-shadow: 0 4px 14px hsl(var(--primary) / .15);
+}
+.radar-account-ring::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: hsl(var(--primary) / .8);
+}
+.radar-account-ring[data-tier='premium']::before {
+  background: conic-gradient(#7953d7 0deg 220deg, #bda8ef 260deg, #f3edff 280deg, #bda8ef 300deg, #7953d7 335deg 360deg);
+  animation: radar-account-sheen 7s linear infinite;
+}
+.radar-account-ring[data-tier='business']::before {
+  background: conic-gradient(#5b21b6, #8b5cf6, #ddd6fe, #a78bfa, #6d28d9, #c4b5fd, #5b21b6);
+  animation: radar-account-spectrum 12s linear infinite;
+}
+@keyframes radar-account-sheen { to { transform: rotate(360deg); } }
+@keyframes radar-account-spectrum { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .radar-account-ring::before { animation: none !important; } }
+@media print { .radar-account-ring { box-shadow: none; } .radar-account-ring::before { animation: none !important; } }

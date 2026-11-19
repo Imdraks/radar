@@ -3,7 +3,7 @@ User schemas with security validation
 """
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, AliasChoices
 
 from app.db.models.user import Role
 
@@ -91,7 +91,7 @@ class UserResponse(UserBase):
     created_at: datetime
     last_login_at: Optional[datetime] = None
     auth_provider: Optional[str] = None
-    avatar_url: Optional[str] = None
+    avatar_url: Optional[str] = Field(None, validation_alias=AliasChoices('profile_avatar_url', 'avatar_url'))
     linked_accounts: List[LinkedAccountResponse] = []
 
     class Config:
