@@ -96,7 +96,7 @@ export function AccountPhoto({ user, className = '' }: { user: Pick<User, 'avata
 export function PublicAccountMenu({ account, onLogout }: { account: Account; onLogout: () => void }) {
   const plan = account.plan ? `Radar ${account.plan[0].toUpperCase()}${account.plan.slice(1)}` : 'Consulter mon abonnement';
   return <DropdownMenu><DropdownMenuTrigger asChild><button type="button" aria-label={`Ouvrir le menu du compte ${account.user.full_name || ''}`.trim()} title={plan} className="radar-account-trigger rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4">
-    <span className="radar-account-ring" data-tier={account.plan || 'unknown'}><AccountPhoto user={account.user} className="h-[44px] w-[44px] border-2 border-white" /></span>
+    <span className="radar-account-ring" data-tier={account.plan || 'unknown'}><AccountPhoto user={account.user} className="h-[32px] w-[32px] border-2 border-white" /></span>
   </button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={12} className="radar-public w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2">
     <DropdownMenuLabel className="min-w-0 px-3 py-2"><span className="block truncate text-sm font-semibold">{account.user.full_name || 'Mon compte'}</span><span className="mt-1 block text-xs font-normal text-primary">{plan}</span></DropdownMenuLabel><DropdownMenuSeparator />
     <DropdownMenuItem asChild><Link href="/today" className="gap-2 rounded-lg p-3"><ArrowUpRight size={16} />Ouvrir mon espace</Link></DropdownMenuItem>

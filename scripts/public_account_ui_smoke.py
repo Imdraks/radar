@@ -74,7 +74,7 @@ async def main():
                 gradient = await ring.evaluate("e => getComputedStyle(e,'::before').backgroundImage")
                 assert ('conic-gradient' in gradient) == (expected in ['premium','business'])
                 assert await ring.evaluate("e => getComputedStyle(e,'::after').content") == 'none'
-                await expect(ring).to_have_css('width','56px')
+                await expect(ring).to_have_css('width','40px')
                 if mode == 'broken-photo':
                     await expect(ring).to_have_text('TA')
                 else:
