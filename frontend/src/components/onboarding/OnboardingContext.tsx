@@ -16,6 +16,9 @@ export interface OnboardingStep {
 }
 
 interface OnboardingContextType {
+  guideOpen: boolean;
+  openGuide: () => void;
+  closeGuide: () => void;
   isActive: boolean;
   currentStep: number;
   steps: OnboardingStep[];
@@ -36,7 +39,13 @@ const ONBOARDING_STORAGE_KEY = "opportunities-radar-onboarding-completed";
 const ONBOARDING_VERSION = "2.0"; // Increment to re-show onboarding after updates
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
+  const [guideOpen, setGuideOpen] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const openGuide = useCallback(() => { setIsActive(false); setGuideOpen(true); }, []);
+  const closeGuide = useCallback(() => {
+    setGuideOpen(false);
+    try { localStorage.setItem("opportunities-radar-welcome-shown-v2", "true"); } catch { /* Guide remains usable without storage. */ }
+  }, []);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(true);
@@ -44,7 +53,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   // Check if user has completed onboarding
   useEffect(() => {
-    const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    let stored: string | null;
+    try { stored = localStorage.getItem(ONBOARDING_STORAGE_KEY); } catch { return; }
     if (stored) {
       try {
         const data = JSON.parse(stored);
@@ -61,6 +71,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // No auto-start to avoid modal overlap
 
   const startOnboarding = useCallback(() => {
+    setGuideOpen(false);
     setCurrentStep(0);
     setIsActive(true);
   }, []);
@@ -69,10 +80,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setIsActive(false);
     setHasCompletedOnboarding(true);
     setShowCelebration(true); // Trigger confetti celebration
-    localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
-      JSON.stringify({ completed: true, version: ONBOARDING_VERSION })
-    );
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ completed: true, version: ONBOARDING_VERSION }));
+    } catch { /* Completion still applies for this session. */ }
   }, []);
 
   const nextStep = useCallback(() => {
@@ -92,14 +102,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const skipOnboarding = useCallback(() => {
     setIsActive(false);
     setHasCompletedOnboarding(true);
-    localStorage.setItem(
-      ONBOARDING_STORAGE_KEY,
-      JSON.stringify({ completed: true, version: ONBOARDING_VERSION })
-    );
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ completed: true, version: ONBOARDING_VERSION }));
+    } catch { /* Completion still applies for this session. */ }
   }, []);
 
   const resetOnboarding = useCallback(() => {
-    localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    try { localStorage.removeItem(ONBOARDING_STORAGE_KEY); } catch { /* Reset remains available in memory. */ }
     setHasCompletedOnboarding(false);
     setCurrentStep(0);
   }, []);
@@ -107,6 +116,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   return (
     <OnboardingContext.Provider
       value={{
+        guideOpen, openGuide, closeGuide,
         isActive,
         currentStep,
         steps,
