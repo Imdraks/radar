@@ -1,0 +1,215 @@
+{
+  "date": "2026-11-19",
+  "source_commit": "8f5ea1ffd50f898f79724a81470103365f0ac92d",
+  "archive_branch": "archive/pre-cleanup-20261119",
+  "deleted": [
+    {
+      "path": "frontend/src/app/analytics/page.old.tsx",
+      "category": "page-copy",
+      "bytes": 30447,
+      "sha256": "f6c57bdd28b156992a5d7a1b90b49a7ea0ca6ad5473bdc942fbe60c1f4ad73bd"
+    },
+    {
+      "path": "frontend/src/app/analytics/page.v2.bak.tsx",
+      "category": "page-copy",
+      "bytes": 17804,
+      "sha256": "9e5fcad1ac84c83052651d7d30ed16891e49f71aa4a330b2a2baf62934d49f0a"
+    },
+    {
+      "path": "frontend/src/app/analytics/page.v3.bak.tsx",
+      "category": "page-copy",
+      "bytes": 17804,
+      "sha256": "9e5fcad1ac84c83052651d7d30ed16891e49f71aa4a330b2a2baf62934d49f0a"
+    },
+    {
+      "path": "frontend/src/app/cockpit/page.old.tsx",
+      "category": "page-copy",
+      "bytes": 27671,
+      "sha256": "41824d642128e4ea5e928670ab47b3e4173dba695fb25700820ae52bf1ce3f50"
+    },
+    {
+      "path": "frontend/src/app/cockpit/page.v2.bak.tsx",
+      "category": "page-copy",
+      "bytes": 12290,
+      "sha256": "68a45472d7be5fc646143e6289d6c1b39e966692cc1117370ba9d9a6717cd3ce"
+    },
+    {
+      "path": "frontend/src/app/comparison/page.v1.tsx",
+      "category": "page-copy",
+      "bytes": 21250,
+      "sha256": "35d9062cdecae0d99a8838c687a1952e6ac94f54f8a405c7ec2180d0198376bd"
+    },
+    {
+      "path": "frontend/src/app/competitive/page.old.tsx",
+      "category": "page-copy",
+      "bytes": 26991,
+      "sha256": "9b2fe52c9a1452978b10a777656d45c573174be1be2e625355cc47d1326e738f"
+    },
+    {
+      "path": "frontend/src/app/competitive/page.v2.bak.tsx",
+      "category": "page-copy",
+      "bytes": 23186,
+      "sha256": "38b7d4a1b223b07a7650da5b18282ddb1338cce0d7d53eadc044c19d38ea3e8b"
+    },
+    {
+      "path": "frontend/src/app/discovery/page.v1.tsx",
+      "category": "page-copy",
+      "bytes": 20192,
+      "sha256": "c5689741a14569c1f74eb9bfe2dff847de015114c86ff89aa935c67d20f02f03"
+    },
+    {
+      "path": "frontend/src/app/map/page.v2.bak.tsx",
+      "category": "page-copy",
+      "bytes": 26065,
+      "sha256": "adf26e97de4ee1dea2253510408e1e1020a1b1c96096394005e0e2d528b87466"
+    },
+    {
+      "path": "frontend/src/components/landing/Hero.tsx",
+      "category": "legacy-landing",
+      "bytes": 12336,
+      "sha256": "ef60234ee1bf87e0e328f38ac760ba2fa0defa1d84e78371eae8f74e62fa0423"
+    },
+    {
+      "path": "frontend/src/components/landing/Workflow.tsx",
+      "category": "legacy-landing",
+      "bytes": 4618,
+      "sha256": "135b711a4f2050d6f830a5d0b07ed8d9cadf8b67bfc478b214eab36e4f6d1d49"
+    },
+    {
+      "path": "frontend/src/components/landing/FeaturesGrid.tsx",
+      "category": "legacy-landing",
+      "bytes": 3365,
+      "sha256": "68f0f186aa7f48bb55af2cb5be83a529aced08e89f23605c4f13dc26e32300dc"
+    },
+    {
+      "path": "frontend/src/components/landing/WhyRadar.tsx",
+      "category": "legacy-landing",
+      "bytes": 2185,
+      "sha256": "0b39007ff397a322d304e9e2f367e105da425211b9f87cec4e46eab2d75315ef"
+    },
+    {
+      "path": "frontend/src/components/landing/Integrations.tsx",
+      "category": "legacy-landing",
+      "bytes": 6464,
+      "sha256": "263376e6f54e7b28dfe91fd3d65acfa0181d5f8bdaf352f2f542ff9d6b973880"
+    },
+    {
+      "path": "frontend/src/components/landing/Security.tsx",
+      "category": "legacy-landing",
+      "bytes": 2761,
+      "sha256": "718437403bd02bcfddbf2722898db74b964227ff7fd5ff2507307795a76aee30"
+    },
+    {
+      "path": "frontend/src/components/landing/FAQ.tsx",
+      "category": "legacy-landing",
+      "bytes": 4254,
+      "sha256": "358f5949fac07bda6603e2494cafaae2294589c700b12db63274d0b941f6f39a"
+    },
+    {
+      "path": "frontend/src/components/landing/FinalCTA.tsx",
+      "category": "legacy-landing",
+      "bytes": 2563,
+      "sha256": "5bfc1ca9c6ef5d040f9d15d96a49637f771740a3ec5be6611bb9805774aff54e"
+    },
+    {
+      "path": "frontend/src/components/landing/Pricing.tsx",
+      "category": "legacy-landing",
+      "bytes": 350,
+      "sha256": "63ca4ec69ae3e07b50a2b1ea3c973825678111ac32c0a9c174465162deb7c2c5"
+    },
+    {
+      "path": "frontend/src/components/landing/LandingWrapper.tsx",
+      "category": "legacy-landing",
+      "bytes": 201,
+      "sha256": "600a381e8d3959bbf21b379c0f5112e532ee82a17c680021ca67697d4707b92a"
+    },
+    {
+      "path": "backup/ArtistAnalysisDialog.tsx.backup",
+      "category": "manual-backup",
+      "bytes": 50706,
+      "sha256": "eca8a9ea58bbcff8485bc1abcc80f7a9e7767f6d6f6ece54cb728bf60eed9c68"
+    },
+    {
+      "path": "backup/ai_intelligence.py.backup",
+      "category": "manual-backup",
+      "bytes": 24198,
+      "sha256": "34b89d19f914ce98d41bfb33caf31ff3738ff0fc0a6aef941e887a242b784d9c"
+    },
+    {
+      "path": "backup/artist_intelligence_engine.py.backup",
+      "category": "manual-backup",
+      "bytes": 43081,
+      "sha256": "f55f571a496cce3c2ab263330e2124b82ff15a1f2e45ad6434503df189556807"
+    },
+    {
+      "path": "backup/ingestion.py.backup",
+      "category": "manual-backup",
+      "bytes": 8328,
+      "sha256": "c3440a5d6527287311df0e8736288cc2da577831e281155f5fe532603f2d92f1"
+    },
+    {
+      "path": "backup/intelligence_engine.py.backup",
+      "category": "manual-backup",
+      "bytes": 37222,
+      "sha256": "b7beb6993fa9aa9866f1d79fdf1f67f8cd5421057a7d8f39d677114a60ef970e"
+    },
+    {
+      "path": "backup/tasks.py.backup",
+      "category": "manual-backup",
+      "bytes": 57523,
+      "sha256": "1eaa8d9eb362bc194d716dce194f38ef8ccd81799c8653947e1b7d752dfdd5bf"
+    },
+    {
+      "path": "check_clients.py",
+      "category": "legacy-script",
+      "bytes": 436,
+      "sha256": "672802d6eb1813b8f10d6e76f833a40469e1c736be2404d7e1fd45d6a06e25ad"
+    },
+    {
+      "path": "create_test_client.py",
+      "category": "legacy-script",
+      "bytes": 1547,
+      "sha256": "b5de438f7bc36d4a1b7a136cc2c7d925a459fd8370335eecb827b1a1e792fef2"
+    },
+    {
+      "path": "delete_billing_client.py",
+      "category": "legacy-script",
+      "bytes": 351,
+      "sha256": "f8caef67b0ebac091525f7c817a1eeed5d3e49c39953ec582f54dd396555ce7e"
+    },
+    {
+      "path": "delete_client.py",
+      "category": "legacy-script",
+      "bytes": 264,
+      "sha256": "daeaddd6f166a8eb58f451a9d4e4c75c0dffcf193ac55887661a210ddf1235b0"
+    },
+    {
+      "path": "list_billing_clients.py",
+      "category": "legacy-script",
+      "bytes": 301,
+      "sha256": "6df73bd47f0277c523dfe81678ca87a0c506e3ba680d4940916a65247e2a3733"
+    },
+    {
+      "path": "list_clients.py",
+      "category": "legacy-script",
+      "bytes": 278,
+      "sha256": "f51e713be4c11606795201163038fa1d6bc42289a36303ff25710701778229da"
+    },
+    {
+      "path": "sync_client.py",
+      "category": "legacy-script",
+      "bytes": 1579,
+      "sha256": "bfdbce0f1388e4b1f1383f24cefad9f37588f4418071a5083cfedf58bb2b439a"
+    }
+  ],
+  "removed_direct_dependencies": [
+    "@radix-ui/react-icons",
+    "@radix-ui/react-toast",
+    "@tanstack/react-table",
+    "cmdk",
+    "leaflet",
+    "react-leaflet",
+    "react-globe.gl",
+    "@types/leaflet"
+  ]
+}
