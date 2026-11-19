@@ -85,6 +85,8 @@ async def main():
             errors = []
             fail_creation = True
             fail_plan = True
+            deleted = False
+            fail_delete = True
             workspace_rows = [{"id": 1, "name": "TEST agence", "is_suspended": False}]
             detail["acceptances"] = [
                 {
@@ -112,13 +114,13 @@ async def main():
             ]
 
             async def api(route):
-                nonlocal fail_creation, fail_plan
+                nonlocal fail_creation, fail_plan, deleted, fail_delete
                 path = urlparse(route.request.url).path
                 method = route.request.method
                 status = 200
                 body = (
                     route.request.post_data_json
-                    if method in {"POST", "PATCH"}
+                    if method in {"POST", "PATCH", "DELETE"}
                     else None
                 )
                 calls.append((method, path, body))
@@ -166,7 +168,12 @@ async def main():
                             "invitation": {"id": "fixture", "status": "pending"},
                         }
                 elif path.endswith("/admin/clients"):
-                    data = {"items": [detail], "total": 1, "page": 1, "limit": 25}
+                    data = {
+                        "items": [] if deleted else [detail],
+                        "total": 0 if deleted else 1,
+                        "page": 1,
+                        "limit": 25,
+                    }
                 elif path.endswith("/admin/clients/1/orders") and method == "POST":
                     assert body == {"kind": "plan", "value": "premium"}
                     row = {
@@ -236,8 +243,23 @@ async def main():
                         body=b"%PDF-1.4\n%explicit-browser-fixture\n",
                     )
                     return
+                elif path.endswith("/admin/clients/1") and method == "DELETE":
+                    assert body == {
+                        "confirm_name": detail["name"],
+                        "reason": "TEST offboarding completed",
+                        "acknowledged": True,
+                    }
+                    if fail_delete:
+                        fail_delete = False
+                        status, data = 409, {"detail": "TEST — suppression refusée"}
+                    else:
+                        deleted = True
+                        await route.fulfill(status=204, body="")
+                        return
                 elif path.endswith("/admin/clients/1"):
-                    data = detail
+                    status, data = (
+                        (404, {"detail": "TEST deleted"}) if deleted else (200, detail)
+                    )
                 elif path.endswith("/subscription/navigation"):
                     data = {"sections": {}}
                 elif path.endswith("/subscription/current"):
@@ -371,6 +393,12 @@ async def main():
                 )
                 == 1
             )
+            assert (
+                await page.get_by_role(
+                    "button", name="Supprimer l’espace", exact=True
+                ).count()
+                == 0
+            )
             for tab in [
                 "Équipe et invitations",
                 "Commandes et accès",
@@ -477,6 +505,49 @@ async def main():
             await expect(
                 page.get_by_role("button", name="Ouvrir l’espace", exact=True)
             ).to_be_disabled()
+            # Only a suspended workspace exposes the removal action.
+            user.update(
+                is_superuser=True,
+                must_change_password=False,
+                security_setup_pending=False,
+            )
+            detail["is_suspended"] = True
+            await page.evaluate("localStorage.setItem('current_workspace_id','1')")
+            await page.goto(BASE + "/admin/clients/1", wait_until="networkidle")
+            await page.get_by_role(
+                "button", name="Supprimer l’espace", exact=True
+            ).click()
+            dialog = page.get_by_role("dialog")
+            confirm = dialog.get_by_role(
+                "button", name="Confirmer la suppression", exact=True
+            )
+            await expect(confirm).to_be_disabled()
+            await dialog.get_by_label("Retapez le nom de l’espace", exact=True).fill(
+                "Wrong company"
+            )
+            await expect(confirm).to_be_disabled()
+            await dialog.get_by_label("Retapez le nom de l’espace", exact=True).fill(
+                detail["name"]
+            )
+            await dialog.get_by_label("Motif de suppression", exact=True).fill(
+                "TEST offboarding completed"
+            )
+            await dialog.get_by_role("checkbox").check()
+            await confirm.click()
+            await dialog.get_by_role("alert").filter(
+                has_text="TEST — suppression refusée"
+            ).wait_for()
+            assert not deleted
+            await confirm.click()
+            await page.wait_for_url("**/admin/clients")
+            await page.get_by_role(
+                "heading", name="Aucune entreprise trouvée", exact=True
+            ).wait_for()
+            assert deleted
+            assert (
+                await page.evaluate("localStorage.getItem('current_workspace_id')")
+                is None
+            )
             assert not errors, errors
             await context.close()
             print(f"PASS admin + quote download + first login: {width}px")

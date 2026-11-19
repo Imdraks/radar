@@ -170,7 +170,7 @@ class Decision(BaseModel):
 
 @router.get("/admin/requests")
 async def admin_requests(db: Session = Depends(get_db), admin: User = Depends(get_current_platform_admin)):
-    return db.query(SubscriptionRequest).filter_by(status="pending").order_by(SubscriptionRequest.id).limit(100).all()
+    return db.query(SubscriptionRequest).join(Workspace, Workspace.id == SubscriptionRequest.workspace_id).filter(SubscriptionRequest.status == "pending").order_by(SubscriptionRequest.id).limit(100).all()
 
 
 @router.get("/admin/workspace/{workspace_id}")
@@ -190,7 +190,9 @@ async def decide_request(request_id: int, decision: Decision, db: Session = Depe
         raise HTTPException(status_code=404, detail="Demande non trouvée")
     if entry.status != "pending":
         raise HTTPException(status_code=409, detail="Demande déjà traitée")
-    workspace = db.query(Workspace).filter_by(id=entry.workspace_id).with_for_update().one()
+    workspace = db.query(Workspace).filter_by(id=entry.workspace_id).with_for_update().first()
+    if not workspace:
+        raise HTTPException(404, "Espace introuvable")
     entry.previous_plan = workspace.plan
     if decision.approve:
         if decision.contract_acceptance_id and decision.external_contract_id:

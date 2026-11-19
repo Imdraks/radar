@@ -821,3 +821,11 @@ def reset_by_email(
         "queued": True,
         "message": "Demande de récupération transmise au service d’envoi. Aucun mot de passe existant n’a été modifié.",
     }
+
+
+from app.services.workspace_deletion import DeleteWorkspace, remove_workspace
+
+
+@router.delete('/{workspace_id}',status_code=204)
+def delete_client_workspace(workspace_id:int,data:DeleteWorkspace,db:Session=Depends(get_db),admin:User=Depends(get_current_platform_admin)):
+    remove_workspace(db,admin,workspace_id,data)

@@ -2,7 +2,7 @@
 Database session configuration
 """
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session, with_loader_criteria
 from sqlalchemy.pool import QueuePool
 from typing import Generator
 
@@ -45,3 +45,11 @@ def get_db() -> Generator:
         yield db
     finally:
         db.close()
+
+
+@event.listens_for(Session, "do_orm_execute")
+def exclude_deleted_workspaces(state):
+    """Hide logically removed workspaces in web requests and background jobs alike."""
+    if state.is_select or state.is_update or state.is_delete:
+        from app.db.models.workspace import Workspace
+        state.statement = state.statement.options(with_loader_criteria(Workspace, Workspace.deleted_at.is_(None), include_aliases=True))

@@ -22,8 +22,8 @@ from app.services.google_workspace import get_google_workspace_service, GoogleAP
 
 def workspace_lifecycle_guard(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Legacy membership/Drive URLs must obey the same suspension and first-login gate."""
-    if user.is_superuser:
-        return
+    if request.method == 'DELETE' and set(request.path_params) == {'workspace_id'} and not user.is_superuser:
+        raise HTTPException(403, 'Platform administrator required')
     if user.must_change_password and request.method not in {'GET', 'HEAD', 'OPTIONS'}:
         raise HTTPException(403, 'PASSWORD_CHANGE_REQUIRED')
     raw = request.path_params.get('workspace_id')
@@ -35,6 +35,8 @@ def workspace_lifecycle_guard(request: Request, db: Session = Depends(get_db), u
         return  # FastAPI path validation handles malformed identifiers.
     ws = db.get(Workspace, workspace_id)
     if not ws:
+        raise HTTPException(404, 'Workspace not found')
+    if user.is_superuser:
         return
     belongs = ws.owner_user_id == user.id or db.query(WorkspaceMember.id).filter_by(workspace_id=ws.id, user_id=user.id).first() is not None
     if not belongs:
@@ -296,42 +298,13 @@ async def update_workspace(
     )
 
 
+from app.services.workspace_deletion import DeleteWorkspace, remove_workspace
+
+
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_workspace(
-    workspace_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Delete workspace. Only owner or global admin can delete."""
-    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-    
-    # Allow owner or global admin to delete
-    if workspace.owner_user_id != current_user.id and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Only owner or admin can delete workspace")
-    
-    # Business, financial and contractual records require the controlled data
-    # retention process. Never erase a whole agency using an incomplete table list.
-    from sqlalchemy import inspect, select, delete, or_
-    from sqlalchemy.exc import IntegrityError
-    from app.db.base import Base
-    db.query(Workspace).filter_by(id=workspace_id).with_for_update().one()
-    existing = set(inspect(db.get_bind()).get_table_names())
-    for table in Base.metadata.tables.values():
-        if table.name not in existing or table.name in {'workspaces', 'workspace_members', 'workspace_invites'}:
-            continue
-        columns = [column for column in table.c if column.name == 'workspace_id' or any(fk.target_fullname == 'workspaces.id' for fk in column.foreign_keys)]
-        if columns and db.execute(select(1).select_from(table).where(or_(*(column == workspace_id for column in columns))).limit(1)).first():
-            raise HTTPException(409, 'Cet espace contient des données à conserver. Utilisez Données et droits pour la résiliation ou une suppression contrôlée.')
-    try:
-        db.execute(delete(WorkspaceInvite).where(WorkspaceInvite.workspace_id == workspace_id))
-        db.execute(delete(WorkspaceMember).where(WorkspaceMember.workspace_id == workspace_id))
-        db.execute(delete(Workspace).where(Workspace.id == workspace_id))
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(409, 'Des données liées empêchent cette suppression. Utilisez la procédure contrôlée de conservation et suppression.') from None
+async def delete_workspace(workspace_id: int, data: DeleteWorkspace, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Legacy URL uses the same suspended-only, platform-controlled logical deletion."""
+    remove_workspace(db, current_user, workspace_id, data)
 
 
 # ============================================================================

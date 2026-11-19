@@ -93,6 +93,34 @@ def run():
             if start is None:
                 from check_migrated_api import run as check_api
 
+                # A deleted workspace must never be silently reactivated on rollback.
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            "INSERT INTO users (id,email) VALUES (987650,'deletion-migration@example.com')"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "INSERT INTO workspaces (id,name,owner_user_id,is_suspended,deleted_at) VALUES (987650,'TEST removed workspace',987650,true,now())"
+                        )
+                    )
+                migrate(
+                    "064_contact_inquiries",
+                    direction="downgrade",
+                    expected_failure="réactivation automatique est refusée",
+                )
+                with engine.begin() as conn:
+                    assert conn.execute(
+                        text("SELECT deleted_at FROM workspaces WHERE id=987650")
+                    ).scalar_one()
+                    conn.execute(text("DELETE FROM workspaces WHERE id=987650"))
+                    conn.execute(text("DELETE FROM users WHERE id=987650"))
+                print(
+                    "PASS workspace removal migration: unsafe automatic reactivation refused",
+                    flush=True,
+                )
+
                 # Only this disposable database is used for contact retention checks.
                 with engine.begin() as conn:
                     conn.execute(

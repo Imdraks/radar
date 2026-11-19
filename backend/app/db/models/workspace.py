@@ -71,6 +71,9 @@ class Workspace(Base):
     suspension_reason: Mapped[Optional[str]] = mapped_column(String(1000))
     suspended_by: Mapped[Optional[int]] = mapped_column(Integer)
 
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    deleted_by: Mapped[Optional[int]] = mapped_column(Integer)
+
     # Google Drive Integration
     drive_root_folder_id: Mapped[Optional[str]] = mapped_column(String(255))
     templates_folder_id: Mapped[Optional[str]] = mapped_column(String(255))

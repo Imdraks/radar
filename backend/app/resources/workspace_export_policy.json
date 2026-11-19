@@ -1608,7 +1608,9 @@
         "stripe_subscription_id",
         "suspended_at",
         "suspension_reason",
-        "suspended_by"
+        "suspended_by",
+        "deleted_at",
+        "deleted_by"
       ]
     },
     "user_sessions": {
