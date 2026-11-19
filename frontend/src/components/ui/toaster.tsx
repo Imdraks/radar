@@ -2,6 +2,8 @@
 
 import { useEffect, useState, createContext, useContext, ReactNode } from "react";
 import { X, CheckCircle, AlertCircle, Info, Bell } from "lucide-react";
+import { Toaster as SonnerToaster } from "sonner";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 interface Toast {
@@ -51,6 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <ExistingSonnerNotifications />
     </ToastContext.Provider>
   );
 }
@@ -107,4 +110,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       </button>
     </div>
   );
+}
+
+// Several existing business pages already emit Sonner toasts; render them once.
+function ExistingSonnerNotifications() {
+  const { resolvedTheme } = useTheme();
+  return <SonnerToaster theme={resolvedTheme === 'dark' ? 'dark' : 'light'} position="bottom-right" richColors closeButton containerAriaLabel="Notifications Radar" />;
 }
