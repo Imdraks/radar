@@ -110,6 +110,7 @@ jobs:
           python ../scripts/consent_ui_smoke.py
           python ../scripts/legal_ui_smoke.py
           python ../scripts/admin_clients_ui_smoke.py
+          python ../scripts/admin_users_ui_smoke.py
         env:
           TESTING: 'true'
           RADAR_UI_BASE_URL: http://127.0.0.1:3000

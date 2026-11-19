@@ -1,354 +1,112 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import {
-  Plus,
-  MoreVertical,
-  Pencil,
-  Trash,
-  Shield,
-  User as UserIcon,
-  Users as UsersIcon,
-} from "lucide-react";
-import { AdminLayout, ProtectedRoute } from "@/components/layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { usersApi } from "@/lib/api";
-import { formatDateTime } from "@/lib/utils";
-import type { User } from "@/lib/types";
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Search, Pencil, ShieldCheck, Users, UserRound, ArrowRightLeft, Power } from 'lucide-react';
+import { AdminLayout, ProtectedRoute } from '@/components/layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { PasswordFields, passwordChecks, usePasswordPolicy } from '@/components/auth/PasswordFields';
+import { usersApi } from '@/lib/api';
+import { clientError, clientDate } from '@/lib/platform-clients';
+import { useAuthStore } from '@/store/auth';
+import type { User, UserRole } from '@/lib/types';
+import { toast } from 'sonner';
 
-const ROLE_CONFIG: Record<string, { color: string; label: string }> = {
-  admin: { color: "bg-red-100 text-red-800", label: "Admin" },
-  bizdev: { color: "bg-blue-100 text-blue-800", label: "BizDev" },
-  pm: { color: "bg-purple-100 text-purple-800", label: "PM" },
-  viewer: { color: "bg-gray-100 text-gray-800", label: "Viewer" },
-};
+const roles: Record<UserRole, string> = { admin: 'Administrateur', bizdev: 'Commercial', pm: 'Chef de projet', viewer: 'Lecture seule' };
+type Action = { kind: 'create' } | { kind: 'edit' | 'status'; user: User };
+
+function UserAvatar({ user }: { user: User }) {
+  const [failed, setFailed] = useState(false);
+  return <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-semibold text-primary">
+    {user.avatar_url && !failed ? <img src={user.avatar_url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} /> : (user.full_name || user.email).slice(0, 1).toLocaleUpperCase('fr-FR')}
+  </div>;
+}
+
+function AccountMode({ user }: { user: User }) {
+  return <div className="space-y-2"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${user.is_collaborator ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'}`}>
+    {user.is_collaborator ? <ArrowRightLeft size={12} /> : <UserRound size={12} />}{user.is_collaborator ? 'Collaborateur' : 'Compte classique'}
+  </span><p className="text-xs leading-5 text-muted-foreground">{user.is_collaborator ? 'Choix du workspace à la connexion' : user.is_superuser ? 'Accueil de l’administration' : 'Accès direct si un seul workspace actif'}</p></div>;
+}
+function AccountStatus({ user }: { user: User }) {
+  return <span className={`inline-flex items-center gap-2 text-xs font-medium ${user.is_active ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground'}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />{user.is_active ? 'Actif' : 'Désactivé'}</span>;
+}
+function Identity({ user }: { user: User }) {
+  const providers = [...new Set([...(user.linked_accounts || []).map(account => account.provider), user.auth_provider].filter((value): value is string => Boolean(value) && value !== 'credentials'))];
+  return <div className="flex min-w-0 items-start gap-3"><UserAvatar user={user} /><div className="min-w-0 space-y-1"><p className="break-words font-semibold">{user.full_name || 'Nom non renseigné'}</p><p className="break-all text-xs text-muted-foreground">{user.email}</p><div className="flex flex-wrap gap-2">{user.is_superuser && <span className="inline-flex items-center gap-1 text-xs text-primary"><ShieldCheck size={13} />Super-admin</span>}{providers.map(provider => <span key={provider} className="text-xs text-muted-foreground">{provider === 'google' ? 'Google' : provider === 'apple' ? 'Apple' : provider}</span>)}</div></div></div>;
+}
 
 function UsersContent() {
-  const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: () => usersApi.getAll(),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => usersApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      setDialogOpen(false);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
-      usersApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      setDialogOpen(false);
-      setEditingUser(null);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => usersApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-  });
-
-  const handleSubmit = (data: Record<string, unknown>) => {
-    if (editingUser) {
-      // Remove password if empty
-      if (!data.password) {
-        delete data.password;
-      }
-      updateMutation.mutate({ id: editingUser.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
+  const current = useAuthStore(state => state.user);
+  const cache = useQueryClient();
+  const query = useQuery<User[]>({ queryKey: ['users'], queryFn: () => usersApi.getAll(), retry: false });
+  const [search, setSearch] = useState('');
+  const [mode, setMode] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [action, setAction] = useState<Action | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const filtered = useMemo(() => (query.data || []).filter(user => {
+    const match = `${user.full_name || ''} ${user.email}`.toLocaleLowerCase('fr-FR').includes(search.trim().toLocaleLowerCase('fr-FR'));
+    return match && (mode === 'all' || Boolean(user.is_collaborator) === (mode === 'collaborator')) && (status === 'all' || user.is_active === (status === 'active'));
+  }), [query.data, search, mode, status]);
+  const open = (value: Action) => { setError(''); setAction(value); };
+  const save = async (data: Record<string, unknown>) => {
+    if (!action || busy) return;
+    setBusy(true); setError('');
+    try {
+      if (action.kind === 'create') await usersApi.create(data);
+      else await usersApi.update(action.user.id, data);
+      toast.success(action.kind === 'create' ? 'Compte créé' : 'Modifications enregistrées');
+      if (action.kind !== 'create' && action.user.id === current?.id) await useAuthStore.getState().fetchUser();
+      setAction(null);
+      await cache.invalidateQueries({ queryKey: ['users'] });
+    } catch (failure) { setError(clientError(failure)); }
+    finally { setBusy(false); }
   };
-
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingUser(null);
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Utilisateurs</h1>
-          <p className="text-muted-foreground">
-            Gérez les accès à la plateforme
-          </p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) setEditingUser(null);
-        }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEditingUser(null); setDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvel utilisateur
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingUser ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
-              </DialogTitle>
-            </DialogHeader>
-            <UserForm
-              user={editingUser}
-              onSubmit={handleSubmit}
-              isLoading={createMutation.isPending || updateMutation.isPending}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Users list */}
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-        </div>
-      ) : users?.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          Aucun utilisateur
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {users?.map((user) => {
-            const roleConfig = ROLE_CONFIG[user.role] || ROLE_CONFIG.viewer;
-            const hasGoogle = user.linked_accounts?.some(acc => acc.provider === 'google');
-            const hasApple = user.linked_accounts?.some(acc => acc.provider === 'apple');
-            return (
-              <Card key={user.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    {user.avatar_url ? (
-                      <img 
-                        src={user.avatar_url} 
-                        alt={user.full_name || user.email}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-lg font-medium">
-                        {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">
-                          {user.full_name || user.email}
-                        </h3>
-                        <Badge className={roleConfig.color}>{roleConfig.label}</Badge>
-                        {user.is_superuser && (
-                          <Badge variant="outline">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Super Admin
-                          </Badge>
-                        )}
-                        {!user.is_active && (
-                          <Badge variant="secondary">Inactif</Badge>
-                        )}
-                        {/* SSO Provider badges */}
-                        {hasGoogle && (
-                          <Badge variant="outline" className="bg-white border-gray-300">
-                            <svg className="h-3 w-3 mr-1" viewBox="0 0 24 24">
-                              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            Google
-                          </Badge>
-                        )}
-                        {hasApple && (
-                          <Badge variant="outline" className="bg-black text-white border-black">
-                            <svg className="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                            </svg>
-                            Apple
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Créé le {formatDateTime(user.created_at)}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(user)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => deleteMutation.mutate(user.id)}
-                        >
-                          <Trash className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  const actions = (user: User) => <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" className="gap-2" onClick={() => open({ kind: 'edit', user })} aria-label={`Modifier ${user.full_name || user.email}`}><Pencil size={14} />Modifier</Button><Button variant="ghost" size="sm" className="gap-2" disabled={user.id === current?.id} onClick={() => open({ kind: 'status', user })} aria-label={`${user.is_active ? 'Désactiver' : 'Réactiver'} ${user.full_name || user.email}`}><Power size={14} />{user.is_active ? 'Désactiver' : 'Réactiver'}</Button></div>;
+  return <div className="mx-auto max-w-[1440px] space-y-7 p-4 sm:p-8">
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><p className="radar-eyebrow">Administration Radar</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Utilisateurs</h1><p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">Gérez les comptes, leurs rôles et leur arrivée dans Radar. Les accès aux entreprises se gèrent depuis leurs fiches.</p></div><Button className="gap-2" onClick={() => open({ kind: 'create' })}><Plus size={16} />Nouvel utilisateur</Button></header>
+    <section className="grid gap-4 rounded-2xl border bg-card p-4 lg:grid-cols-[minmax(0,1fr)_220px_180px]" aria-label="Rechercher et filtrer les utilisateurs">
+      <div className="space-y-2"><Label htmlFor="user-search">Nom ou adresse e-mail</Label><div className="relative"><Search size={16} className="absolute left-3 top-3 text-muted-foreground" /><Input id="user-search" value={search} maxLength={255} onChange={event => setSearch(event.target.value)} placeholder="Rechercher un compte…" className="pl-9" /></div></div>
+      <div className="space-y-2"><Label htmlFor="user-mode-filter">Mode du compte</Label><select id="user-mode-filter" className="h-10 w-full rounded-xl border bg-background px-3 text-sm" value={mode} onChange={event => setMode(event.target.value)}><option value="all">Tous les modes</option><option value="classic">Compte classique</option><option value="collaborator">Collaborateur</option></select></div>
+      <div className="space-y-2"><Label htmlFor="user-status-filter">État du compte</Label><select id="user-status-filter" className="h-10 w-full rounded-xl border bg-background px-3 text-sm" value={status} onChange={event => setStatus(event.target.value)}><option value="all">Tous les états</option><option value="active">Actif</option><option value="inactive">Désactivé</option></select></div>
+    </section>
+    {query.isPending ? <p role="status" className="rounded-2xl border bg-card p-6 text-sm">Chargement des utilisateurs…</p> : query.isError ? <section role="alert" className="space-y-4 rounded-2xl border bg-card p-6"><p className="text-sm">Les comptes n’ont pas pu être chargés.</p><Button variant="outline" onClick={() => query.refetch()}>Réessayer</Button></section> : <>
+      <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{filtered.length} compte{filtered.length === 1 ? '' : 's'} affiché{filtered.length === 1 ? '' : 's'} sur {query.data?.length || 0}</p><Link href="/admin/clients" className="text-sm text-primary hover:underline">Gérer les entreprises clientes</Link></div>
+      {filtered.length === 0 ? <section className="rounded-2xl border bg-card p-10 text-center"><Users className="mx-auto mb-4 text-primary" /><h2 className="font-semibold">Aucun compte trouvé</h2><p className="mt-2 text-sm text-muted-foreground">Ajustez les filtres ou créez un utilisateur.</p></section> : <>
+        <div className="hidden overflow-x-auto rounded-2xl border bg-card xl:block"><table className="w-full text-left text-sm"><thead className="border-b bg-secondary/40 text-xs text-muted-foreground"><tr>{['Compte', 'Rôle et accès', 'Arrivée dans Radar', 'Dernière connexion', 'Actions'].map(label => <th key={label} className="p-4 font-medium">{label}</th>)}</tr></thead><tbody>{filtered.map(user => <tr key={user.id} className="border-b last:border-0"><td className="max-w-xs p-4"><Identity user={user} /></td><td className="p-4"><p className="mb-2 text-xs">{roles[user.role] || user.role}</p><AccountStatus user={user} /></td><td className="p-4"><AccountMode user={user} /></td><td className="p-4 text-xs text-muted-foreground">{user.last_login_at ? clientDate(user.last_login_at) : 'Aucune connexion enregistrée'}</td><td className="p-4">{actions(user)}</td></tr>)}</tbody></table></div>
+        <ul className="grid gap-4 xl:hidden">{filtered.map(user => <li key={user.id} className="space-y-5 rounded-2xl border bg-card p-5"><Identity user={user} /><div className="grid gap-4 sm:grid-cols-2"><div><p className="mb-2 text-xs text-muted-foreground">{roles[user.role] || user.role}</p><AccountStatus user={user} /></div><AccountMode user={user} /></div><p className="text-xs text-muted-foreground">Dernière connexion : {user.last_login_at ? clientDate(user.last_login_at) : 'aucune enregistrée'}</p><div className="border-t pt-4">{actions(user)}</div></li>)}</ul>
+      </>}
+    </>}
+    <Dialog open={Boolean(action)} onOpenChange={visible => { if (!visible && !busy) setAction(null); }}><DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-2xl"><DialogTitle>{action?.kind === 'create' ? 'Nouvel utilisateur' : action?.kind === 'status' ? `${action.user.is_active ? 'Désactiver' : 'Réactiver'} le compte` : 'Modifier l’utilisateur'}</DialogTitle><DialogDescription>{action && action.kind !== 'create' ? action.user.email : 'Créer un compte Radar. Pour inviter le responsable d’une entreprise par e-mail, utilisez sa fiche entreprise.'}</DialogDescription>
+      {action?.kind === 'status' ? <form className="space-y-5" onSubmit={event => { event.preventDefault(); void save({ is_active: !action.user.is_active }); }}><p className="text-sm leading-7">{action.user.is_active ? 'La désactivation bloque ce compte sur tous ses workspaces et conserve ses données. Vous pourrez le réactiver ici.' : 'La réactivation rend le compte actif ; ses appartenances aux workspaces et les éventuelles suspensions d’entreprises restent inchangées.'}</p>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex flex-wrap justify-end gap-3"><Button type="button" variant="outline" disabled={busy} onClick={() => setAction(null)}>Annuler</Button><Button disabled={busy} variant={action.user.is_active ? 'destructive' : 'default'}>{busy ? 'Enregistrement…' : action.user.is_active ? 'Confirmer la désactivation' : 'Confirmer la réactivation'}</Button></div></form> : action && <UserForm key={action.kind === 'edit' ? action.user.id : 'new'} user={action.kind === 'edit' ? action.user : null} ownAccount={action.kind === 'edit' && action.user.id === current?.id} busy={busy} error={error} onSubmit={save} onCancel={() => setAction(null)} />}
+    </DialogContent></Dialog>
+  </div>;
 }
 
-function UserForm({
-  user,
-  onSubmit,
-  isLoading,
-}: {
-  user: User | null;
-  onSubmit: (data: Record<string, unknown>) => void;
-  isLoading: boolean;
-}) {
-  const { register, handleSubmit, watch, setValue } = useForm<{
-    email: string;
-    password?: string;
-    full_name: string;
-    role: string;
-    is_active: boolean;
-    is_collaborator: boolean;
-  }>({
-    defaultValues: user ? {
-      email: user.email,
-      password: "",
-      full_name: user.full_name || "",
-      role: user.role,
-      is_active: user.is_active,
-      is_collaborator: user.is_collaborator || false,
-    } : {
-      email: "",
-      password: "",
-      full_name: "",
-      role: "viewer",
-      is_active: true,
-      is_collaborator: false,
-    },
-  });
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          {...register("email", { required: true })}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">
-          {user ? "Nouveau mot de passe (laisser vide pour conserver)" : "Mot de passe"}
-        </Label>
-        <Input
-          id="password"
-          type="password"
-          {...register("password", { required: !user })}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="full_name">Nom complet</Label>
-        <Input id="full_name" {...register("full_name")} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="role">Rôle</Label>
-        <Select value={watch("role")} onValueChange={(v) => setValue("role", v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="bizdev">BizDev</SelectItem>
-            <SelectItem value="pm">PM</SelectItem>
-            <SelectItem value="viewer">Viewer</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Switch
-          id="is_active"
-          checked={watch("is_active")}
-          onCheckedChange={(v) => setValue("is_active", v)}
-        />
-        <Label htmlFor="is_active">Utilisateur actif</Label>
-      </div>
-
-      <div className="space-y-2 rounded-xl border p-4">
-        <div className="flex items-center gap-2"><Switch id="is_collaborator" checked={watch("is_collaborator")} onCheckedChange={value => setValue("is_collaborator", value)} /><Label htmlFor="is_collaborator">Compte collaborateur</Label></div>
-        <p className="text-xs leading-6 text-muted-foreground">Demander le choix du workspace après chaque connexion. Ce mode n’ajoute aucun droit ni accès à une entreprise.</p>
-      </div>
-      <DialogFooter>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Enregistrement..." : user ? "Modifier" : "Créer"}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
+function UserForm({ user, ownAccount, busy, error, onSubmit, onCancel }: { user: User | null; ownAccount: boolean; busy: boolean; error: string; onSubmit: (data: Record<string, unknown>) => Promise<void>; onCancel: () => void }) {
+  const [email, setEmail] = useState(user?.email || '');
+  const [name, setName] = useState(user?.full_name || '');
+  const [role, setRole] = useState<UserRole>(user?.role || 'viewer');
+  const [active, setActive] = useState(user?.is_active ?? true);
+  const [collaborator, setCollaborator] = useState(Boolean(user?.is_collaborator));
+  const [resetPassword, setResetPassword] = useState(!user);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const policy = usePasswordPolicy();
+  const validPassword = !resetPassword || (policy.data && password === confirm && passwordChecks(policy.data, password).every(check => check.valid));
+  return <form className="space-y-6" autoComplete="off" onSubmit={event => { event.preventDefault(); if (busy || !validPassword) return; void onSubmit({ email: email.trim(), full_name: name.trim(), role, is_active: active, is_collaborator: collaborator, ...(resetPassword ? { password } : {}) }); }}>
+    <fieldset disabled={busy} className="space-y-4"><legend className="mb-4 text-sm font-semibold">Identité du compte</legend><div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="user-full-name">Nom complet</Label><Input id="user-full-name" value={name} maxLength={100} onChange={event => setName(event.target.value)} autoComplete="name" /></div><div className="space-y-2"><Label htmlFor="user-email">Adresse e-mail</Label><Input id="user-email" type="email" value={email} required maxLength={255} onChange={event => setEmail(event.target.value)} autoComplete="off" /></div></div></fieldset>
+    <fieldset disabled={busy} className="space-y-4 rounded-xl border p-4"><legend className="px-1 text-sm font-semibold">Accès et arrivée dans Radar</legend><div className="space-y-2"><Label htmlFor="user-role">Rôle</Label><select id="user-role" className="h-10 w-full rounded-xl border bg-background px-3 text-sm" value={role} onChange={event => setRole(event.target.value as UserRole)}>{Object.entries(roles).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><p className="text-xs leading-6 text-muted-foreground">Le rôle ne confère pas les droits super-admin. Les appartenances et rôles dans les entreprises se gèrent sur leurs fiches.</p></div><div className="flex items-start justify-between gap-4 border-t pt-4"><div><Label htmlFor="user-collaborator">Compte collaborateur</Label><p className="mt-2 text-xs leading-6 text-muted-foreground">Activé : choix du workspace après chaque connexion, même avec un seul espace. Désactivé : ouverture directe si un seul workspace est lié et actif. Aucun accès supplémentaire n’est accordé.</p></div><Switch id="user-collaborator" checked={collaborator} onCheckedChange={setCollaborator} /></div><div className="flex items-start justify-between gap-4 border-t pt-4"><div><Label htmlFor="user-active">Compte actif</Label><p className="mt-2 text-xs leading-6 text-muted-foreground">Un compte désactivé ne peut plus accéder à Radar. Ses données sont conservées.</p></div><Switch id="user-active" checked={active} disabled={ownAccount} onCheckedChange={setActive} /></div></fieldset>
+    <fieldset disabled={busy} className="space-y-4"><legend className="mb-3 text-sm font-semibold">Sécurité</legend>{ownAccount ? <p className="text-sm leading-7 text-muted-foreground">Pour changer votre propre mot de passe avec les vérifications requises, ouvrez <Link href="/account/security" className="text-primary underline">la sécurité de votre compte</Link>.</p> : <>{user && <div className="flex items-start justify-between gap-4"><div><Label htmlFor="user-reset-password">Réinitialiser le mot de passe Radar</Label><p className="mt-2 text-xs leading-6 text-muted-foreground">Laissez désactivé pour conserver le mot de passe. La modification des coordonnées ou du mode collaborateur n’envoie aucun nouveau mot de passe.</p></div><Switch id="user-reset-password" checked={resetPassword} onCheckedChange={value => { setResetPassword(value); setPassword(''); setConfirm(''); }} /></div>}{resetPassword && (policy.isError ? <p role="alert" className="text-sm text-destructive">Impossible de charger les critères de sécurité. Réessayez avant de modifier le mot de passe.</p> : policy.data ? <PasswordFields prefix="admin-user" password={password} confirm={confirm} onPassword={setPassword} onConfirm={setConfirm} disabled={busy} policy={policy.data} /> : <p role="status" className="text-sm">Chargement des critères de sécurité…</p>)}</>}</fieldset>
+    {error && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+    <footer className="flex flex-wrap justify-end gap-3 border-t pt-4"><Button type="button" variant="outline" disabled={busy} onClick={onCancel}>Annuler</Button><Button disabled={busy || !validPassword}>{busy ? 'Enregistrement…' : user ? 'Appliquer les modifications' : 'Créer le compte'}</Button></footer>
+  </form>;
 }
 
-export default function UsersPage() {
-  return (
-    <ProtectedRoute requiredRoles={["admin"]}>
-      <AdminLayout>
-        <UsersContent />
-      </AdminLayout>
-    </ProtectedRoute>
-  );
-}
+export default function UsersPage() { return <ProtectedRoute><AdminLayout><UsersContent /></AdminLayout></ProtectedRoute>; }

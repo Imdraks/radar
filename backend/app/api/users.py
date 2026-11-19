@@ -5,12 +5,14 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, undefer
+from sqlalchemy import func
 
 from app.db import get_db
 from app.db.models.user import User, Role
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
+from app.core.passwords import invalidate_credentials
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
-from app.api.deps import get_current_user, require_admin
+from app.api.deps import get_current_user, get_current_platform_admin
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -46,7 +48,7 @@ def list_users(
     role: Role = None,
     is_active: bool = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """List all users (admin only)"""
     query = db.query(User).options(undefer(User.avatar_image))
@@ -64,7 +66,7 @@ def list_users(
 def get_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Get user by ID"""
     user = db.query(User).filter(User.id == user_id).first()
@@ -80,12 +82,12 @@ def get_user(
 def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Create a new user"""
     if user_data.is_collaborator and not current_user.is_superuser:
         raise HTTPException(403, 'Seul le super-admin peut définir un compte collaborateur.')
-    existing = db.query(User).filter(User.email == user_data.email).first()
+    existing = db.query(User).filter(func.lower(User.email) == str(user_data.email).lower()).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -112,7 +114,7 @@ def update_user(
     user_id: int,
     update_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Update user"""
     user = db.query(User).filter(User.id == user_id).with_for_update().populate_existing().first()
@@ -123,6 +125,13 @@ def update_user(
         )
     
     update_dict = update_data.model_dump(exclude_unset=True)
+    if update_dict.get('is_active') is False and user.id == current_user.id:
+        raise HTTPException(409, 'Vous ne pouvez pas désactiver votre propre compte.')
+    if 'email' in update_dict and update_dict['email'] != user.email:
+        if update_dict['email'] is None:
+            raise HTTPException(422, 'Une adresse e-mail est requise.')
+        if db.query(User.id).filter(func.lower(User.email) == str(update_dict['email']).lower(), User.id != user.id).first():
+            raise HTTPException(409, 'Cette adresse appartient déjà à un autre compte.')
     if 'is_collaborator' in update_dict:
         if not current_user.is_superuser:
             raise HTTPException(403, 'Seul le super-admin peut changer le mode collaborateur.')
@@ -135,8 +144,10 @@ def update_user(
             raise HTTPException(403, 'La réinitialisation administrative du mot de passe exige un administrateur de plateforme.')
         if update_dict['password'] is None:
             raise HTTPException(422, 'Un nouveau mot de passe est requis.')
-    if 'password' in update_dict or ('email' in update_dict and update_dict['email'] != user.email):
-        user.mfa_version = (user.mfa_version or 0) + 1
+    if 'password' in update_dict and user.hashed_password and verify_password(update_dict['password'], user.hashed_password):
+        raise HTTPException(422, 'Choisissez un mot de passe différent du précédent.')
+    if 'password' in update_dict or ('email' in update_dict and update_dict['email'] != user.email) or (update_dict.get('is_active') is False and user.is_active):
+        invalidate_credentials(db, user)
     
     # Hash password if provided
     if "password" in update_dict:
@@ -154,7 +165,7 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Delete user"""
     user = db.query(User).filter(User.id == user_id).first()
@@ -181,7 +192,7 @@ def delete_user(
 
 @router.get("/admin/settings")
 def get_admin_settings(
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Get all admin settings"""
     from app.core.admin_settings import get_admin_settings as get_settings
@@ -196,7 +207,7 @@ def get_admin_settings(
 @router.put("/admin/settings")
 def update_admin_settings(
     updates: dict,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_platform_admin),
 ):
     """Update admin settings"""
     from app.core.admin_settings import set_admin_settings
