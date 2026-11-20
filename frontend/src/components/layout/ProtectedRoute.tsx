@@ -1,5 +1,6 @@
 "use client";
 
+import { RadarLoader } from '@/components/ui/radar-loader';
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
@@ -69,7 +70,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   if (!mounted || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <RadarLoader label="Connexion à votre espace…" />
       </div>
     );
   }

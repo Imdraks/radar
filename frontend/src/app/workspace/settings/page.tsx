@@ -13,7 +13,6 @@ import {
   Trash2,
   Check,
   AlertCircle,
-  Loader2,
   ExternalLink,
   Crown,
   UserMinus,
@@ -21,6 +20,7 @@ import {
   LogIn,
   CheckCircle2,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -327,7 +327,7 @@ export default function WorkspaceSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -416,7 +416,7 @@ export default function WorkspaceSettingsPage() {
                 <div className="pt-4">
                   <Button onClick={handleSave} disabled={saving}>
                     {saving ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Check className="h-4 w-4 mr-2" />
                     )}
@@ -441,7 +441,7 @@ export default function WorkspaceSettingsPage() {
             <CardContent>
               {checkingGoogle ? (
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 animate-spin" />
                   Vérification...
                 </div>
               ) : googleConnected ? (
@@ -476,7 +476,7 @@ export default function WorkspaceSettingsPage() {
                   </div>
                   <Button onClick={handleConnectGoogle} disabled={connectingGoogle}>
                     {connectingGoogle ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <LogIn className="h-4 w-4 mr-2" />
                     )}
@@ -517,7 +517,7 @@ export default function WorkspaceSettingsPage() {
                   ) : (
                     <Button onClick={handleSetupDrive} disabled={saving}>
                       {saving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <RadarSpinner className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
                           <Plus className="h-4 w-4 mr-2" />
@@ -588,7 +588,7 @@ export default function WorkspaceSettingsPage() {
                 <div className="pt-4">
                   <Button onClick={handleSave} disabled={saving}>
                     {saving ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Check className="h-4 w-4 mr-2" />
                     )}
@@ -655,7 +655,7 @@ export default function WorkspaceSettingsPage() {
                       </Button>
                       <Button onClick={handleInvite} disabled={inviting || !inviteEmail}>
                         {inviting ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                         ) : null}
                         Envoyer l'invitation
                       </Button>

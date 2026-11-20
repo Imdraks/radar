@@ -1,5 +1,6 @@
 'use client';
 
+import { RadarLoader, RadarSpinner } from './radar-loader';
 import { cn } from '@/lib/utils';
 import { ReactNode } from 'react';
 
@@ -98,23 +99,11 @@ export function LoadingSpinner({ size = 'md', className }: { size?: 'sm' | 'md' 
     lg: 'h-12 w-12',
   };
   
-  return (
-    <div className={cn('flex items-center justify-center', className)}>
-      <div className={cn(
-        'animate-spin rounded-full border-2 border-primary/20 border-t-primary',
-        sizeClasses[size]
-      )} />
-    </div>
-  );
+  return <div className={cn('flex items-center justify-center text-primary', className)}><RadarSpinner className={sizeClasses[size]} /></div>;
 }
 
 export function PageLoader() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-      <LoadingSpinner size="lg" />
-      <p className="text-muted-foreground text-sm animate-pulse">Chargement...</p>
-    </div>
-  );
+  return <div className="flex min-h-[400px] items-center justify-center p-8"><RadarLoader /></div>;
 }
 
 export function EmptyState({

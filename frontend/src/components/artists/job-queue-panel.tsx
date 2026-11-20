@@ -12,14 +12,14 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Loader2,
   AlertCircle,
   Music2,
   Database,
   RefreshCw,
   ChevronRight,
   Zap,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -69,7 +69,7 @@ function getStatusConfig(status: string) {
     case "FAILED":
       return { color: "text-red-600", bg: "bg-red-50", icon: XCircle };
     case "RUNNING":
-      return { color: "text-blue-600", bg: "bg-blue-50", icon: Loader2 };
+      return { color: "text-blue-600", bg: "bg-blue-50", icon: RadarSpinner };
     case "QUEUED":
       return { color: "text-gray-600", bg: "bg-gray-50", icon: Clock };
     default:
@@ -110,7 +110,7 @@ function JobSteps({ job }: { job: Job }) {
               )}
             >
               {status === "active" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <RadarSpinner className="h-3 w-3 animate-spin" />
               ) : status === "done" ? (
                 <CheckCircle2 className="h-3 w-3" />
               ) : status === "failed" ? (
@@ -281,7 +281,7 @@ export function JobQueuePanel({
         <span>{data.completed_count} analyses terminées</span>
         {hasActiveJobs && (
           <span className="flex items-center gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <RadarSpinner className="h-3 w-3 animate-spin" />
             Mise à jour automatique
           </span>
         )}

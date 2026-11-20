@@ -15,10 +15,10 @@ import {
   CreditCard,
   CheckCircle2,
   XCircle,
-  Loader2,
   ChevronDown,
   Calendar,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -389,7 +389,7 @@ function BankingPageContent() {
       {/* ── TIMELINE ──────────────────────────────────────────────── */}
       {revolutTransactionsLoading && revolutTransactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 text-purple-600 dark:text-purple-400 animate-spin mb-3" />
+          <RadarSpinner className="h-8 w-8 text-primary text-primary animate-spin mb-3" />
           <p className="text-sm text-gray-400">Chargement des transactions…</p>
         </div>
       ) : groupedTransactions.length === 0 ? (
@@ -505,7 +505,7 @@ function BankingPageContent() {
                 className="text-gray-400 hover:text-gray-600"
               >
                 {revolutTransactionsLoading ? (
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 mr-1.5 animate-spin" />
                 ) : (
                   <ChevronDown className="h-4 w-4 mr-1.5" />
                 )}
@@ -529,7 +529,7 @@ export default function BankingPage() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
           </div>
         }
       >

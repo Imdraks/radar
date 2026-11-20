@@ -10,7 +10,6 @@ import {
   Calendar,
   Users,
   MoreHorizontal,
-  Loader2,
   X,
   Search,
   ArrowUpRight,
@@ -22,6 +21,7 @@ import {
   Edit,
   Eye,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from 'next/link';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import {
@@ -256,7 +256,7 @@ function ProjectsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

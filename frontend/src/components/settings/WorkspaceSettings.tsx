@@ -16,7 +16,6 @@ import {
   MoreVertical,
   Save,
   AlertTriangle,
-  Loader2,
   Settings2,
   ChevronRight,
   Lock,
@@ -28,7 +27,8 @@ import {
   MailPlus,
   CheckCircle2,
   Search,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -173,7 +173,7 @@ export function WorkspaceSettings() {
     return (
       <Card>
         <CardContent className="py-12 flex items-center justify-center gap-2 text-sm text-gray-400">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <RadarSpinner className="h-4 w-4 animate-spin" />
           Chargement…
         </CardContent>
       </Card>
@@ -292,7 +292,7 @@ function GeneralSection({
             />
             {isAdmin && (
               <Button onClick={handleSave} disabled={saving || !name.trim() || name === workspace.name} size="sm">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? <RadarSpinner className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               </Button>
             )}
           </div>
@@ -506,7 +506,7 @@ function CompanyInfoSection({
                 className="shrink-0"
               >
                 {searching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 animate-spin" />
                 ) : (
                   <>Rechercher</>
                 )}
@@ -713,7 +713,7 @@ function CompanyInfoSection({
           <div className="flex items-center gap-3">
             <Button onClick={handleSave} disabled={saving} size="sm">
               {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                <RadarSpinner className="h-4 w-4 animate-spin mr-1.5" />
               ) : (
                 <Save className="h-4 w-4 mr-1.5" />
               )}
@@ -1092,7 +1092,7 @@ function MembersSection({
           <CardContent>
             {invitesLoading ? (
               <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <RadarSpinner className="h-4 w-4 animate-spin" />
                 Chargement…
               </div>
             ) : invites.length === 0 ? (
@@ -1223,7 +1223,7 @@ function MembersSection({
               disabled={!inviteEmail.trim() || isInviting}
             >
               {isInviting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Plus className="h-4 w-4 mr-2" />
               )}
@@ -1335,7 +1335,7 @@ function MembersSection({
               disabled={!addEmail.trim() || isAdding}
             >
               {isAdding ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <UserPlus className="h-4 w-4 mr-2" />
               )}
@@ -1413,7 +1413,7 @@ function MembersSection({
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   {isResetting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <KeyRound className="h-4 w-4 mr-2" />
                   )}
@@ -1722,7 +1722,7 @@ function BankingSection({ isAdmin }: { isAdmin: boolean }) {
                   className="w-full text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
                 >
                   {isDisconnecting ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    <RadarSpinner className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                   ) : (
                     <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                   )}
@@ -1769,7 +1769,7 @@ function BankingSection({ isAdmin }: { isAdmin: boolean }) {
         <div className="divide-y divide-gray-100 dark:divide-slate-800">
           {isLoading && connections.length === 0 ? (
             <div className="px-6 py-12 flex items-center justify-center gap-2 text-sm text-gray-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <RadarSpinner className="h-4 w-4 animate-spin" />
               Chargement…
             </div>
           ) : connections.length > 0 ? (
@@ -1882,7 +1882,7 @@ function BankingSection({ isAdmin }: { isAdmin: boolean }) {
               disabled={revolutConnecting}
             >
               {revolutConnecting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Plus className="h-4 w-4 mr-2" />
               )}

@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { loginDestination } from '@/lib/login-destination';
 import { useAuthStore } from "@/store/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +70,7 @@ function AuthCallbackContent() {
           <div className="flex justify-center mb-4">
             {status === "loading" && (
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
               </div>
             )}
             {status === "success" && (
@@ -113,7 +114,7 @@ export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
       <AuthCallbackContent />

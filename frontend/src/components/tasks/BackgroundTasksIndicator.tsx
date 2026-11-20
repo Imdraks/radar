@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Loader2,
   CheckCircle2,
   XCircle,
   FileText,
   ChevronRight,
   Trash2,
   Clock,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -144,7 +144,7 @@ export function BackgroundTasksIndicator() {
       case "pending":
         return <Clock className="h-4 w-4 text-muted-foreground" />;
       case "running":
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <RadarSpinner className="h-4 w-4 text-primary animate-spin" />;
       case "completed":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case "failed":
@@ -205,7 +205,7 @@ export function BackgroundTasksIndicator() {
         >
           {hasActiveTasks ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+              <RadarSpinner className="h-5 w-5 animate-spin text-primary" />
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center">
                 {activeTasks.length}
               </span>

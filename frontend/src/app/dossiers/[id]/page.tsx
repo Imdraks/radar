@@ -16,7 +16,6 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Loader2,
   ExternalLink,
   Mail,
   Phone,
@@ -29,7 +28,8 @@ import {
   FileCheck,
   Eye,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 import {
   dossiersApi,
@@ -77,9 +77,9 @@ import { toast } from "sonner";
 function StateBadge({ state }: { state: string }) {
   const variants: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
     NOT_CREATED: { color: "bg-gray-100 text-gray-700", icon: <FileText className="h-3 w-3" />, label: "Non créé" },
-    PROCESSING: { color: "bg-blue-100 text-blue-700", icon: <Loader2 className="h-3 w-3 animate-spin" />, label: "En cours" },
+    PROCESSING: { color: "bg-blue-100 text-blue-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" />, label: "En cours" },
     ENRICHING: { color: "bg-purple-100 text-purple-700", icon: <Globe className="h-3 w-3 animate-pulse" />, label: "Recherche" },
-    MERGING: { color: "bg-indigo-100 text-indigo-700", icon: <Loader2 className="h-3 w-3 animate-spin" />, label: "Finalisation" },
+    MERGING: { color: "bg-indigo-100 text-indigo-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" />, label: "Finalisation" },
     READY: { color: "bg-green-100 text-green-700", icon: <CheckCircle className="h-3 w-3" />, label: "Prêt" },
     FAILED: { color: "bg-red-100 text-red-700", icon: <XCircle className="h-3 w-3" />, label: "Échec" },
   };
@@ -347,7 +347,7 @@ export default function DossierDetailPage() {
       <ProtectedRoute>
         <AppLayout>
           <div className="flex items-center justify-center min-h-screen">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         </AppLayout>
       </ProtectedRoute>
@@ -396,7 +396,7 @@ export default function DossierDetailPage() {
             disabled={enrichMutation.isPending || dossier.state !== "READY"}
           >
             {enrichMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Globe className="h-4 w-4 mr-2" />
             )}
@@ -409,7 +409,7 @@ export default function DossierDetailPage() {
             disabled={rebuildMutation.isPending}
           >
             {rebuildMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
             )}

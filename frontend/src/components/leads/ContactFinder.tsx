@@ -9,12 +9,12 @@ import {
   Globe,
   Linkedin,
   Twitter,
-  Loader2,
   CheckCircle,
   ExternalLink,
   AlertCircle,
   Info,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -237,7 +237,7 @@ export function ContactFinder({ opportunityId }: ContactFinderProps) {
           >
             {isSearching ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
                 Recherche en cours...
               </>
             ) : (
@@ -252,7 +252,7 @@ export function ContactFinder({ opportunityId }: ContactFinderProps) {
         {/* Loading state */}
         {resultLoading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         )}
 

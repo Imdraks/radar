@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Users, Sparkles, ArrowUpRight, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Users, Sparkles, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayout, ProtectedRoute } from '@/components/layout';
 import { PlanCatalog } from '@/components/subscription/PlanCatalog';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ export default function SubscriptionPage() {
         try { await subscriptionFetch('addon-requests', subscription?.workspace_id, { method: 'POST', body: JSON.stringify({ description: addon }) }); setMessage('Demande Radar Addons enregistrée.'); setAddon(''); }
         catch { setMessage('Impossible d’enregistrer cette demande.'); }
         finally { setSending(false); }
-      }}><label htmlFor="addon" className="text-sm font-medium">Besoin d’une extension spécifique ?</label><Input id="addon" required minLength={3} maxLength={100} value={addon} onChange={e => setAddon(e.target.value)} placeholder="Décrivez votre besoin en quelques mots…" /><Button disabled={sending} variant="outline" className="self-start gap-2" type="submit">{sending ? <Loader2 size={15} className="animate-spin" /> : <ArrowUpRight size={15} />}Envoyer une demande Radar Addons</Button></form>
+      }}><label htmlFor="addon" className="text-sm font-medium">Besoin d’une extension spécifique ?</label><Input id="addon" required minLength={3} maxLength={100} value={addon} onChange={e => setAddon(e.target.value)} placeholder="Décrivez votre besoin en quelques mots…" /><Button disabled={sending} variant="outline" className="self-start gap-2" type="submit">{sending ? <RadarSpinner size={15} className="animate-spin" /> : <ArrowUpRight size={15} />}Envoyer une demande Radar Addons</Button></form>
     </section>
   </div></AppLayout></ProtectedRoute>;
 }

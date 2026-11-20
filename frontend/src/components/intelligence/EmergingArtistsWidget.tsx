@@ -24,10 +24,10 @@ import {
   Music,
   ExternalLink,
   Star,
-  Loader2,
   CheckCircle,
   XCircle,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -325,7 +325,7 @@ export function EmergingArtistsWidget() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {analysisStatus === "loading" && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+              {analysisStatus === "loading" && <RadarSpinner className="h-5 w-5 animate-spin text-primary" />}
               {analysisStatus === "success" && <CheckCircle className="h-5 w-5 text-green-500" />}
               {analysisStatus === "error" && <XCircle className="h-5 w-5 text-red-500" />}
               Analyse de {analyzingArtist}
@@ -343,7 +343,7 @@ export function EmergingArtistsWidget() {
                 <Progress value={analysisProgress} className="h-2" />
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <RadarSpinner className="h-3 w-3 animate-spin" />
                     Recherche sur Spotify, YouTube, Instagram...
                   </div>
                   {analysisProgress > 30 && (
@@ -354,7 +354,7 @@ export function EmergingArtistsWidget() {
                   )}
                   {analysisProgress > 60 && (
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <RadarSpinner className="h-3 w-3 animate-spin" />
                       Estimation des cachets...
                     </div>
                   )}

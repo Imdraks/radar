@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Target, Loader2, Shield, ArrowLeft } from "lucide-react";
+import { Target, Shield, ArrowLeft } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from "next/link";
 import { RadarLogo, RadarMark, RadarField } from "@/components/brand/RadarBrand";
 import { MfaChallenge, mfaError } from '@/components/auth/MfaChallenge';
@@ -222,7 +223,7 @@ function LoginContent() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4 animate-pulse">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
           </div>
           <p className="text-muted-foreground text-sm">Chargement...</p>
         </div>
@@ -268,7 +269,7 @@ function LoginContent() {
                   disabled={ssoLoading !== null}
                 >
                   {ssoLoading === "google" ? (
-                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                    <RadarSpinner className="mr-3 h-5 w-5 animate-spin" />
                   ) : (
                     <GoogleIcon className="mr-3 h-5 w-5" />
                   )}
@@ -348,7 +349,7 @@ function LoginContent() {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <RadarSpinner className="mr-2 h-5 w-5 animate-spin" />
                   Connexion...
                 </>
               ) : (

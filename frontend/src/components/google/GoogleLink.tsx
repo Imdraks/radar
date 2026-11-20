@@ -9,10 +9,10 @@ import {
   Calendar,
   ExternalLink,
   Plus,
-  Loader2,
   Check,
   AlertCircle,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -160,7 +160,7 @@ export function GoogleLink({
               disabled={isCreating}
             >
               {isCreating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <RadarSpinner className="h-4 w-4 animate-spin" />
               ) : (
                 <>
                   <Icon className="h-4 w-4" />
@@ -186,7 +186,7 @@ export function GoogleLink({
       disabled={isCreating}
     >
       {isCreating ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <RadarSpinner className="h-4 w-4 animate-spin" />
       ) : (
         <Icon className="h-4 w-4" />
       )}

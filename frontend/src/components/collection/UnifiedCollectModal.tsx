@@ -10,7 +10,6 @@ import {
   User,
   Building,
   Hash,
-  Loader2,
   X,
   Plus,
   Sparkles,
@@ -18,7 +17,8 @@ import {
   Bot,
   ArrowRight,
   CheckCircle,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -391,7 +391,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                     Lancement...
                   </>
                 ) : (
@@ -622,7 +622,7 @@ export function UnifiedCollectModal({ defaultTab = "standard" }: UnifiedCollectM
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                     Lancement...
                   </>
                 ) : (

@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Users, UserPlus, Mail, Trash2, CheckCircle, Clock, 
-  Building2, Shield, Eye, Loader2, Search, RefreshCw,
+  Building2, Shield, Eye, Search, RefreshCw,
   AlertCircle, Copy, Check, Settings
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { ProtectedRoute, AdminLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -273,7 +274,7 @@ function AdminMembersContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -369,7 +370,7 @@ function AdminMembersContent() {
                 Annuler
               </Button>
               <Button onClick={handleAddInvite} disabled={inviting || !newInviteEmail.trim()}>
-                {inviting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {inviting && <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />}
                 Envoyer l'invitation
               </Button>
             </DialogFooter>
@@ -443,7 +444,7 @@ function AdminMembersContent() {
               <CardContent>
                 {loadingMembers ? (
                   <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <RadarSpinner className="h-6 w-6 animate-spin" />
                   </div>
                 ) : members.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">

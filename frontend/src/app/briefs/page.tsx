@@ -1,5 +1,6 @@
 "use client";
 
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -109,7 +110,7 @@ function BriefsContent() {
       {/* Results */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <RadarSpinner className="h-12 w-12 text-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">Chargement des dossiers...</p>
         </div>
       ) : error ? (

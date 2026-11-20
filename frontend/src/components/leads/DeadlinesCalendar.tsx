@@ -35,8 +35,8 @@ import {
   Euro,
   Building2,
   ExternalLink,
-  Loader2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from "next/link";
 
 // Type pour les items du calendrier (deadline ou événement Google)
@@ -254,7 +254,7 @@ export function DeadlinesCalendar() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <RadarSpinner className="h-8 w-8 text-primary" />
       </div>
     );
   }
@@ -288,7 +288,7 @@ export function DeadlinesCalendar() {
           {/* Google Calendar loading indicator */}
           {isLoadingEvents && calendarStatus?.connected && (
             <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <RadarSpinner className="h-4 w-4 animate-spin" />
               Chargement des événements Google Calendar...
             </div>
           )}

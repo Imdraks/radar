@@ -20,12 +20,12 @@ import {
   MoreHorizontal,
   Copy,
   Eye,
-  Loader2,
   X,
   Check,
   Upload,
   FolderOpen,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -657,7 +657,7 @@ export function AddAssetDialog({
                 >
                   {createMutation.isPending ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                       Création...
                     </>
                   ) : (
@@ -843,7 +843,7 @@ export function AddAssetDialog({
                   >
                     {isUploading ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                         Upload...
                       </>
                     ) : (
@@ -953,7 +953,7 @@ export function AssetsList({
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
       

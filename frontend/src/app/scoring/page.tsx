@@ -1,5 +1,6 @@
 "use client";
 
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -173,7 +174,7 @@ function ScoringContent() {
       {/* Rules by type */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <RadarSpinner className="h-12 w-12 text-primary mx-auto" />
         </div>
       ) : !groupedRules || Object.keys(groupedRules).length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">

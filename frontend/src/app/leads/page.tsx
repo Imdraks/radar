@@ -1,4 +1,6 @@
 "use client";
+
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
 import { useState } from "react";
@@ -378,7 +380,7 @@ function LeadsContent() {
       {/* Content based on view mode */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <RadarSpinner className="h-12 w-12 text-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">Chargement...</p>
         </div>
       ) : error ? (

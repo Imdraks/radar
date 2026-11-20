@@ -8,8 +8,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { 
   FileCheck, ArrowLeft, Edit2, Trash2, Plus, Save, Send, Check, X,
   Building2, User, Calendar, Clock, CreditCard, AlertTriangle, DollarSign, Pencil,
-  Download, Loader2, Eye, Cloud, ExternalLink
+  Download, Eye, Cloud, ExternalLink
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -593,7 +594,7 @@ export default function InvoiceDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={generatePdf} disabled={generatingPdf}>
-            {generatingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {generatingPdf ? <RadarSpinner className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
             {generatingPdf ? 'Génération...' : 'PDF'}
           </Button>
           {pdfUrl && (

@@ -10,7 +10,6 @@ import {
   User,
   Tag,
   MoreHorizontal,
-  Loader2,
   Search,
   X,
   Clock,
@@ -18,6 +17,7 @@ import {
   Edit,
   Eye,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import {
   DropdownMenu,
@@ -282,7 +282,7 @@ function PipelineContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

@@ -13,13 +13,13 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Loader2,
   ChevronRight,
   Sparkles,
   Globe,
   Shield,
   BarChart3,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 import { dossiersApi, DossierSummary, DossierStats } from "@/lib/api";
 import { AppLayout, ProtectedRoute } from "@/components/layout";
@@ -46,9 +46,9 @@ import { toast } from "sonner";
 function StateBadge({ state }: { state: string }) {
   const variants: Record<string, { color: string; icon: React.ReactNode }> = {
     NOT_CREATED: { color: "bg-gray-100 text-gray-700", icon: <FileText className="h-3 w-3" /> },
-    PROCESSING: { color: "bg-blue-100 text-blue-700", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    PROCESSING: { color: "bg-blue-100 text-blue-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" /> },
     ENRICHING: { color: "bg-purple-100 text-purple-700", icon: <Globe className="h-3 w-3 animate-pulse" /> },
-    MERGING: { color: "bg-indigo-100 text-indigo-700", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    MERGING: { color: "bg-indigo-100 text-indigo-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" /> },
     READY: { color: "bg-green-100 text-green-700", icon: <CheckCircle className="h-3 w-3" /> },
     FAILED: { color: "bg-red-100 text-red-700", icon: <XCircle className="h-3 w-3" /> },
   };
@@ -333,7 +333,7 @@ export default function DossiersPage() {
       {/* Dossiers grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : dossiers && dossiers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

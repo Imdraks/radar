@@ -9,7 +9,6 @@ import {
   Filter,
   CheckCircle2,
   ArrowRight,
-  Loader2,
   Lightbulb,
   Bug,
   FileText,
@@ -29,6 +28,7 @@ import {
   DollarSign,
   Package,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from 'next/link';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -591,7 +591,7 @@ function InboxContent() {
   if (!workspaceId) {
     return (
       <div className="p-6 max-w-5xl mx-auto flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -688,7 +688,7 @@ function InboxContent() {
                     disabled={!captureText.trim() || isCapturing}
                   >
                     {isCapturing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
                         <Send className="h-4 w-4 mr-1" />
@@ -760,7 +760,7 @@ function InboxContent() {
       {/* Items List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : data?.items.length === 0 ? (
         <Card className="border-dashed">
@@ -926,7 +926,7 @@ function InboxContent() {
               Annuler
             </Button>
             <Button onClick={handleTriage} disabled={isTriaging}>
-              {isTriaging ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Trier'}
+              {isTriaging ? <RadarSpinner className="h-4 w-4 animate-spin" /> : 'Trier'}
             </Button>
           </DialogFooter>
         </DialogContent>

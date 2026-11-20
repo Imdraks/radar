@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Shield, Smartphone, Mail, MessageSquare, Key, Loader2, Copy } from 'lucide-react';
+import { Shield, Smartphone, Mail, MessageSquare, Key, Copy } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { verifyReauthentication } from '@/lib/passkeys';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -54,7 +55,7 @@ export function TwoFactorSettings() {
     }
   };
   return <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Shield size={20} />Authentification à deux facteurs</CardTitle><CardDescription>Confirmez votre identité avec une application, un e-mail ou un SMS. Choisissez les méthodes qui vous conviennent.</CardDescription></CardHeader><CardContent className="space-y-6">
-    {isLoading ? <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="animate-spin" size={16} />Chargement de la sécurité…</p> : isError || !status ? <p role="alert" className="text-sm text-destructive">Impossible de lire les méthodes. Réessayez avant de modifier la sécurité.</p> : <>
+    {isLoading ? <p role="status" className="flex items-center gap-2 text-sm"><RadarSpinner className="animate-spin" size={16} />Chargement de la sécurité…</p> : isError || !status ? <p role="alert" className="text-sm text-destructive">Impossible de lire les méthodes. Réessayez avant de modifier la sécurité.</p> : <>
       <p className={`rounded-xl p-4 text-sm ${status.enabled ? 'bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200' : 'bg-primary/5'}`}>{status.enabled ? 'La double authentification est activée sur votre compte.' : 'Votre compte utilise actuellement une seule étape de connexion. Ajoutez une méthode pour activer la double authentification.'}</p>
       <div className="space-y-3">{[
         { method: 'totp' as Method, icon: Smartphone, text: 'Google Authenticator, Microsoft Authenticator, 1Password ou toute application TOTP compatible.' },
@@ -78,7 +79,7 @@ export function TwoFactorSettings() {
           if (response.data.requires_2fa) { setChallenge(response.data); setPhase('verify'); }
           else await execute(response.data.management_token);
         } catch (error) { setError(mfaError(error)); } finally { setBusy(false); }
-      }}><p className="break-all rounded-xl bg-secondary p-3 text-sm">Compte vérifié : <span className="font-medium">{userEmail || "Compte connecté"}</span></p><div className="space-y-2"><Label htmlFor="mfa-password">Mot de passe Radar</Label><Input id="mfa-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} /><p className="text-xs text-muted-foreground">Saisissez le mot de passe Radar du compte indiqué, différent de votre mot de passe Google ou Apple. Si aucun mot de passe Radar n’est défini, laissez vide après une connexion récente avec votre fournisseur.</p></div>{action?.kind === 'add' && action.method === 'sms' && <div className="space-y-2"><Label htmlFor="mfa-phone">Numéro de téléphone international</Label><Input id="mfa-phone" type="tel" autoComplete="tel" placeholder="+33612345678" value={phone} onChange={event => setPhone(event.target.value)} required /><p className="text-xs text-muted-foreground">Le numéro n’est enregistré comme méthode qu’après confirmation du SMS.</p></div>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" className="w-full gap-2" disabled={busy}>{busy && <Loader2 size={15} className="animate-spin" />}Continuer</Button></form>}
+      }}><p className="break-all rounded-xl bg-secondary p-3 text-sm">Compte vérifié : <span className="font-medium">{userEmail || "Compte connecté"}</span></p><div className="space-y-2"><Label htmlFor="mfa-password">Mot de passe Radar</Label><Input id="mfa-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} /><p className="text-xs text-muted-foreground">Saisissez le mot de passe Radar du compte indiqué, différent de votre mot de passe Google ou Apple. Si aucun mot de passe Radar n’est défini, laissez vide après une connexion récente avec votre fournisseur.</p></div>{action?.kind === 'add' && action.method === 'sms' && <div className="space-y-2"><Label htmlFor="mfa-phone">Numéro de téléphone international</Label><Input id="mfa-phone" type="tel" autoComplete="tel" placeholder="+33612345678" value={phone} onChange={event => setPhone(event.target.value)} required /><p className="text-xs text-muted-foreground">Le numéro n’est enregistré comme méthode qu’après confirmation du SMS.</p></div>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" className="w-full gap-2" disabled={busy}>{busy && <RadarSpinner size={15} className="animate-spin" />}Continuer</Button></form>}
       {phase === 'verify' && challenge && <MfaChallenge key={challenge.challenge_token} token={challenge.challenge_token} methods={challenge.methods} destinations={challenge.destinations} onBack={close} onVerify={async (method, code) => {
         setBusy(true);
         try { const response = await verifyReauthentication(challenge.challenge_token, method, code); await execute(response.management_token); } finally { setBusy(false); }

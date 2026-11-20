@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowDown, ArrowUpRight, Check, HelpCircle, Loader2, Minus, Users } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Check, HelpCircle, Minus, Users } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from '@/components/ui/button';
 import type { Feature, Plan, PlanInfo } from '@/store/subscriptionStore';
 
@@ -46,7 +47,7 @@ function Inclusion({ plan, feature }: { plan: PlanInfo; feature: Feature }) {
 
 export function PricingCatalog({ plans, error, onRetry }: { plans: PlanInfo[]; error: boolean; onRetry: () => void }) {
   if (error) return <div role="alert" className="rounded-3xl border bg-white p-8 text-center"><p className="font-medium">Les offres sont momentanément indisponibles.</p><p className="mt-2 text-sm text-muted-foreground">Réessayez ou contactez notre équipe pour connaître le périmètre adapté à votre agence.</p><div className="mt-5 flex flex-wrap justify-center gap-3"><Button variant="outline" onClick={onRetry}>Réessayer</Button><Button asChild><Link href="/contact">Contacter l’équipe</Link></Button></div></div>;
-  if (!plans.length) return <div role="status" className="flex min-h-72 items-center justify-center gap-3 rounded-3xl border bg-white text-muted-foreground"><Loader2 className="animate-spin" size={20} aria-hidden="true" />Chargement des offres…</div>;
+  if (!plans.length) return <div role="status" className="flex min-h-72 items-center justify-center gap-3 rounded-3xl border bg-white text-muted-foreground"><RadarSpinner className="animate-spin" size={20} aria-hidden="true" />Chargement des offres…</div>;
 
   const ordered = [...plans].sort((a, b) => ['core', 'premium', 'business'].indexOf(a.name) - ['core', 'premium', 'business'].indexOf(b.name));
   return <>

@@ -9,7 +9,6 @@ import {
   Edit,
   Trash2,
   RefreshCw,
-  Loader2,
   ChevronDown,
   Settings,
   Sliders,
@@ -19,7 +18,8 @@ import {
   Users,
   Mic,
   Tag,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import type { LucideIcon } from "lucide-react";
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -242,7 +242,7 @@ function ProfileForm({
         </Button>
         <Button onClick={() => onSubmit(formData)} disabled={isLoading || !formData.name}>
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
@@ -516,7 +516,7 @@ function ProfilesContent() {
       {/* Profiles grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : profiles && profiles.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

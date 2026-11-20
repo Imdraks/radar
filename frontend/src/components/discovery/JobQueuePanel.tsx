@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   CheckCircle2,
   XCircle,
-  Loader2,
   Clock,
   ChevronDown,
   ChevronUp,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,7 +76,7 @@ const getStatusIcon = (status: string) => {
     case "COMPLETED":
       return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     case "RUNNING":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      return <RadarSpinner className="h-4 w-4 text-primary animate-spin" />;
     case "FAILED":
       return <XCircle className="h-4 w-4 text-red-500" />;
     case "QUEUED":
@@ -250,7 +250,7 @@ export function JobQueuePanel({
       >
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Loader2
+            <RadarSpinner
               className={`h-4 w-4 ${runningCount > 0 ? "animate-spin text-blue-500" : "text-gray-400"}`}
             />
             File d'enrichissement
@@ -279,7 +279,7 @@ export function JobQueuePanel({
         <CardContent className="pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <RadarSpinner className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : jobs.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground text-sm">

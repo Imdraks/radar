@@ -10,12 +10,12 @@ import {
   AlertCircle,
   XCircle,
   RefreshCw,
-  Loader2,
   PowerOff,
   BarChart3,
   Clock,
   Copy,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -204,7 +204,7 @@ function SourceHealthContent() {
       {/* Overview stats */}
       {overviewLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : overview ? (
         <>
@@ -318,7 +318,7 @@ function SourceHealthContent() {
           <CardContent>
             {metricsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : sourceMetrics && sourceMetrics.length > 0 ? (
               <Table>

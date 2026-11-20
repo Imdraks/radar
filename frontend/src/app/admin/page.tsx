@@ -8,9 +8,9 @@ import {
   Mail,
   Activity,
   Plus,
-  Loader2,
   CheckCircle,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from 'next/link';
 import { ProtectedRoute, AdminLayout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ function AdminDashboardContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

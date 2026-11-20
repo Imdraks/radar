@@ -15,7 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Sparkles, User, DollarSign, Phone, TrendingUp } from "lucide-react";
+import { Search, Sparkles, User, DollarSign, Phone, TrendingUp } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 interface SearchParams {
   query: string;
@@ -188,7 +189,7 @@ export function IntelligentSearchDialog() {
                 className="gap-2"
               >
                 {searchMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 animate-spin" />
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
@@ -201,7 +202,7 @@ export function IntelligentSearchDialog() {
           <div className="py-4">
             {polling || taskLoading ? (
               <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">
                   Analyse en cours... {taskStatus?.status || "PENDING"}
                 </p>

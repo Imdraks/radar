@@ -2,7 +2,8 @@
 import { workspaceFetch } from '@/lib/workspace-fetch';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Check, CheckCircle2, LayoutGrid, Sparkles, Briefcase, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Check, CheckCircle2, LayoutGrid, Sparkles, Briefcase, ArrowUpRight} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from '@/components/ui/button';
 import { PlanInfo, Plan } from '@/store/subscriptionStore';
 import { PricingCatalog } from './PricingCatalog';
@@ -36,7 +37,7 @@ export function PlanCatalog({ onRequest, currentPlan, detailed = false }: { onRe
 
   return <div className="space-y-5">
     {error && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Catalogue indisponible. Réessayez ultérieurement ou contactez notre équipe.</p>}
-    {!error && !plans.length && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={16} className="animate-spin" />Chargement des offres…</p>}
+    {!error && !plans.length && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><RadarSpinner size={16} className="animate-spin" />Chargement des offres…</p>}
     <div className="grid gap-5 xl:grid-cols-3">{plans.map(plan => {
       const isCurrent = currentPlan === plan.name;
       const isIncluded = Boolean(currentFeatures?.length && plan.available_features?.length && plan.available_features.every(feature => currentFeatures.includes(feature)));
@@ -49,7 +50,7 @@ export function PlanCatalog({ onRequest, currentPlan, detailed = false }: { onRe
         <p className="my-5 border-b pb-5 text-xs text-muted-foreground">Conditions tarifaires sur demande</p>
         <ul className="mb-8 flex-1 space-y-3">{plan.features_bullets.map(b => <li key={b} className="flex items-start gap-2.5 text-sm leading-relaxed"><Check size={16} className="mt-0.5 shrink-0 text-primary" /><span>{b}</span></li>)}</ul>
         {isCurrent || isIncluded ? <p className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-green-50 px-3 py-2.5 text-sm font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400"><CheckCircle2 size={16} />{isCurrent ? 'Abonnement actif' : 'Déjà inclus'}</p>
-          : onRequest ? <Button disabled={pending !== null} className="w-full gap-2" variant="outline" onClick={async () => { setPending(plan.name); try { await onRequest(plan.name); } finally { setPending(null); } }}>{pending === plan.name ? <Loader2 size={16} className="animate-spin" /> : null}Demander cet abonnement<ArrowUpRight size={15} /></Button>
+          : onRequest ? <Button disabled={pending !== null} className="w-full gap-2" variant="outline" onClick={async () => { setPending(plan.name); try { await onRequest(plan.name); } finally { setPending(null); } }}>{pending === plan.name ? <RadarSpinner size={16} className="animate-spin" /> : null}Demander cet abonnement<ArrowUpRight size={15} /></Button>
             : <Button asChild variant="outline" className="w-full"><Link href={`/contact?plan=${plan.name}`}>Contacter l’équipe<ArrowUpRight size={15} className="ml-2" /></Link></Button>}
       </article>;
     })}</div>

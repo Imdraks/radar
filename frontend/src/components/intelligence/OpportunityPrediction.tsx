@@ -28,10 +28,10 @@ import {
   HelpCircle,
   Target,
   Calendar,
-  Loader2,
   Lightbulb,
   BarChart2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 interface PredictionResult {
   opportunity_id: string;
@@ -125,7 +125,7 @@ export function OpportunityPrediction({
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <RadarSpinner className="h-12 w-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">Analyse en cours...</p>
           </div>
         ) : prediction ? (
@@ -280,7 +280,7 @@ export function TrendAnalysis() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
