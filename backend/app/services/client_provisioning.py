@@ -1,7 +1,7 @@
 """Delivery of customer invitations. Secrets are created only in the worker transaction."""
 
 from datetime import datetime, timedelta
-from html import escape
+from app.services.email_templates import workspace_invitation
 import secrets
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
@@ -68,7 +68,7 @@ async def deliver_invitation(db, invitation_id):
     else:
         text += "\nUtilisez vos identifiants Radar habituels ou votre fournisseur de connexion déjà associé. Votre mot de passe et votre A2F restent inchangés.\n"
     text += "\nNe transmettez pas ce message. Si vous n’attendiez pas cette invitation, contactez votre interlocuteur Radar."
-    html = "<p>" + escape(text).replace("\n", "<br>") + "</p>"
+    html = workspace_invitation(user.email, workspace.name, password)
     try:
         if settings.resend_api_key:
             result = await EmailService().send_email(
@@ -78,7 +78,7 @@ async def deliver_invitation(db, invitation_id):
                 raise RuntimeError("DELIVERY_REFUSED")
         else:
             await run_in_threadpool(
-                smtp_send, user.email, text, "Votre invitation Radar"
+                smtp_send, user.email, text, "Votre invitation Radar", html
             )
     except Exception:
         invitation.status, invitation.error_code = "failed", "DELIVERY_FAILED"

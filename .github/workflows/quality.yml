@@ -59,6 +59,18 @@ jobs:
           CELERY_BROKER_URL: redis://127.0.0.1:6379/0
           CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
       - run: cd backend && alembic heads
+      - name: Email design regression (local fixtures only)
+        run: |
+          pip install playwright==1.49.1
+          python -m playwright install --with-deps chromium
+          python scripts/email_preview.py
+          python scripts/email_ui_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: radar-email-previews
+          path: /tmp/radar-email-previews
+          if-no-files-found: ignore
   frontend:
     runs-on: ubuntu-latest
     defaults:

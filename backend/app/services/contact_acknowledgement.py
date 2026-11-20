@@ -1,7 +1,7 @@
 """Send one opening acknowledgement; do not infer payment or order acceptance."""
 
 from datetime import datetime
-from html import escape
+from app.services.email_templates import contact_opened
 from starlette.concurrency import run_in_threadpool
 from app.db.models.contact_inquiry import ContactInquiry
 from app.services.email_service import EmailService
@@ -29,7 +29,7 @@ async def deliver_open_acknowledgement(db, id):
     db.commit()
     subject = "Votre demande Radar a été ouverte"
     text = f"Bonjour {row.name},\n\nVotre demande a bien été ouverte par notre équipe. Nous vous contacterons prochainement pour la traiter.\n\nL’équipe Radar\nRéférence : {row.id}"
-    html = "<p>" + escape(text).replace("\n", "<br>") + "</p>"
+    html = contact_opened(row.name, str(row.id))
     try:
         if service.is_configured:
             result = await service.send_email(
@@ -46,7 +46,7 @@ async def deliver_open_acknowledgement(db, id):
             ):
                 raise RuntimeError("DELIVERY_REFUSED")
         else:
-            await run_in_threadpool(smtp_send, row.email, text, subject)
+            await run_in_threadpool(smtp_send, row.email, text, subject, html)
     except Exception:
         row.acknowledgement_status = "failed"
         row.acknowledgement_error = "DELIVERY_FAILED"
