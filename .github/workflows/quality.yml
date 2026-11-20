@@ -59,6 +59,18 @@ jobs:
           CELERY_BROKER_URL: redis://127.0.0.1:6379/0
           CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
       - run: cd backend && alembic heads
+      - name: Email design regression (local fixtures only)
+        run: |
+          pip install playwright==1.49.1
+          python -m playwright install --with-deps chromium
+          python scripts/email_preview.py
+          python scripts/email_ui_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: radar-email-previews
+          path: /tmp/radar-email-previews
+          if-no-files-found: ignore
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -75,6 +87,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: python ../scripts/check_release.py --check-template
       - run: node --test ../scripts/consent-policy.test.mjs
+      - run: node ../scripts/contact-submission.test.mjs
       - run: node ../scripts/mascot-expressions.test.mjs
       - run: npm run type-check
       - run: npm run build
@@ -103,12 +116,17 @@ jobs:
           python ../scripts/companion_ui_smoke.py
           python ../scripts/theme_ui_smoke.py
           python ../scripts/contact_ui_smoke.py
+          python ../scripts/contact_inbox_ui_smoke.py
           python ../scripts/documentation_ui_smoke.py
           python ../scripts/mfa_ui_smoke.py
           python ../scripts/password_ui_smoke.py
           python ../scripts/ui_smoke.py
           python ../scripts/consent_ui_smoke.py
           python ../scripts/legal_ui_smoke.py
+          python ../scripts/admin_clients_ui_smoke.py
+          python ../scripts/workspace_switch_ui_smoke.py
+          python ../scripts/admin_users_ui_smoke.py
+          python ../scripts/activity_ui_smoke.py
         env:
           TESTING: 'true'
           RADAR_UI_BASE_URL: http://127.0.0.1:3000

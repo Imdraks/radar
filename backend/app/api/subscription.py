@@ -164,12 +164,13 @@ async def list_requests(workspace_id: Optional[int] = None, db: Session = Depend
 class Decision(BaseModel):
     approve: bool
     contract_acceptance_id: Optional[int] = Field(default=None, gt=0)
+    external_contract_id: Optional[int] = Field(default=None, gt=0)
     authorization_reference: str = Field(min_length=5, max_length=2000)
 
 
 @router.get("/admin/requests")
 async def admin_requests(db: Session = Depends(get_db), admin: User = Depends(get_current_platform_admin)):
-    return db.query(SubscriptionRequest).filter_by(status="pending").order_by(SubscriptionRequest.id).limit(100).all()
+    return db.query(SubscriptionRequest).join(Workspace, Workspace.id == SubscriptionRequest.workspace_id).filter(SubscriptionRequest.status == "pending").order_by(SubscriptionRequest.id).limit(100).all()
 
 
 @router.get("/admin/workspace/{workspace_id}")
@@ -189,31 +190,42 @@ async def decide_request(request_id: int, decision: Decision, db: Session = Depe
         raise HTTPException(status_code=404, detail="Demande non trouvée")
     if entry.status != "pending":
         raise HTTPException(status_code=409, detail="Demande déjà traitée")
-    if decision.approve and entry.kind != "plan":
-        raise HTTPException(status_code=409, detail="Extension sur mesure : livraison et droits spécifiques à valider séparément")
-    workspace = db.query(Workspace).filter_by(id=entry.workspace_id).with_for_update().one()
+    workspace = db.query(Workspace).filter_by(id=entry.workspace_id).with_for_update().first()
+    if not workspace:
+        raise HTTPException(404, "Espace introuvable")
     entry.previous_plan = workspace.plan
     if decision.approve:
-        from app.db.models.legal_contract import LegalAcceptance, LegalBundle
-        acceptance = db.get(LegalAcceptance, decision.contract_acceptance_id) if decision.contract_acceptance_id else None
-        bundle = db.get(LegalBundle, acceptance.bundle_id) if acceptance else None
-        if not acceptance or acceptance.workspace_id != workspace.id or acceptance.plan != entry.requested_value or not bundle or acceptance.content_hash != bundle.content_hash:
-            raise HTTPException(409, "Une acceptation contractuelle explicite, liée à cet espace et à cette offre, est requise avant activation")
-        entry.contract_acceptance_id = acceptance.id
-        plan = Plan(entry.requested_value)
-        config = PLAN_CONFIGS[plan]
-        workspace.plan = plan.value
-        workspace.enabled_packs = [p.value for p in config.included_packs]
-        workspace.addons = []
-        # Keep existing contractual seats; do not create new commercial limits.
-        # Explicit activation supersedes expiry of the previous grant.
-        workspace.plan_expires_at = None
-    entry.status = "approved" if decision.approve else "rejected"
+        if decision.contract_acceptance_id and decision.external_contract_id:
+            raise HTTPException(422, 'Choisissez une seule preuve contractuelle.')
+        if decision.external_contract_id:
+            from app.db.models.platform_sales import ExternalClientContract
+            external = db.query(ExternalClientContract).filter_by(id=decision.external_contract_id).with_for_update(read=True).first()
+            if not external or external.workspace_id != workspace.id or external.order_id != entry.id or external.status != 'validated' or (entry.kind == 'plan' and external.plan != entry.requested_value):
+                raise HTTPException(409, 'Un contrat externe contrôlé, lié à cette entreprise et à cette commande, est requis.')
+            entry.external_contract_id = external.id
+        else:
+            from app.db.models.legal_contract import LegalAcceptance, LegalBundle
+            acceptance = db.get(LegalAcceptance, decision.contract_acceptance_id) if decision.contract_acceptance_id else None
+            bundle = db.get(LegalBundle, acceptance.bundle_id) if acceptance else None
+            if entry.kind != 'plan' or not acceptance or acceptance.workspace_id != workspace.id or acceptance.plan != entry.requested_value or not bundle or acceptance.content_hash != bundle.content_hash:
+                raise HTTPException(409, 'Une acceptation client liée à cette offre ou un contrat externe contrôlé est requis avant validation.')
+            entry.contract_acceptance_id = acceptance.id
+        if entry.kind == 'plan':
+            plan = Plan(entry.requested_value)
+            config = PLAN_CONFIGS[plan]
+            workspace.plan = plan.value
+            workspace.enabled_packs = [p.value for p in config.included_packs]
+            workspace.addons = []
+            # Keep existing contractual seats; no commercial limit is invented.
+            workspace.plan_expires_at = None
+    entry.status = ("approved" if entry.kind == "plan" else "commercial_approved") if decision.approve else "rejected"
     entry.decided_by = admin.id
     entry.decided_at = datetime.utcnow()
     entry.authorization_reference = decision.authorization_reference
+    from app.db.models.activity_log import ActivityLog
+    db.add(ActivityLog(user_id=admin.id, user_tracking_id=admin.tracking_id or 'SYSTEM', action='client.order_decided', resource_type='workspace', resource_id=str(workspace.id), details={'request_id':entry.id,'status':entry.status,'authorization_reference':decision.authorization_reference}))
     db.commit()
-    return {"request_id": entry.id, "status": entry.status, "subscription": serialize_subscription(db, workspace)}
+    return {"rights_activated": bool(decision.approve and entry.kind == 'plan'), "payment_confirmed": False, "request_id": entry.id, "status": entry.status, "subscription": serialize_subscription(db, workspace)}
 
 
 # Legacy write URLs remain authenticated but cannot bypass the audited approval path.

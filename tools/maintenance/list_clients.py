@@ -20,7 +20,7 @@ def main(argv=None):
         parser.error('--limit ne peut pas dépasser 500.')
 
     # Importing this module or requesting --help never opens a database connection.
-    from sqlalchemy import text
+    from sqlalchemy import text, select
     from app.db.session import SessionLocal
     from app.db.models.agency import Client
     from app.db.models.billing import BillingClient
@@ -29,7 +29,9 @@ def main(argv=None):
     with SessionLocal() as db:
         # Enforce read-only at PostgreSQL level, not just by convention.
         db.execute(text('SET TRANSACTION READ ONLY'))
-        if db.query(Workspace.id).filter(Workspace.id == args.workspace_id).first() is None:
+        # Controlled operator inventory must also work for a removed workspace
+        # and older minimal schemas. It remains PostgreSQL-enforced read-only.
+        if db.execute(select(Workspace.__table__.c.id).where(Workspace.__table__.c.id == args.workspace_id)).first() is None:
             raise SystemExit('Workspace introuvable ; aucune modification effectuée.')
         output = {'workspace_id': args.workspace_id, 'limit_per_category': args.limit}
         for kind, model in [('crm', Client), ('billing', BillingClient)]:

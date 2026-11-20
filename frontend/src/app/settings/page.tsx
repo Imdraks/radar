@@ -8,6 +8,7 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { ProfilePhotoSettings } from '@/components/settings/ProfilePhotoSettings';
 import { PasswordSettings } from '@/components/settings/PasswordSettings';
 import { SessionSettings } from '@/components/settings/SessionSettings';
+import { PasskeySettings } from '@/components/settings/PasskeySettings';
 import { TwoFactorSettings } from '@/components/settings/TwoFactorSettings';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuthStore } from '@/store/auth';
@@ -20,7 +21,7 @@ function SettingsContent() {
     <Tabs defaultValue="profile" className="space-y-5"><TabsList className="flex-wrap h-auto gap-1"><TabsTrigger value="profile"><User size={15} className="mr-2" />Compte</TabsTrigger><TabsTrigger value="notifications"><Bell size={15} className="mr-2" />Notifications</TabsTrigger><TabsTrigger value="security"><Lock size={15} className="mr-2" />Sécurité</TabsTrigger><TabsTrigger value="appearance"><Palette size={15} className="mr-2" />Apparence</TabsTrigger></TabsList>
       <TabsContent value="profile" className="space-y-5"><Card><CardHeader><CardTitle className="text-lg">Informations du compte</CardTitle><CardDescription>Les informations associées à votre connexion.</CardDescription></CardHeader><CardContent><dl className="grid gap-6 sm:grid-cols-2"><div><dt className="text-xs text-muted-foreground">Nom</dt><dd className="mt-1 font-medium">{user?.full_name || 'Non renseigné'}</dd></div><div><dt className="text-xs text-muted-foreground">Email</dt><dd className="mt-1 break-all font-medium">{user?.email || 'Non renseigné'}</dd></div></dl></CardContent></Card><ProfilePhotoSettings /><PasswordSettings /></TabsContent>
       <TabsContent value="notifications"><NotificationSettings /></TabsContent>
-      <TabsContent value="security" className="space-y-5"><TwoFactorSettings /><SessionSettings /></TabsContent>
+      <TabsContent value="security" className="space-y-5"><TwoFactorSettings /><PasskeySettings /><SessionSettings /></TabsContent>
       <TabsContent value="appearance"><Card><CardHeader><CardTitle className="text-lg">Apparence</CardTitle><CardDescription>Choisissez le thème de votre espace de travail.</CardDescription></CardHeader><CardContent className="flex items-center justify-between"><p className="text-sm">Thème de l’interface</p><ThemeToggle /></CardContent></Card></TabsContent>
     </Tabs>
     {showWorkspaceSettings && <Link href="/workspace/settings" className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5"><div><h2 className="text-sm font-semibold">Équipe et intégrations</h2><p className="mt-1 text-xs text-muted-foreground">Retrouvez la configuration de votre espace de travail.</p></div><ArrowUpRight size={17} /></Link>}

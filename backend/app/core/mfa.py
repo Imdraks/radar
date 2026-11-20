@@ -30,6 +30,8 @@ def methods(user):
         result.append('email')
     if user.mfa_sms_enabled:
         result.append('sms')
+    if any(key.revoked_at is None for key in getattr(user, 'passkeys', [])):
+        result.append('passkey')
     if result and user.backup_codes:
         result.append('recovery')
     return result

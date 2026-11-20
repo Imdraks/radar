@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordFields, passwordChecks, passwordError, usePasswordPolicy } from '@/components/auth/PasswordFields';
+import { verifyReauthentication } from '@/lib/passkeys';
 import { MfaChallenge } from '@/components/auth/MfaChallenge';
 
 type Challenge = { challenge_token: string; methods: string[]; destinations: Record<string, string> };
@@ -37,8 +38,8 @@ export function PasswordSettings() {
     {status.isPending || policy.isPending ? <p className="text-sm text-muted-foreground">Chargement…</p> : !status.isError && status.data && !status.data.has_password ? <p className="text-sm">Votre compte ne possède pas encore de mot de passe Radar. <Link href="/forgot-password" className="text-primary underline">Recevoir un lien par e-mail pour en définir un</Link>. Votre connexion Google ou Apple reste disponible.</p> : policy.data && status.data?.has_password ? challenge ? <MfaChallenge key={challenge.challenge_token} token={challenge.challenge_token} methods={challenge.methods} destinations={challenge.destinations} onBack={clear} onVerify={async (method, code) => {
       setBusy(true);
       try {
-        const proof = await api.post('/auth/mfa/reauth/complete', { challenge_token: challenge.challenge_token, method, code });
-        await change(proof.data.management_token);
+        const proof = await verifyReauthentication(challenge.challenge_token, method, code);
+        await change(proof.management_token);
       } finally { setBusy(false); }
     }} /> : <form className="space-y-5" onSubmit={async event => {
       event.preventDefault(); if (busy) return;

@@ -369,118 +369,20 @@ class WeeklyReportGenerator:
         new_opps: List[Dict[str, Any]],
         top_scored: List[Dict[str, Any]],
         upcoming: List[Dict[str, Any]],
-        recommendations: List[str]
+        recommendations: List[str],
     ) -> str:
-        """Generate HTML formatted report."""
-        period_str = f"{period_start.strftime('%d/%m/%Y')} - {period_end.strftime('%d/%m/%Y')}"
-        
-        highlights_html = "".join([
-            f'''
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                <span style="font-size: 24px;">{h['icon']}</span>
-                <strong>{h['title']}</strong><br>
-                <small style="color: #666;">{h['description']}</small>
-            </div>
-            '''
-            for h in highlights
-        ])
-        
-        top_scored_html = "".join([
-            f'''
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">{o.get('title', 'N/A')[:50]}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">{o.get('organization', 'N/A')}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">{o.get('score', 0)}/10</td>
-            </tr>
-            '''
-            for o in top_scored[:5]
-        ])
-        
-        upcoming_html = "".join([
-            f'''
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">{o.get('title', 'N/A')[:50]}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                    <span style="color: {'red' if o.get('urgency') == 'critical' else 'orange'};">
-                        {o.get('days_until_deadline', '?')} jours
-                    </span>
-                </td>
-            </tr>
-            '''
-            for o in upcoming[:5]
-        ])
-        
-        recommendations_html = "".join([
-            f"<li style='margin: 5px 0;'>{r}</li>"
-            for r in recommendations
-        ])
-        
-        return f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Rapport Hebdomadaire - Opportunities Radar</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
-                <h1 style="margin: 0;">📊 Rapport Hebdomadaire</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">{period_str}</p>
-            </div>
-            
-            <h2>🎯 Points clés</h2>
-            {highlights_html}
-            
-            <h2>📈 Métriques</h2>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: bold;">{metrics['new_count']}</div>
-                    <div style="color: #666;">Nouvelles</div>
-                </div>
-                <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: bold;">{metrics['high_score_count']}</div>
-                    <div style="color: #666;">Score élevé</div>
-                </div>
-                <div style="background: #fff3e0; padding: 20px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 32px; font-weight: bold;">{metrics['conversion_rate']}%</div>
-                    <div style="color: #666;">Conversion</div>
-                </div>
-            </div>
-            
-            <h2>⭐ Top Opportunités</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f5f5f5;">
-                        <th style="padding: 10px; text-align: left;">Titre</th>
-                        <th style="padding: 10px; text-align: left;">Organisation</th>
-                        <th style="padding: 10px; text-align: left;">Score</th>
-                    </tr>
-                </thead>
-                <tbody>{top_scored_html}</tbody>
-            </table>
-            
-            <h2>⏰ Deadlines Proches</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f5f5f5;">
-                        <th style="padding: 10px; text-align: left;">Titre</th>
-                        <th style="padding: 10px; text-align: left;">Échéance</th>
-                    </tr>
-                </thead>
-                <tbody>{upcoming_html}</tbody>
-            </table>
-            
-            <h2>💡 Recommandations</h2>
-            <ul style="background: #f8f9fa; padding: 20px 40px; border-radius: 8px;">
-                {recommendations_html}
-            </ul>
-            
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-                <p>Généré automatiquement par Opportunities Radar</p>
-            </div>
-        </body>
-        </html>
-        '''
+        """Render existing report data using the shared Radar email design."""
+        from app.services.email_templates import intelligence_report
+
+        return intelligence_report(
+            period_start,
+            period_end,
+            metrics,
+            highlights,
+            top_scored,
+            upcoming,
+            recommendations,
+        )
     
     def _generate_markdown(
         self,

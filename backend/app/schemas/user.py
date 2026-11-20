@@ -41,6 +41,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Create user schema with strong password validation"""
+    is_collaborator: bool = False
     password: str = Field(..., min_length=12, max_length=128)
     
     @field_validator('password')
@@ -56,6 +57,7 @@ class UserUpdate(BaseModel):
     role: Optional[Role] = None
     is_active: Optional[bool] = None
     is_whitelisted: Optional[bool] = None
+    is_collaborator: Optional[bool] = None
     password: Optional[str] = Field(None, min_length=12, max_length=128)
     
     @field_validator('full_name')
@@ -87,6 +89,9 @@ class UserResponse(UserBase):
     """User response schema"""
     id: int
     is_superuser: bool
+    is_collaborator: bool = False
+    must_change_password: bool = False
+    security_setup_pending: bool = False
     is_whitelisted: bool = False
     created_at: datetime
     last_login_at: Optional[datetime] = None

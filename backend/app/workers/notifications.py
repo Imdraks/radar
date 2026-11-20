@@ -123,21 +123,23 @@ def send_slack_notification(opportunities: List[Opportunity]):
         logger.error(f"Failed to send Slack notification: {str(e)}")
 
 
-def send_email_notification(opportunities: List[Opportunity], recipients: List[str] = None):
+def send_email_notification(
+    opportunities: List[Opportunity], recipients: List[str] = None
+):
     """Send notification via email"""
     if not settings.smtp_host or not settings.smtp_user:
         return
-    
+
     if not recipients:
         recipients = [settings.admin_email]
-    
+
     try:
         # Create message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"🎯 {len(opportunities)} nouvelle(s) opportunité(s) - Opportunities Radar"
-        msg['From'] = settings.smtp_from_email or settings.smtp_user
-        msg['To'] = ', '.join(recipients)
-        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"🎯 {len(opportunities)} nouvelle(s) opportunité(s) - Radar"
+        msg["From"] = settings.smtp_from_email or settings.smtp_user
+        msg["To"] = ", ".join(recipients)
+
         # Text version
         text_parts = ["Nouvelles opportunités détectées:\n"]
         for opp in opportunities:
@@ -147,53 +149,26 @@ def send_email_notification(opportunities: List[Opportunity], recipients: List[s
                 f"{data['deadline']}{data['budget']}\n"
                 f"  {data['app_url']}\n"
             )
-        text_content = '\n'.join(text_parts)
-        
-        # HTML version
-        html_parts = [
-            "<html><body>",
-            "<h2>🎯 Nouvelles opportunités</h2>",
-            "<table style='width:100%; border-collapse: collapse;'>"
-        ]
-        
-        for opp in opportunities:
-            data = format_opportunity_message(opp)
-            score_color = "#6366f1" if data['score'] >= 10 else "#94a3b8"
-            html_parts.append(f"""
-                <tr style='border-bottom: 1px solid #e5e7eb;'>
-                    <td style='padding: 12px;'>
-                        <a href='{data['app_url']}' style='font-weight: bold; color: #1f2937;'>
-                            {data['title']}
-                        </a>
-                        <br/>
-                        <span style='color: #6b7280; font-size: 14px;'>
-                            {data['organization']}{data['deadline']}{data['budget']}
-                        </span>
-                    </td>
-                    <td style='padding: 12px; text-align: center;'>
-                        <span style='background: {score_color}; color: white; 
-                              padding: 4px 12px; border-radius: 12px;'>
-                            {data['score']}
-                        </span>
-                    </td>
-                </tr>
-            """)
-        
-        html_parts.append("</table></body></html>")
-        html_content = '\n'.join(html_parts)
-        
-        msg.attach(MIMEText(text_content, 'plain'))
-        msg.attach(MIMEText(html_content, 'html'))
-        
+        text_content = "\n".join(text_parts)
+
+        from app.services.email_templates import opportunities_detected
+
+        html_content = opportunities_detected(
+            [format_opportunity_message(opp) for opp in opportunities]
+        )
+
+        msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
+
         # Send email
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
             if settings.smtp_use_tls:
                 server.starttls()
             server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(msg['From'], recipients, msg.as_string())
-        
+            server.sendmail(msg["From"], recipients, msg.as_string())
+
         logger.info(f"Email notification sent for {len(opportunities)} opportunities")
-        
+
     except Exception as e:
         logger.error(f"Failed to send email notification: {str(e)}")
 

@@ -1,366 +1,544 @@
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+"use client";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
-  Users,
-  Eye,
-  LogIn,
-  LogOut,
-  Search,
-  FileText,
-  Settings,
   RefreshCw,
-  Filter,
-  Clock,
-  User,
-  ChevronDown,
-  AlertCircle,
-} from 'lucide-react';
-import { adminApi } from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
+  Search,
+  ShieldCheck,
+  Building2,
+  UserRound,
+  FileText,
+} from "lucide-react";
+import { AdminLayout, ProtectedRoute } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  activityRequest,
+  activityLabel,
+  activityTime,
+  actorLabel,
+  resourceLabels,
+  type ActivityEntry,
+  type ActivityPage,
+  type ActivityFilters,
+} from "@/lib/activity";
+import { clientError } from "@/lib/platform-clients";
 
-interface ActivityLog {
-  id: string;
-  user_tracking_id: string;
-  user_email: string | null;
-  user_name: string | null;
+type Filters = {
+  q: string;
+  author: string;
   action: string;
-  resource_type: string | null;
-  resource_id: string | null;
-  details: Record<string, unknown> | null;
-  ip_address: string | null;
-  created_at: string;
-}
-
-interface UserTracking {
-  id: string;
-  tracking_id: string;
-  email: string | null;
-  full_name: string | null;
-  role: string;
-  is_active: boolean;
-  is_whitelisted: boolean;
-  last_login_at: string | null;
-  created_at: string;
-}
-
-const actionIcons: Record<string, React.ReactNode> = {
-  login: <LogIn className="h-4 w-4 text-green-500" />,
-  logout: <LogOut className="h-4 w-4 text-gray-500" />,
-  view: <Eye className="h-4 w-4 text-blue-500" />,
-  create: <FileText className="h-4 w-4 text-purple-500" />,
-  update: <Settings className="h-4 w-4 text-orange-500" />,
-  delete: <AlertCircle className="h-4 w-4 text-red-500" />,
-  search: <Search className="h-4 w-4 text-cyan-500" />,
-  analyze: <Activity className="h-4 w-4 text-pink-500" />,
+  resource: string;
+  period: string;
+  from: string;
+  to: string;
 };
-
-const actionLabels: Record<string, string> = {
-  login: 'Connexion',
-  logout: 'Déconnexion',
-  view: 'Consultation',
-  create: 'Création',
-  update: 'Modification',
-  delete: 'Suppression',
-  search: 'Recherche',
-  analyze: 'Analyse',
-  radar_trigger: 'Déclenchement Radar',
-  user_create: 'Création utilisateur',
-  whitelist: 'Whitelist',
+const empty: Filters = {
+  q: "",
+  author: "",
+  action: "",
+  resource: "",
+  period: "24",
+  from: "",
+  to: "",
 };
-
-import { AdminLayout, ProtectedRoute } from '@/components/layout';
-
-export default function ActivityLogsPage() {
+const selectClass = "h-10 w-full rounded-xl border bg-background px-3 text-sm";
+function EventIcon({ entry }: { entry: ActivityEntry }) {
+  const security = /^(login|logout|mfa\.|password\.|passkey\.|session\.)/.test(
+    entry.action,
+  );
+  const Icon = security
+    ? ShieldCheck
+    : entry.resource_type === "workspace"
+      ? Building2
+      : entry.resource_type === "user"
+        ? UserRound
+        : entry.resource_type
+          ? FileText
+          : Activity;
   return (
-    <ProtectedRoute requiredRoles={['admin']}>
-      <AdminLayout>
-        <ActivityLogsContent />
-      </AdminLayout>
-    </ProtectedRoute>
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+    >
+      <Icon size={17} />
+    </span>
+  );
+}
+function Resource({ entry }: { entry: ActivityEntry }) {
+  return (
+    <span className="break-all text-xs text-muted-foreground">
+      {entry.resource_type
+        ? resourceLabels[entry.resource_type] || entry.resource_type
+        : "Ressource non renseignée"}
+      {entry.resource_id ? ` · ${entry.resource_id}` : ""}
+    </span>
   );
 }
 
-function ActivityLogsContent() {
-  const { user } = useAuthStore();
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [selectedAction, setSelectedAction] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-
-  // Fetch users with tracking IDs
-  const { data: users = [] } = useQuery<UserTracking[]>({
-    queryKey: ['admin-users-tracking'],
-    queryFn: async () => {
-      const response = await adminApi.getUsersTracking();
-      return response;
-    },
+function Journal() {
+  const [draft, setDraft] = useState(empty);
+  const [filters, setFilters] = useState(empty);
+  const [page, setPage] = useState(1);
+  const [auto, setAuto] = useState(false);
+  const [selected, setSelected] = useState<ActivityEntry | null>(null);
+  const [filterError, setFilterError] = useState("");
+  const metadata = useQuery<ActivityFilters>({
+    queryKey: ["activity-filter-options"],
+    queryFn: () => activityRequest("filters"),
     staleTime: 60000,
-    enabled: user?.is_superuser === true,
+    retry: false,
   });
-
-  // Fetch activity logs
-  const { data: logs = [], refetch, isLoading } = useQuery<ActivityLog[]>({
-    queryKey: ['activity-logs', selectedUser, selectedAction],
-    queryFn: async () => {
-      const params: Record<string, string> = { limit: '100' };
-      if (selectedUser) params.user_tracking_id = selectedUser;
-      if (selectedAction) params.action = selectedAction;
-      const response = await adminApi.getLogs(params);
-      return response;
-    },
-    refetchInterval: autoRefresh ? 5000 : false,
-    enabled: user?.is_superuser === true,
+  const params = new URLSearchParams({ page: String(page), limit: "25" });
+  if (filters.q) params.set("q", filters.q);
+  if (filters.author === "unassigned") params.set("unassigned", "true");
+  else if (filters.author) params.set("author_id", filters.author);
+  if (filters.action) params.set("action", filters.action);
+  if (filters.resource) params.set("resource_type", filters.resource);
+  if (filters.period === "custom") {
+    if (filters.from) params.set("from_date", filters.from);
+    if (filters.to) params.set("to_date", filters.to);
+  } else if (filters.period !== "all")
+    params.set("since_hours", filters.period);
+  const logs = useQuery<ActivityPage>({
+    queryKey: ["activity-journal", filters, page],
+    queryFn: () => activityRequest("search?" + params),
+    retry: false,
+    refetchInterval: auto && page === 1 ? 30000 : false,
   });
-
-  // Fetch stats
-  const { data: stats } = useQuery({
-    queryKey: ['activity-stats'],
-    queryFn: () => adminApi.getStats(24),
-    refetchInterval: autoRefresh ? 30000 : false,
-    enabled: user?.is_superuser === true,
-  });
-
-  // Update lastUpdate timestamp when refetch happens
   useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        setLastUpdate(new Date());
-      }, 5000);
-      return () => clearInterval(interval);
+    if (logs.data) {
+      const max = Math.max(1, Math.ceil(logs.data.total / logs.data.limit));
+      if (page > max) setPage(max);
     }
-  }, [autoRefresh]);
-
-  const handleRefresh = useCallback(() => {
-    refetch();
-    setLastUpdate(new Date());
-  }, [refetch]);
-
-  // Check if superuser - moved AFTER hooks
-  if (user && !user.is_superuser) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Accès Refusé</h1>
-          <p className="text-gray-400">Cette page est réservée aux super administrateurs.</p>
-        </div>
-      </div>
-    );
-  }
-
+  }, [logs.data, page]);
+  const refresh = () => {
+    void logs.refetch();
+    void metadata.refetch();
+  };
+  const data = logs.data;
+  const summary = data?.summary;
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Activity className="h-7 w-7 text-purple-500" />
-              Logs d'Activité en Temps Réel
-            </h1>
-            <p className="text-gray-400 mt-1">
-              Surveillance des actions utilisateurs • Superadmin uniquement
+    <div className="mx-auto max-w-[1440px] space-y-7 p-4 sm:p-8">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="radar-eyebrow">Administration Radar</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+            Journal d’activité
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+            Retrouvez les actions enregistrées sur la plateforme : connexions,
+            sécurité, entreprises et opérations métier.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={logs.isFetching}
+          onClick={refresh}
+        >
+          <RefreshCw
+            size={16}
+            className={logs.isFetching ? "animate-spin" : ""}
+          />
+          Actualiser
+        </Button>
+      </header>
+      <form
+        className="space-y-5 rounded-2xl border bg-card p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (draft.period === "custom" && (!draft.from || !draft.to)) {
+            setFilterError("Renseignez les deux dates de la période.");
+            return;
+          }
+          if (
+            draft.period === "custom" &&
+            draft.from &&
+            draft.to &&
+            draft.from > draft.to
+          ) {
+            setFilterError("La date de début doit précéder la date de fin.");
+            return;
+          }
+          setFilterError("");
+          setFilters({ ...draft, q: draft.q.trim() });
+          setPage(1);
+        }}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="activity-search">
+              Nom, e-mail, action ou identifiant
+            </Label>
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3 top-3 text-muted-foreground"
+              />
+              <Input
+                id="activity-search"
+                className="pl-9"
+                value={draft.q}
+                maxLength={100}
+                onChange={(event) =>
+                  setDraft({ ...draft, q: event.target.value })
+                }
+                placeholder="Rechercher dans le journal…"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="activity-author">Auteur</Label>
+            <select
+              id="activity-author"
+              className={selectClass}
+              value={draft.author}
+              onChange={(event) =>
+                setDraft({ ...draft, author: event.target.value })
+              }
+            >
+              <option value="">Tous les auteurs</option>
+              <option value="unassigned">Non attribué à un compte</option>
+              {metadata.data?.authors.map((author) => (
+                <option key={author.id} value={author.id}>
+                  {author.name || author.email || `Compte n°${author.id}`}
+                  {author.name && author.email ? ` · ${author.email}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="activity-period">Période</Label>
+            <select
+              id="activity-period"
+              className={selectClass}
+              value={draft.period}
+              onChange={(event) =>
+                setDraft({ ...draft, period: event.target.value })
+              }
+            >
+              <option value="24">Dernières 24 heures</option>
+              <option value="168">7 derniers jours</option>
+              <option value="720">30 derniers jours</option>
+              <option value="all">Tout l’historique</option>
+              <option value="custom">Dates personnalisées</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="activity-action">Action</Label>
+            <select
+              id="activity-action"
+              className={selectClass}
+              value={draft.action}
+              onChange={(event) =>
+                setDraft({ ...draft, action: event.target.value })
+              }
+            >
+              <option value="">Toutes les actions</option>
+              {metadata.data?.actions.map((action) => (
+                <option key={action} value={action}>
+                  {activityLabel(action)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="activity-resource">Ressource</Label>
+            <select
+              id="activity-resource"
+              className={selectClass}
+              value={draft.resource}
+              onChange={(event) =>
+                setDraft({ ...draft, resource: event.target.value })
+              }
+            >
+              <option value="">Toutes les ressources</option>
+              {metadata.data?.resource_types.map((resource) => (
+                <option key={resource} value={resource}>
+                  {resourceLabels[resource] || resource}
+                </option>
+              ))}
+            </select>
+          </div>
+          {draft.period === "custom" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="activity-from">Du</Label>
+                <Input
+                  id="activity-from"
+                  type="date"
+                  value={draft.from}
+                  onChange={(event) =>
+                    setDraft({ ...draft, from: event.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="activity-to">Au inclus</Label>
+                <Input
+                  id="activity-to"
+                  type="date"
+                  value={draft.to}
+                  onChange={(event) =>
+                    setDraft({ ...draft, to: event.target.value })
+                  }
+                />
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <p className="text-xs text-muted-foreground">
+            Dates affichées et filtrées à l’heure de Paris.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDraft(empty);
+                setFilters(empty);
+                setPage(1);
+                setFilterError("");
+              }}
+            >
+              Réinitialiser
+            </Button>
+            <Button>Appliquer les filtres</Button>
+          </div>
+        </div>
+        {filterError && (
+          <p role="alert" className="text-sm text-destructive">
+            {filterError}
+          </p>
+        )}
+        {metadata.isError && (
+          <p role="status" className="text-xs text-muted-foreground">
+            Les options de filtre n’ont pas pu être chargées. La recherche reste
+            disponible.{" "}
+            <button
+              type="button"
+              className="text-primary underline"
+              onClick={() => metadata.refetch()}
+            >
+              Recharger les options
+            </button>
+          </p>
+        )}
+      </form>
+      <section
+        aria-label="Synthèse des événements filtrés"
+        className="grid gap-4 sm:grid-cols-3"
+      >
+        {[
+          ["Événements enregistrés", data?.total],
+          ["Comptes ayant une activité", summary?.authors],
+          ["Connexions enregistrées", summary?.logins],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border bg-card p-5">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="mt-3 text-2xl font-semibold">
+              {value === undefined ? "—" : value}
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-500 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span suppressHydrationWarning>Dernière mise à jour: {format(lastUpdate, 'HH:mm:ss', { locale: fr })}</span>
-            </div>
-            <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                autoRefresh 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-700 text-gray-300'
-              }`}
-            >
-              <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-              {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
-            </button>
-            <button
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 hover:bg-purple-700"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Rafraîchir
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="text-3xl font-bold text-white">{stats.total_logs}</div>
-              <div className="text-gray-400 text-sm">Actions (24h)</div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="text-3xl font-bold text-green-500">{stats.active_users}</div>
-              <div className="text-gray-400 text-sm">Utilisateurs actifs</div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="text-3xl font-bold text-blue-500">{stats.actions?.login || 0}</div>
-              <div className="text-gray-400 text-sm">Connexions</div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="text-3xl font-bold text-purple-500">{stats.actions?.view || 0}</div>
-              <div className="text-gray-400 text-sm">Consultations</div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-4 gap-6">
-          {/* Users Panel */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-700">
-              <h2 className="font-semibold text-white flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-500" />
-                Utilisateurs ({users.length})
-              </h2>
-            </div>
-            <div className="max-h-[500px] overflow-y-auto">
-              <button
-                onClick={() => setSelectedUser(null)}
-                className={`w-full p-3 text-left hover:bg-gray-700 transition-colors ${
-                  !selectedUser ? 'bg-purple-600/20 border-l-2 border-purple-500' : ''
-                }`}
-              >
-                <div className="text-white font-medium">Tous les utilisateurs</div>
-              </button>
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => setSelectedUser(u.tracking_id)}
-                  className={`w-full p-3 text-left hover:bg-gray-700 transition-colors ${
-                    selectedUser === u.tracking_id 
-                      ? 'bg-purple-600/20 border-l-2 border-purple-500' 
-                      : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-white font-medium text-sm">
-                        {u.full_name || u.email || 'Sans nom'}
-                      </div>
-                      <div className="text-xs text-purple-400 font-mono">
-                        {u.tracking_id}
-                      </div>
-                    </div>
-                    <div className={`w-2 h-2 rounded-full ${
-                      u.is_active && u.is_whitelisted ? 'bg-green-500' : 'bg-gray-500'
-                    }`} />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Logs Panel */}
-          <div className="col-span-3 bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h2 className="font-semibold text-white flex items-center gap-2">
-                <Activity className="h-5 w-5 text-purple-500" />
-                Historique des Actions
-                {isLoading && <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />}
-              </h2>
-              
-              {/* Action Filter */}
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <select
-                  value={selectedAction || ''}
-                  onChange={(e) => setSelectedAction(e.target.value || null)}
-                  className="bg-gray-700 text-white text-sm rounded-lg px-3 py-1.5 border border-gray-600"
-                >
-                  <option value="">Toutes les actions</option>
-                  <option value="login">Connexion</option>
-                  <option value="logout">Déconnexion</option>
-                  <option value="view">Consultation</option>
-                  <option value="create">Création</option>
-                  <option value="update">Modification</option>
-                  <option value="delete">Suppression</option>
-                  <option value="analyze">Analyse</option>
-                  <option value="radar_trigger">Radar</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="max-h-[550px] overflow-y-auto">
-              {logs.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Aucune activité enregistrée</p>
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-900/50 sticky top-0">
-                    <tr className="text-left text-xs text-gray-400 uppercase">
-                      <th className="p-3">Heure</th>
-                      <th className="p-3">Utilisateur</th>
-                      <th className="p-3">ID Tracking</th>
-                      <th className="p-3">Action</th>
-                      <th className="p-3">Ressource</th>
-                      <th className="p-3">IP</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-700/50">
-                        <td className="p-3 text-sm text-gray-400">
-                          {format(new Date(log.created_at), 'HH:mm:ss', { locale: fr })}
-                          <div className="text-xs text-gray-500">
-                            {format(new Date(log.created_at), 'dd/MM', { locale: fr })}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="text-white text-sm font-medium">
-                            {log.user_name || log.user_email || '-'}
-                          </div>
-                          <div className="text-xs text-gray-500">{log.user_email}</div>
-                        </td>
-                        <td className="p-3">
-                          <span className="font-mono text-xs px-2 py-1 bg-purple-600/20 text-purple-400 rounded">
-                            {log.user_tracking_id}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            {actionIcons[log.action] || <Activity className="h-4 w-4 text-gray-500" />}
-                            <span className="text-white text-sm">
-                              {actionLabels[log.action] || log.action}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-sm text-gray-400">
-                          {log.resource_type && (
-                            <span className="px-2 py-0.5 bg-gray-700 rounded text-xs">
-                              {log.resource_type}
-                            </span>
-                          )}
-                          {log.resource_id && (
-                            <span className="ml-1 text-xs text-gray-500">
-                              #{log.resource_id.slice(0, 8)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3 text-xs text-gray-500 font-mono">
-                          {log.ip_address || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+        ))}
+      </section>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <p className="text-xs text-muted-foreground">
+          {logs.dataUpdatedAt
+            ? `Dernier chargement réussi : ${activityTime(new Date(logs.dataUpdatedAt).toISOString(), true)}`
+            : "Aucun chargement confirmé."}
+        </p>
+        <div className="flex items-center gap-3">
+          <Label htmlFor="activity-auto" className="text-xs">
+            Actualisation automatique · 30 s
+          </Label>
+          <Switch id="activity-auto" checked={auto} onCheckedChange={setAuto} />
         </div>
       </div>
+      {auto && page > 1 && (
+        <p role="status" className="text-xs text-muted-foreground">
+          Actualisation automatique en pause pendant la consultation des pages
+          suivantes.
+        </p>
+      )}
+      {logs.isError && (
+        <section
+          role="alert"
+          className="space-y-3 rounded-2xl border border-destructive/30 bg-card p-5"
+        >
+          <p className="text-sm">
+            {data
+              ? "L’actualisation a échoué. Les données du dernier chargement réussi restent affichées."
+              : clientError(logs.error)}
+          </p>
+          <Button variant="outline" onClick={() => logs.refetch()}>
+            Réessayer
+          </Button>
+        </section>
+      )}
+      {logs.isPending ? (
+        <p role="status" className="rounded-2xl border bg-card p-6 text-sm">
+          Chargement des événements…
+        </p>
+      ) : (
+        data && (
+          <>
+            {data.items.length === 0 ? (
+              <section className="rounded-2xl border bg-card p-10 text-center">
+                <Activity className="mx-auto mb-4 text-primary" />
+                <h2 className="font-semibold">
+                  Aucun événement pour ces critères
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Modifiez les filtres ou élargissez la période.
+                </p>
+              </section>
+            ) : (
+              <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+                {data.items.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex flex-wrap items-start gap-4 p-5"
+                  >
+                    <EventIcon entry={entry} />
+                    <div className="min-w-0 flex-1 basis-[180px] space-y-2">
+                      <h2 className="break-words text-sm font-semibold">
+                        {activityLabel(entry.action)}
+                      </h2>
+                      <p className="break-words text-sm">
+                        {actorLabel(entry)}
+                        {entry.user_email &&
+                          entry.user_email !== actorLabel(entry) && (
+                            <span className="ml-2 break-all text-xs text-muted-foreground">
+                              {entry.user_email}
+                            </span>
+                          )}
+                      </p>
+                      <Resource entry={entry} />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
+                      <time
+                        dateTime={
+                          /Z$|[+-]\d\d:\d\d$/.test(entry.created_at)
+                            ? entry.created_at
+                            : entry.created_at + "Z"
+                        }
+                        className="text-xs text-muted-foreground"
+                      >
+                        {activityTime(entry.created_at)}
+                      </time>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelected(entry)}
+                        aria-label={`Détails : ${activityLabel(entry.action)}`}
+                      >
+                        Voir les détails
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                disabled={page === 1 || logs.isFetching}
+                onClick={() => setPage((value) => value - 1)}
+              >
+                Précédent
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Page {page} sur{" "}
+                {Math.max(1, Math.ceil(data.total / data.limit))} · {data.total}{" "}
+                événement(s)
+              </p>
+              <Button
+                variant="outline"
+                disabled={page * data.limit >= data.total || logs.isFetching}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Suivant
+              </Button>
+            </div>
+          </>
+        )
+      )}
+      <Dialog
+        open={Boolean(selected)}
+        onOpenChange={(value) => {
+          if (!value) setSelected(null);
+        }}
+      >
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-2xl">
+          <DialogTitle>Détail de l’événement</DialogTitle>
+          <DialogDescription>
+            {selected ? activityLabel(selected.action) : "Événement enregistré"}
+          </DialogDescription>
+          {selected && (
+            <div className="space-y-5">
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {[
+                  ["Date et heure", activityTime(selected.created_at, true)],
+                  ["Auteur", actorLabel(selected)],
+                  ["E-mail", selected.user_email],
+                  ["Adresse IP enregistrée", selected.ip_address],
+                  ["Action technique", selected.action],
+                  ["Identifiant de suivi", selected.user_tracking_id],
+                  ["Ressource", selected.resource_type],
+                  ["Identifiant de ressource", selected.resource_id],
+                  ["Identifiant d’événement", selected.id],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs text-muted-foreground">{label}</dt>
+                    <dd className="mt-2 break-all text-sm">
+                      {value || "Non renseigné"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <section>
+                <h3 className="text-sm font-semibold">
+                  Informations enregistrées
+                </h3>
+                <p className="mt-2 text-xs leading-6 text-muted-foreground">
+                  Les valeurs d’authentification sont masquées à la lecture. Les
+                  données d’audit d’origine sont conservées.
+                </p>
+                {selected.details && Object.keys(selected.details).length ? (
+                  <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-secondary p-4 text-xs leading-6">
+                    {JSON.stringify(selected.details, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Aucun détail complémentaire enregistré.
+                  </p>
+                )}
+              </section>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+export default function ActivityPage() {
+  return (
+    <ProtectedRoute>
+      <AdminLayout>
+        <Journal />
+      </AdminLayout>
+    </ProtectedRoute>
   );
 }

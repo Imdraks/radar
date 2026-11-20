@@ -64,10 +64,10 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <Link href="/today" aria-label="Radar — Accueil" onClick={() => setOpen(false)} className={`flex shrink-0 items-center gap-3 py-6 text-foreground hover:no-underline ${compact ? 'justify-center px-2' : 'px-6'}`}>
       <span><RadarLogo compact={compact} />{!compact && <span className="mt-2 block text-[10px] tracking-wide text-muted-foreground">Le point de repère de votre agence</span>}</span>
     </Link>
-    {!compact && <div className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm">
+    {!compact && <Link href="/account/workspaces" aria-label="Changer de workspace" onClick={() => setOpen(false)} className="mx-4 mb-5 flex shrink-0 items-center gap-3 rounded-2xl border bg-card px-3.5 py-3.5 shadow-sm hover:border-primary/30">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary"><Building2 size={17} /></span>
       <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Espace de travail</p><p className="truncate text-sm font-medium text-foreground" title={subscription?.workspace_name}>{subscription?.workspace_name || 'Votre agence'}</p></div>
-    </div>}
+    </Link>}
     <nav id={mobile ? undefined : 'radar-desktop-navigation'} aria-label="Navigation principale" className={`min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 scrollbar-thin ${compact ? 'px-2' : 'px-4'}`}>
       {Object.entries(navigation || {}).filter(([, items]) => items.length > 0).map(([section, items]) => <div key={section} className="radar-nav-section">
         <p className={compact ? 'sr-only' : 'mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground'}>{section}</p>
@@ -108,7 +108,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><BackgroundTasksIndicator /><NotificationCenter /><Button asChild variant="ghost" size="icon"><Link href="/doc" aria-label="Documentation Radar" title="Documentation Radar"><BookOpen size={19} /></Link></Button><OnboardingTrigger /><ThemeToggle /><Link href="/settings" aria-label="Paramètres du compte" className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex">{initials}</Link></div>
       </header>
       <main id="radar-main" tabIndex={-1} aria-busy={!subscriptionRequested || isLoading} className="radar-content mx-auto max-w-[1520px] px-4 py-6 pb-28 outline-none sm:px-8 sm:py-8 lg:px-10 lg:pb-10">
-        {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>
+        {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Link href="/account/workspaces" className="mt-4 mr-4 inline-block text-sm text-primary underline">Choisir un autre espace</Link><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>
           {(activeItem?.context_links?.length || 0) > 1 && <nav aria-label={`Parcours ${activeItem?.label}`} className="mb-7 flex flex-wrap gap-1.5 rounded-2xl border bg-card p-1.5">{activeItem?.context_links?.map(link => <Link key={link.path} href={link.path} aria-current={activeContext?.path === link.path ? 'page' : undefined} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${activeContext?.path === link.path ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary'}`}><NavigationIcon name={link.icon} className="h-4 w-4" />{link.label}</Link>)}</nav>}
           <LegacyToolNotice pathname={pathname} />{children}
         </RouteGuard>}

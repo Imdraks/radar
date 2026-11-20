@@ -28,7 +28,8 @@ async def main():
                 if urlparse(route.request.url).path == '/api/v1/contact':
                     posts.append(route.request.post_data_json)
                     await asyncio.sleep(.25)
-                    status, data = (503, {'detail': 'TEST delivery unavailable'}) if len(posts) == 1 else (200, {}) if len(posts) == 2 else (200, {'status': 'ok'})
+                    assert urlparse(route.request.url).query == ''
+                    status, data = (503, {'detail': {'code':'CONTACT_UNAVAILABLE','reference':'abcdef123456','message':'SECRET-PROVIDER-DETAIL'}}) if len(posts) == 1 else (200, {}) if len(posts) == 2 else (200, {'status': 'ok'})
                     await route.fulfill(status=status, content_type='application/json', body=json.dumps(data))
                 else:
                     await route.fulfill(status=200, content_type='application/json', body='[]')
@@ -107,14 +108,16 @@ async def main():
             await send.dblclick()
             await expect(page.locator('main').get_by_role('alert')).to_be_visible()
             assert len(posts) == 1
+            await expect(page.locator('main').get_by_role('alert')).to_contain_text('abcdef123456')
+            assert 'SECRET-PROVIDER-DETAIL' not in await page.locator('body').inner_text()
             await expect(page.get_by_text('TEST Camille Modifiée', exact=True)).to_be_visible()
             await send.click()
             await expect(page.locator('main').get_by_role('alert')).to_be_visible()
             await expect(send).to_be_enabled()
             assert len(posts) == 2
-            assert await page.get_by_text('Message envoyé.', exact=False).count() == 0
+            assert await page.get_by_text('Demande enregistrée.', exact=False).count() == 0
             await send.click()
-            await page.get_by_role('heading', name='Message envoyé.', exact=False).wait_for()
+            await page.get_by_role('heading', name='Demande enregistrée.', exact=False).wait_for()
             assert len(posts) == 3
             assert posts[-1] == {'name': 'TEST Camille Modifiée', 'email': 'contact@example.com',
                 'company': 'TEST Atelier', 'phone': '+33 6 00 00 00 00', 'plan': 'premium',

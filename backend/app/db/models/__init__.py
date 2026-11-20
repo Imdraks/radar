@@ -182,3 +182,11 @@ from .credit_note import CreditNote
 from .artist_event import ArtistEvent
 from .mfa import MFAChallenge
 from .login_session import UserSession, TrustedDevice
+
+from .client_admin import ClientInvitation
+
+from .passkey import PasskeyCredential, PasskeyChallenge
+
+from .platform_sales import PlatformQuote, ExternalClientContract
+
+from .contact_inquiry import ContactInquiry

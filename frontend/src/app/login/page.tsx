@@ -10,6 +10,7 @@ import Link from "next/link";
 import { RadarLogo, RadarMark, RadarField } from "@/components/brand/RadarBrand";
 import { MfaChallenge, mfaError } from '@/components/auth/MfaChallenge';
 import { authApi } from '@/lib/api';
+import { loginDestination } from '@/lib/login-destination';
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,7 +84,7 @@ function LoginContent() {
       if (result.trusted) {
         await useAuthStore.getState().setTokens(result.access_token, result.refresh_token);
         ssoMfaRef.current = false;
-        router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
+        router.replace(loginDestination(useAuthStore.getState().user));
         return;
       }
       const options = await authApi.mfaOptions(token);
@@ -104,10 +105,17 @@ function LoginContent() {
     },
   });
 
+  // Verify a saved session before deciding its entry route after a page reload.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.hash.slice(1)).has('mfa_token')) {
+      void useAuthStore.getState().initializeAuth();
+    }
+  }, []);
+
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated && !pending2FA && !ssoMfaRef.current) {
-      router.replace(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
+      router.replace(loginDestination(useAuthStore.getState().user));
     }
   }, [authLoading, isAuthenticated, pending2FA, router]);
 
@@ -185,7 +193,7 @@ function LoginContent() {
         return;
       }
       
-      router.push(useAuthStore.getState().user?.is_superuser ? "/admin" : "/today");
+      router.push(loginDestination(useAuthStore.getState().user));
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string | object } } };
       const detail = error?.response?.data?.detail;
@@ -246,7 +254,7 @@ function LoginContent() {
               allowTrust onBack={handleBack} onVerify={async (method, code, trustDevice) => {
                 await complete2FA(method, code, trustDevice);
                 ssoMfaRef.current = false;
-                router.push(useAuthStore.getState().user?.is_superuser ? '/admin' : '/today');
+                router.push(loginDestination(useAuthStore.getState().user));
               }} />
           ) : (
             <>

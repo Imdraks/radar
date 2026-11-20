@@ -31,8 +31,7 @@ les doubles soumissions pendant un envoi sont bloquées. La confirmation signifi
 que le backend a accepté la remise au fournisseur, pas que le destinataire a
 effectivement lu le message. Aucun délai de réponse commercial n’est inventé.
 
-Pour l’envoi réel, le backend existant nécessite `RESEND_API_KEY`,
-`RESEND_FROM_EMAIL` sur un domaine vérifié et `CONTACT_RECEIVER_EMAIL`.
+Pour enregistrer les demandes, appliquer la migration 064. Les e-mails d’ouverture utilisent `RESEND_API_KEY` et `RESEND_FROM_EMAIL` sur un domaine vérifié, ou le SMTP existant.
 Ce changement ne configure pas ces secrets et ne modifie pas l’API.
 
 Recette : `scripts/contact_ui_smoke.py` avec un frontend local et des réponses
@@ -43,3 +42,5 @@ Le contrôle des pages publiques est adapté à la première étape réellement 
 
 Déploiement : aucune migration ni dépendance supplémentaire ; reconstruire
 uniquement l’image frontend après intégration.
+
+Depuis la migration 064, les demandes sont enregistrées dans Radar, sans e-mail à la soumission. Le transport Resend/SMTP sert uniquement à l’accusé déclenché par la première ouverture du dossier. `CONTACT_RECEIVER_EMAIL` n’est plus requis pour ce parcours. Voir [CONTACT-INBOX.md](CONTACT-INBOX.md).

@@ -39,6 +39,11 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     
     const isAdmin = user.is_superuser === true;
 
+    if ((user.must_change_password || user.security_setup_pending) && pathname !== '/account/setup') {
+      router.replace('/account/setup');
+      return;
+    }
+
     // Non-admin trying to access admin-only pages → redirect to today
     const adminOnlyPages = ['/admin', '/workspaces', '/users', '/sources', '/source-health'];
     const isAdminOnlyPage = adminOnlyPages.some(p => pathname === p || pathname.startsWith(p + '/'));
@@ -54,7 +59,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     if (!mounted) return;
     
     if (!isLoading && isAuthenticated && user && requiredRoles?.length) {
-      if (!requiredRoles.includes(user.role)) {
+      if (!user.is_superuser && !requiredRoles.includes(user.role)) {
         router.push("/unauthorized");
       }
     }
@@ -74,9 +79,11 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     return null;
   }
 
+  if (user && (user.must_change_password || user.security_setup_pending) && pathname !== '/account/setup') return null;
+
   const platformPage = ['/admin', '/workspaces', '/users', '/sources', '/source-health'].some(p => pathname === p || pathname.startsWith(p + '/'));
   if ((platformPage && user?.is_superuser !== true) ||
-      (requiredRoles?.length && user && !requiredRoles.includes(user.role))) {
+      (requiredRoles?.length && user && !user.is_superuser && !requiredRoles.includes(user.role))) {
     return null;
   }
 
