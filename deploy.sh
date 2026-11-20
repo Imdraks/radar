@@ -28,10 +28,13 @@ pre_flight_check() {
 }
 start_database() { compose up -d --wait --wait-timeout 90 postgres redis; }
 create_backup() {
+    local backup_certificate="${RADAR_BACKUP_CERTIFICATE:-/etc/radar/backup-recipient.pem}"
+    test -f "$backup_certificate" || { echo 'Certificat public de sauvegarde requis ; aucune sauvegarde non chiffrée ne sera conservée.' >&2; return 1; }
+    openssl x509 -in "$backup_certificate" -noout >/dev/null
     mkdir -p "$BACKUP_DIR"
     chmod 700 "$BACKUP_DIR"
     local archive temporary
-    archive="$BACKUP_DIR/radar_$(date -u +%Y%m%dT%H%M%S)_${RANDOM}.dump"
+    archive="$BACKUP_DIR/radar_$(date -u +%Y%m%dT%H%M%S)_${RANDOM}.dump.cms"
     temporary="$archive.partial"
     if ! compose exec -T postgres sh -ec 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "$temporary"; then
         rm -f "$temporary"
@@ -43,7 +46,11 @@ create_backup() {
         echo 'Archive PostgreSQL invalide : déploiement interrompu.' >&2
         return 1
     fi
-    mv "$temporary" "$archive"
+    if ! openssl cms -encrypt -binary -aes-256-gcm -outform DER -in "$temporary" -out "$archive" "$backup_certificate"; then
+        rm -f "$temporary" "$archive"
+        return 1
+    fi
+    rm -f "$temporary"
     sha256sum "$archive" > "$archive.sha256"
     git -C "$DEPLOY_DIR" rev-parse HEAD > "$archive.commit"
     compose exec -T postgres sh -ec 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version ORDER BY version_num"' > "$archive.revisions" || {

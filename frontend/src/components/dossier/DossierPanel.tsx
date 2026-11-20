@@ -1,5 +1,6 @@
 "use client";
 
+import { SafeHtml } from "@/components/ui/safe-html";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -197,10 +198,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
 
         {/* Summary */}
         {dossier.summary_short && (
-          <div
-            className="text-sm prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
-          />
+          <SafeHtml className="text-sm prose prose-sm max-w-none" html={dossier.summary_short} />
         )}
 
         {/* Quality flags */}

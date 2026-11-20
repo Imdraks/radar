@@ -3,7 +3,7 @@ Authentication endpoints
 """
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Response, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from secrets import compare_digest
@@ -194,9 +194,16 @@ class RefreshRequest(BaseModel):
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_session(data: RefreshRequest, db: Session = Depends(get_db)):
+def refresh_session(data: RefreshRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     from app.core.security import decode_token
     from app.core.mfa import issue_tokens
+    from app.core.browser_sessions import MARKER, names, require_origin, set_cookies, is_marker
+    cookie_refresh = is_marker(data.refresh_token)
+    if cookie_refresh:
+        require_origin(request)
+        marker = data.refresh_token
+        data.refresh_token = request.cookies.get(names()[1], '')
+        if marker.startswith(MARKER+'.') and (decode_token(data.refresh_token) or {}).get('sid') != marker[len(MARKER)+1:]: raise HTTPException(401, 'Session modifiée.')
     user_id = verify_token(data.refresh_token, 'refresh')
     if user_id is None:
         raise HTTPException(401, 'Session expirée. Reconnectez-vous.')
@@ -206,7 +213,15 @@ def refresh_session(data: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(401, 'Session expirée. Reconnectez-vous.')
     from app.core.login_sessions import require_session
     session = require_session(db, user, payload, lock=True)
-    return issue_tokens(user, auth_time=payload.get('auth_time', 0), session=session)
+    if session.browser_public_key or cookie_refresh:
+        from app.core.device_proof import verify
+        verify(request, session)
+    tokens = issue_tokens(user, auth_time=payload.get('auth_time', 0), session=session)
+    if cookie_refresh:
+        set_cookies(response, tokens['access_token'], tokens['refresh_token'])
+        marker = MARKER + '.' + str(session.id)
+        return {**tokens, 'access_token': marker, 'refresh_token': marker}
+    return tokens
 
 
 @router.get("/me", response_model=UserResponse)

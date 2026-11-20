@@ -1,3 +1,5 @@
+import { deviceProofHeaders } from "./device-proof";
+import { storeBrowserSession, isBrowserToken } from "./browser-session";
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
 // Use relative URL in production (empty string), localhost in development
@@ -7,7 +9,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const pendingRequests = new Map<string, Promise<unknown>>();
 
 function getRequestKey(config: InternalAxiosRequestConfig): string {
-  return `${config.method}:${config.url}:${JSON.stringify(config.params || {})}`;
+  const identity=typeof window === "undefined" ? "server" : localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token") || "anonymous";
+  return `${identity}:${config.method}:${config.url}:${JSON.stringify(config.params || {})}`;
 }
 
 // Create axios instance for V1 API (legacy)
@@ -16,6 +19,7 @@ export const api: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
   timeout: 30000,
 });
 
@@ -25,13 +29,15 @@ export const apiV2: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
   timeout: 30000,
 });
 
 // Helper to setup auth interceptor on an axios instance
 function setupAuthInterceptor(instance: AxiosInstance) {
   instance.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
+      const requestIdentity = typeof window === "undefined" ? null : localStorage.getItem("radar_browser_session");
       const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -49,6 +55,11 @@ function setupAuthInterceptor(instance: AxiosInstance) {
         }
       }
       
+      if (isBrowserToken(token)) {
+        const proof = await deviceProofHeaders(config.method || 'GET', instance.getUri(config));
+        Object.entries(proof).forEach(([key,value]) => config.headers.set(key,value));
+      }
+      (config as InternalAxiosRequestConfig & {_radarIdentity?: string | null})._radarIdentity = requestIdentity;
       return config;
     },
     (error) => Promise.reject(error)
@@ -59,11 +70,28 @@ function setupAuthInterceptor(instance: AxiosInstance) {
 setupAuthInterceptor(api);
 setupAuthInterceptor(apiV2);
 
+// V2 also rejects stale responses after a browser session switch.
+apiV2.interceptors.response.use((response) => {
+  const started = (response.config as InternalAxiosRequestConfig & {_radarIdentity?:string|null})._radarIdentity;
+  if (typeof window !== "undefined" && started !== undefined && started !== localStorage.getItem("radar_browser_session")) throw new axios.CanceledError("Session changed");
+  return response;
+}, (error: AxiosError) => {
+  const started = (error.config as (InternalAxiosRequestConfig & {_radarIdentity?:string|null}) | undefined)?._radarIdentity;
+  if (typeof window !== "undefined" && started !== undefined && started !== localStorage.getItem("radar_browser_session")) return Promise.reject(new axios.CanceledError("Session changed"));
+  return Promise.reject(error);
+});
+
 // Response interceptor - handle 401 (only on V1 for now)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const started=(response.config as InternalAxiosRequestConfig & {_radarIdentity?:string|null})._radarIdentity;
+    if(typeof window!=="undefined" && started !== undefined && started !== localStorage.getItem("radar_browser_session")) throw new axios.CanceledError("Session changed");
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const started=(originalRequest as InternalAxiosRequestConfig & {_radarIdentity?:string|null})?._radarIdentity;
+    if(typeof window!=="undefined" && started !== undefined && started !== localStorage.getItem("radar_browser_session")) return Promise.reject(new axios.CanceledError("Session changed"));
     // A rejected step-up code is not an expired API session. Never replay an
     // MFA mutation automatically: it consumes attempts or a one-use proof.
     if (error.response?.status === 401 && originalRequest?.method?.toUpperCase() === 'POST'
@@ -90,23 +118,19 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
-            refresh_token: refreshToken,
-          });
+          const response = await refreshCredentials(refreshToken);
 
           const { access_token, refresh_token: newRefreshToken } = response.data;
           
-          localStorage.setItem("access_token", access_token);
-          if (newRefreshToken) {
-            localStorage.setItem("refresh_token", newRefreshToken);
-          }
+          await storeBrowserSession(access_token, newRefreshToken || refreshToken);
 
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+            originalRequest.headers.Authorization = `Bearer ${localStorage.getItem("access_token")}`;
           }
           
           return api(originalRequest);
         } catch (refreshError) {
+          if (started !== localStorage.getItem("radar_browser_session")) return Promise.reject(new axios.CanceledError("Session changed"));
           // Refresh failed, redirect to login
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
@@ -126,6 +150,16 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Refresh uses the same device proof as ordinary requests, including after access expiry.
+async function refreshCredentials(refreshToken: string) {
+  const url = `${API_URL}/api/v1/auth/refresh`;
+  const identity = localStorage.getItem("radar_browser_session");
+  const headers = isBrowserToken(refreshToken) ? await deviceProofHeaders("POST", url, identity || undefined) : {};
+  const response = await axios.post(url, { refresh_token: refreshToken }, { withCredentials: true, headers });
+  if (identity !== localStorage.getItem("radar_browser_session")) throw new axios.CanceledError("Session changed");
+  return response;
+}
 
 // Auth API
 export const authApi = {
@@ -153,9 +187,7 @@ export const authApi = {
   },
   
   refresh: async (refreshToken: string) => {
-    const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
-      refresh_token: refreshToken,
-    });
+    const response = await refreshCredentials(refreshToken);
     return response.data;
   },
 };

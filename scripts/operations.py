@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import uuid
+import tempfile
 
 
 def compose(args, **kwargs):
@@ -42,7 +43,20 @@ def digest(path):
     return h.hexdigest()
 
 
-def backup(folder):
+def backup(folder, verify=False):
+    certificate = Path(
+        os.environ.get("RADAR_BACKUP_CERTIFICATE", "/etc/radar/backup-recipient.pem")
+    )
+    if not certificate.is_file():
+        raise RuntimeError(
+            "Certificat public de sauvegarde requis : RADAR_BACKUP_CERTIFICATE. Aucune archive non chiffrée ne sera conservée."
+        )
+    subprocess.run(
+        ["openssl", "x509", "-in", str(certificate), "-noout"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(folder, 0o700)
     stamp = (
@@ -50,30 +64,62 @@ def backup(folder):
         + "-"
         + uuid.uuid4().hex[:8]
     )
-    path = folder / ("radar-" + stamp + ".dump")
+    path = folder / ("radar-" + stamp + ".dump.cms")
     partial = path.with_suffix(".partial")
     try:
-        with partial.open("wb") as f:
-            postgres(
-                'exec pg_dump --lock-wait-timeout=30s --format=custom -U "$POSTGRES_USER" -d "$POSTGRES_DB"',
-                stdin=subprocess.DEVNULL,
-                stdout=f,
+        with tempfile.TemporaryDirectory(
+            prefix=".radar-backup-", dir=folder
+        ) as temporary:
+            dump = Path(temporary) / "database.dump"
+            with dump.open("wb") as f:
+                postgres(
+                    'exec pg_dump --lock-wait-timeout=30s --format=custom -U "$POSTGRES_USER" -d "$POSTGRES_DB"',
+                    stdin=subprocess.DEVNULL,
+                    stdout=f,
+                    timeout=600,
+                )
+            if not dump.stat().st_size:
+                raise RuntimeError("Archive vide")
+            with dump.open("rb") as f:
+                postgres(
+                    "exec pg_restore --list",
+                    stdin=f,
+                    stdout=subprocess.DEVNULL,
+                    timeout=60,
+                )
+            if verify:
+                _restore_dump(dump)
+            subprocess.run(
+                [
+                    "openssl",
+                    "cms",
+                    "-encrypt",
+                    "-binary",
+                    "-aes-256-gcm",
+                    "-outform",
+                    "DER",
+                    "-in",
+                    str(dump),
+                    "-out",
+                    str(partial),
+                    str(certificate),
+                ],
+                check=True,
                 timeout=600,
             )
-        if not partial.stat().st_size:
-            raise RuntimeError("Archive vide")
-        with partial.open("rb") as f:
-            postgres(
-                "exec pg_restore --list", stdin=f, stdout=subprocess.DEVNULL, timeout=60
-            )
         partial.replace(path)
+        now = datetime.now(timezone.utc).isoformat()
         manifest = {
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": now,
             "sha256": digest(path),
             "bytes": path.stat().st_size,
             "scope": "PostgreSQL uniquement",
-            "restore_verified": False,
+            "encryption": "CMS AES-256-GCM",
+            "certificate_sha256": digest(certificate),
+            "restore_verified": verify,
         }
+        if verify:
+            manifest["restore_verified_at"] = now
         meta = path.with_suffix(".json")
         meta.write_text(json.dumps(manifest, indent=2))
         for file in [path, meta]:
@@ -81,23 +127,28 @@ def backup(folder):
         remote = os.environ.get("RADAR_BACKUP_REMOTE", "")
         if remote:
             if remote.startswith("-") or ":" not in remote:
-                raise ValueError("RADAR_BACKUP_REMOTE doit être un hôte SSH:répertoire")
+                raise ValueError("Destination SSH invalide")
             subprocess.run(
                 ["rsync", "-a", "--", str(path), str(meta), remote],
                 check=True,
                 timeout=600,
             )
-        print(json.dumps({"backup": str(path), "offsite_copied": bool(remote)}))
+        print(
+            json.dumps(
+                {
+                    "backup": str(path),
+                    "encrypted": True,
+                    "restore_verified": verify,
+                    "offsite_copied": bool(remote),
+                }
+            )
+        )
         return path
     finally:
         partial.unlink(missing_ok=True)
 
 
-def drill(path):
-    meta = path.with_suffix(".json")
-    data = json.loads(meta.read_text())
-    if digest(path) != data["sha256"]:
-        raise RuntimeError("Empreinte de sauvegarde invalide")
+def _restore_dump(path):
     probe = "radar_restore_probe_" + uuid.uuid4().hex
     # The target is generated internally: no command can select the live database.
     created = False
@@ -130,13 +181,6 @@ def drill(path):
                 stdin=subprocess.DEVNULL,
                 timeout=30,
             )
-    data.update(
-        restore_verified=True,
-        restore_verified_at=datetime.now(timezone.utc).isoformat(),
-    )
-    meta.write_text(json.dumps(data, indent=2))
-    os.chmod(meta, 0o600)
-    print(json.dumps({"restore_verified": True, "backup": str(path)}))
 
 
 def monitor(folder):
@@ -251,7 +295,7 @@ def main():
     elif args.action == "monitor":
         monitor(args.directory)
     else:
-        drill(backup(args.directory))
+        backup(args.directory, verify=True)
 
 
 if __name__ == "__main__":

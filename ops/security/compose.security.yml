@@ -1,0 +1,20 @@
+# Always include this overlay when rebuilding/recreating the hardened app services.
+services:
+  backend:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Run scripts/prepare_security_config.py first}
+      DATA_ENCRYPTION_PREVIOUS_KEYS: ${DATA_ENCRYPTION_PREVIOUS_KEYS:-}
+  worker:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Run scripts/prepare_security_config.py first}
+      DATA_ENCRYPTION_PREVIOUS_KEYS: ${DATA_ENCRYPTION_PREVIOUS_KEYS:-}
+  scheduler:
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?Run scripts/prepare_security_config.py first}
+      DATA_ENCRYPTION_PREVIOUS_KEYS: ${DATA_ENCRYPTION_PREVIOUS_KEYS:-}

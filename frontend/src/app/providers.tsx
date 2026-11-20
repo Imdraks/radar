@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toaster";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { useSubscriptionStore } from "@/store/subscriptionStore";
 import dynamic from "next/dynamic";
@@ -26,6 +26,7 @@ const ReactQueryDevtools = dynamic(
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useEffect(()=>{const changed=(event:StorageEvent)=>{if(event.key==='radar_browser_session' && pathname !== '/review') window.location.reload();};window.addEventListener('storage',changed);return()=>window.removeEventListener('storage',changed);},[pathname]);
   const publicPage = PUBLIC_PATHS.has(pathname) || pathname === '/doc' || pathname.startsWith('/doc/');
   const userId = useAuthStore(s => s.user?.id);
   const loadedWorkspaceId = useSubscriptionStore(s => s.subscription?.workspace_id);

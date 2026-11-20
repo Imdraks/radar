@@ -54,6 +54,7 @@ export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const connectionGeneration = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 2; // Limit reconnection attempts (reduced from 3)
@@ -82,15 +83,16 @@ export function NotificationCenter() {
   }, [storageKey]);
 
   // WebSocket connection
-  const connectWebSocket = useCallback(() => {
+  const connectWebSocket = useCallback(async () => {
     // Skip if WebSocket has been disabled due to repeated failures
     if (wsDisabled.current) return;
+    const generation = connectionGeneration.current;
     
     const token = getToken();
     if (!token || !userRef.current) return;
 
     // Check if token is expired - don't attempt connection with expired token
-    if (isTokenExpired(token)) {
+    if (!token.startsWith("cookie-session") && isTokenExpired(token)) {
       return; // Silently skip - no console log needed
     }
 
@@ -105,7 +107,15 @@ export function NotificationCenter() {
       
       const workspace = localStorage.getItem("current_workspace_id");
       const query = workspace ? `?workspace_id=${encodeURIComponent(workspace)}` : "";
-      const ws = new WebSocket(`${wsUrl}/notifications${query}`, ["radar", `bearer.${token}`]);
+      let protocols=["radar", `bearer.${token}`];
+      if (token.startsWith('cookie-session')) {
+        const response = await fetch('/api/v1/auth/browser/websocket-ticket'+query, {method:'POST',headers:{Authorization:`Bearer ${token}`}});
+        if(!response.ok)return;
+        const data=await response.json();protocols=["radar",'ticket.'+data.ticket];
+      }
+      if (generation !== connectionGeneration.current || token !== getToken() || workspace !== localStorage.getItem("current_workspace_id")) return;
+      if(wsRef.current&&(wsRef.current.readyState===WebSocket.CONNECTING||wsRef.current.readyState===WebSocket.OPEN))return;
+      const ws = new WebSocket(`${wsUrl}/notifications${query}`, protocols);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -193,6 +203,7 @@ export function NotificationCenter() {
     }
 
     return () => {
+      connectionGeneration.current++;
       clearTimeout(timeout);
       if (wsRef.current) {
         // Only log close if connection was actually open

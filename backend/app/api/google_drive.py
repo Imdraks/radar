@@ -269,7 +269,9 @@ async def upload_file_to_drive(
         access_token = await service.get_access_token()
         
         # Read file content
-        content = await file.read()
+        content = await file.read(50 * 1024 * 1024 + 1)
+        if len(content) > 50 * 1024 * 1024:
+            raise HTTPException(413, "Le fichier dépasse 50 Mo.")
         final_name = sanitize_filename(file_name or file.filename)
         
         # ============ SECURITY: Validate file upload ============
@@ -334,6 +336,8 @@ async def upload_file_to_drive(
                 
                 upload_url = init_response.headers.get("Location")
                 
+                from app.services.safe_provider_url import google_upload_url
+                upload_url = google_upload_url(upload_url)
                 # Step 2: Upload content
                 response = await client.put(
                     upload_url,
@@ -357,12 +361,16 @@ async def upload_file_to_drive(
                 mime_type=result.get("mimeType", "application/octet-stream")
             )
             
+    except HTTPException:
+        raise
     except TokenExpiredError:
         raise HTTPException(status_code=401, detail="Google authorization required")
     except GoogleAPIError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+        raise HTTPException(status_code=502, detail="Le transfert vers Google Drive a échoué. Réessayez ou reconnectez Google.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        raise HTTPException(status_code=502, detail="Le transfert vers Google Drive est temporairement indisponible.")
+    finally:
+        await file.close()
 
 
 # ============================================================================

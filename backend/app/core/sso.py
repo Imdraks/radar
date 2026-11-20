@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.models.user import User, Role
 from app.db.models.account import Account
+from app.core.encryption import encrypt_sensitive
 from app.core.security import create_access_token, create_refresh_token
 
 logger = logging.getLogger(__name__)
@@ -204,9 +205,9 @@ class SSOService:
         
         if account:
             # Update tokens
-            account.access_token = tokens.get("access_token")
-            account.refresh_token = tokens.get("refresh_token")
-            account.id_token = tokens.get("id_token")
+            account.access_token = ("enc:" + encrypt_sensitive(tokens["access_token"])) if tokens.get("access_token") else None
+            account.refresh_token = ("enc:" + encrypt_sensitive(tokens["refresh_token"])) if tokens.get("refresh_token") else None
+            account.id_token = ("enc:" + encrypt_sensitive(tokens["id_token"])) if tokens.get("id_token") else None
             account.expires_at = tokens.get("expires_at")
             account.updated_at = datetime.utcnow()
             
@@ -252,9 +253,9 @@ class SSOService:
             provider_account_id=provider_account_id,
             email=email,
             email_verified=email_verified,
-            access_token=tokens.get("access_token"),
-            refresh_token=tokens.get("refresh_token"),
-            id_token=tokens.get("id_token"),
+            access_token=("enc:" + encrypt_sensitive(tokens["access_token"])) if tokens.get("access_token") else None,
+            refresh_token=("enc:" + encrypt_sensitive(tokens["refresh_token"])) if tokens.get("refresh_token") else None,
+            id_token=("enc:" + encrypt_sensitive(tokens["id_token"])) if tokens.get("id_token") else None,
             expires_at=tokens.get("expires_at"),
             token_type=tokens.get("token_type"),
             scope=tokens.get("scope"),

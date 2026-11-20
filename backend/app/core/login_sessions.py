@@ -19,7 +19,8 @@ def browser(request):
 
 
 def claims(request):
-    return decode_token(request.headers.get('authorization', '').removeprefix('Bearer ')) or {}
+    from app.core.browser_sessions import request_token
+    return decode_token(request_token(request)) or {}
 
 
 def require_session(db, user, payload, lock=False):

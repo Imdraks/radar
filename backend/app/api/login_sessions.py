@@ -56,10 +56,12 @@ def revoke(session_id: UUID, request: Request, user: User = Depends(get_current_
 
 
 @router.post('/logout')
-def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def logout(request: Request, response: Response, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     row = current(db, user, request)
     row.revoked_at = datetime.utcnow()
     db.commit()
+    from app.core.browser_sessions import clear_cookies
+    clear_cookies(response)
     return {'revoked': True}
 
 

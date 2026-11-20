@@ -33,12 +33,19 @@ async def main():
             if mode == 'invalid':
                 await context.add_init_script('''localStorage.setItem('auth-storage',JSON.stringify({state:{user:{id:1,full_name:'STALE',is_active:true},isAuthenticated:true},version:0}));''')
             calls = []
+            exchanged = False
             async def api(route):
+                nonlocal exchanged
                 path = urlparse(route.request.url).path
                 calls.append((path, route.request.method))
                 if path.endswith('/auth/me'):
-                    rejected = mode == 'invalid' or (mode == 'refresh' and route.request.headers.get('authorization') != 'Bearer test-renewed')
+                    rejected = mode == 'invalid' or (mode == 'refresh' and route.request.headers.get('authorization') != ('Bearer cookie-session.fixture-session' if exchanged else 'Bearer test-renewed'))
                     await route.fulfill(status=401 if rejected else 200, content_type='application/json', body=json.dumps({'detail':'expired'} if rejected else USER))
+                elif path.endswith('/auth/browser/session'):
+                    assert route.request.headers.get('authorization') == 'Bearer test-renewed'
+                    assert route.request.post_data_json['refresh_token'] == 'test-refresh-renewed'
+                    exchanged = True
+                    await route.fulfill(status=200, content_type='application/json', body=json.dumps({'authenticated':True,'session_id':'fixture-session'}))
                 elif path.endswith('/auth/refresh'):
                     await route.fulfill(status=200, content_type='application/json', body=json.dumps({'access_token':'test-renewed','refresh_token':'test-refresh-renewed'}))
                 elif path.endswith('/subscription/current'):
@@ -96,6 +103,7 @@ async def main():
                     await expect(header.get_by_role('link', name='Se connecter', exact=True)).to_be_visible()
                     assert await page.evaluate("localStorage.getItem('access_token')") is None
                 if mode == 'refresh':
+                    assert exchanged
                     assert sum(path.endswith('/auth/refresh') for path, _ in calls) == 1
             assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             assert not errors, errors

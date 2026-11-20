@@ -15,6 +15,7 @@ from sqlalchemy import (
     Index,
 )
 from sqlalchemy.orm import deferred
+from app.core.encrypted_binary import EncryptedBinary
 from app.db.base import Base
 
 
@@ -69,7 +70,7 @@ class ExternalClientContract(Base):
     signer = Column(String(255), nullable=False)
     signed_on = Column(Date, nullable=False)
     status = Column(String(24), nullable=False, default="pending_review")
-    document = deferred(Column(LargeBinary, nullable=False))
+    document = deferred(Column(EncryptedBinary("platform-contract"), nullable=False))
     document_hash = Column(String(64), nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

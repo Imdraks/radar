@@ -400,7 +400,8 @@ class GoogleWorkspaceService:
                     init_response.status_code
                 )
             
-            upload_url = init_response.headers.get("Location")
+            from app.services.safe_provider_url import google_upload_url
+            upload_url = google_upload_url(init_response.headers.get("Location"))
             
             # Step 2: Upload file content
             upload_response = await client.put(

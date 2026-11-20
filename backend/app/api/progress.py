@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sse_starlette.sse import EventSourceResponse
@@ -20,12 +20,12 @@ router = APIRouter(prefix="/progress", tags=["Progress"])
 
 
 def progress_identity(
-    workspace_id: Optional[int] = Query(None),
+    request: Request,    workspace_id: Optional[int] = Query(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ):
     # Streaming fetch sends Authorization. Query strings never authenticate a stream.
-    user = get_current_user(credentials, db)
+    user = get_current_user(request, credentials, db)
     return user.id, resolve_workspace_id(db, user, workspace_id)
 
 
