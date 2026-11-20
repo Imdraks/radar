@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowDown, ArrowUpRight, Briefcase, Check, HelpCircle, FolderKanban, Loader2, Minus, Radar, Users } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Check, HelpCircle, Loader2, Minus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Feature, Plan, PlanInfo } from '@/store/subscriptionStore';
 
@@ -31,10 +31,10 @@ const groups: { title: string; rows: { feature: Feature; label: string; descript
   ] },
 ];
 
-const presentation: Record<Plan, { icon: typeof Radar; audience: string; band: string; group: number }> = {
-  core: { icon: FolderKanban, audience: 'Pour une équipe qui veut mieux s’organiser.', band: 'Votre quotidien, au clair', group: 0 },
-  premium: { icon: Radar, audience: 'Pour les agences qui produisent et créent des événements.', band: 'Organisation + expertise métier', group: 1 },
-  business: { icon: Briefcase, audience: 'Pour relier la production à la gestion commerciale.', band: 'Une vision complète de l’agence', group: 2 },
+const presentation: Record<Plan, { audience: string }> = {
+  core: { audience: 'Pour une équipe qui veut mieux s’organiser.' },
+  premium: { audience: 'Pour les agences qui produisent et créent des événements.' },
+  business: { audience: 'Pour relier la production à la gestion commerciale.' },
 };
 
 function Inclusion({ plan, feature }: { plan: PlanInfo; feature: Feature }) {
@@ -53,26 +53,22 @@ export function PricingCatalog({ plans, error, onRetry }: { plans: PlanInfo[]; e
     <div className="grid items-stretch gap-5 lg:grid-cols-3">
       {ordered.map(plan => {
         const info = presentation[plan.name];
-        const Icon = info?.icon || Radar;
         const highlighted = plan.name === 'premium';
-        const rows = groups[info?.group ?? 0].rows.filter(row => plan.available_features?.includes(row.feature));
-        return <article key={plan.name} aria-labelledby={`offer-${plan.name}`} className={`flex min-w-0 flex-col overflow-hidden rounded-[1.75rem] border bg-white ${highlighted ? 'border-primary shadow-[0_16px_60px_-32px_hsl(var(--primary)/0.5)]' : 'border-border'}`}>
-          <div className={`px-7 py-3 text-center text-xs font-semibold ${highlighted ? 'bg-primary text-white' : 'border-b bg-secondary/50 text-muted-foreground'}`}>{info?.band || plan.description}</div>
-          <div className="flex flex-1 flex-col p-6 sm:p-7">
-            <div className="flex items-center gap-3"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${highlighted ? 'bg-primary/10 text-primary' : 'bg-secondary text-foreground'}`}><Icon size={21} strokeWidth={1.6} aria-hidden="true" /></span><h2 id={`offer-${plan.name}`} className="text-xl font-semibold tracking-tight">{plan.display_name}</h2></div>
-            <p className="mt-4 min-h-12 text-sm leading-6 text-muted-foreground">{info?.audience || plan.description}</p>
-            <p className="mt-6 text-3xl font-semibold tracking-tight text-foreground">Sur demande<span className="mt-2 block text-xs font-normal tracking-normal text-muted-foreground">Conditions tarifaires à définir avec notre équipe</span></p>
-            <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground"><Users size={15} aria-hidden="true" />Jusqu’à {plan.max_seats} membres dans votre espace</div>
-            <Button asChild variant={highlighted ? 'default' : 'outline'} className="mt-6 w-full justify-between rounded-xl"><Link href={`/contact?plan=${plan.name}`}>Parlons de {plan.display_name.replace('Radar ', '')}<ArrowUpRight size={16} aria-hidden="true" /></Link></Button>
-            <div className="my-7 h-px bg-border" />
-            <p className="text-sm font-semibold">{plan.description}</p>
-            <ul className="mt-4 space-y-3">{plan.features_bullets.map(bullet => <li key={bullet} className="flex items-start gap-2 text-sm"><Check size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />{bullet}</li>)}</ul>
-            <div className="mt-6 rounded-2xl border border-primary/10 bg-primary/[0.025] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">{plan.name === 'core' ? 'Vos outils au quotidien' : 'Pour aller plus loin'}</p>
-              <ul className="mt-4 space-y-4">{rows.map(row => <li key={row.feature} className="flex items-start gap-2.5"><Check size={15} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" /><div><p className="text-sm font-medium">{row.label}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{row.description}</p></div></li>)}</ul>
-              {!plan.available_features && <p className="mt-3 text-xs text-muted-foreground">Le détail des droits n’est pas disponible actuellement.</p>}
+        return <article key={plan.name} aria-labelledby={`offer-${plan.name}`} className={`flex min-w-0 flex-col rounded-3xl border bg-white shadow-sm ${highlighted ? 'border-primary/35 shadow-[0_16px_60px_-32px_hsl(var(--primary)/0.3)]' : 'border-border/75'}`}>
+          <div className="flex flex-1 flex-col px-6 pb-6 pt-8 sm:px-8 sm:pt-10">
+            <h2 id={`offer-${plan.name}`} className={`text-2xl font-medium tracking-tight lg:text-3xl ${highlighted ? 'text-primary' : 'text-foreground'}`}>{plan.display_name}</h2>
+            <p className="mt-3 min-h-12 text-sm leading-6 text-muted-foreground">{info?.audience || plan.description}</p>
+            <div className="mt-7">
+              <p className="text-[clamp(2rem,3.2vw,2.75rem)] font-light leading-tight tracking-tight text-foreground">Sur demande</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">Conditions tarifaires à définir avec notre équipe</p>
             </div>
-            <a href="#comparatif" className="mt-auto flex items-center gap-2 pt-7 text-sm font-medium text-primary underline-offset-4 hover:underline">Comparer les fonctionnalités<ArrowDown size={15} aria-hidden="true" /></a>
+            <Button asChild className="mt-7 h-12 w-full gap-2 rounded-full border-2 border-primary bg-primary px-4 text-sm font-medium text-white shadow-none transition-colors hover:bg-transparent hover:text-primary focus-visible:ring-primary motion-reduce:transition-none"><Link href={`/contact?plan=${plan.name}`}>Parlons de {plan.display_name.replace('Radar ', '')}<ArrowUpRight size={16} aria-hidden="true" /></Link></Button>
+          </div>
+          <div className="mx-6 border-t border-border/70 pb-7 pt-5 sm:mx-8 sm:pb-8">
+            <p className="text-xs font-medium text-muted-foreground">{plan.description}</p>
+            <ul className="mt-4 space-y-3">{plan.features_bullets.map(bullet => <li key={bullet} className="flex items-start gap-2.5 text-sm leading-6"><Check size={15} className="mt-1 shrink-0 text-primary" aria-hidden="true" /><span>{bullet}</span></li>)}</ul>
+            <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground"><Users size={14} className="shrink-0" aria-hidden="true" />Jusqu’à {plan.max_seats} membres dans votre espace</p>
+            <a href="#comparatif" className="mt-5 inline-flex items-center gap-2 text-xs font-medium text-primary underline-offset-4 hover:underline">Comparer les fonctionnalités<ArrowDown size={14} aria-hidden="true" /></a>
           </div>
         </article>;
       })}
