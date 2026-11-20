@@ -41,7 +41,7 @@ async def main():
     if path=='/':
      await page.get_by_role('heading',name='Gardez le cap.',exact=False).wait_for()
      assert await page.get_by_role('link',name='Découvrir les offres',exact=True).get_attribute('href')=='/pricing'
-     assert await page.locator('.radar-orbit-panel .radar-field').evaluate('(e)=>getComputedStyle(e).position')=='absolute'
+     assert await page.locator('.radar-orbit-panel .radar-pattern').evaluate('(e)=>getComputedStyle(e).position')=='absolute'
      assert 'Veille concurrentielle' not in await page.locator('body').inner_text()
      await page.screenshot(path=f'/tmp/radar-brand-home-{width}.png',full_page=True)
      if width<1024:

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, FolderOpen, Music2, CalendarDays, Briefcase, Check, Compass, Layers, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RadarLogo, RadarField } from '@/components/brand/RadarBrand';
+import { RadarField, RadarPattern } from '@/components/brand/RadarBrand';
 import { PlanCatalog } from '@/components/subscription/PlanCatalog';
 
 const domains = [
@@ -17,7 +17,7 @@ export function RadarLanding() {
    <div className="radar-site-container grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
     <div className="relative z-10"><p className="radar-kicker"><span className="radar-signal-dot" />L’espace de travail des agences</p><h1 className="mt-7 max-w-2xl text-[clamp(2.8rem,5.6vw,5.6rem)] font-semibold leading-[1.04] tracking-[-0.065em]">Gardez le cap.<br /><span className="text-primary">Créez la suite.</span></h1><p className="mt-7 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">Vos projets, vos artistes, vos événements et votre activité commerciale. Un seul point de repère pour faire avancer votre agence.</p><div className="mt-9 flex flex-col gap-3 sm:flex-row"><Button asChild size="lg" className="gap-3"><Link href="/pricing">Découvrir les offres<ArrowRight size={16} /></Link></Button><Button asChild size="lg" variant="outline"><Link href="/login">Accéder à mon espace</Link></Button></div><p className="mt-6 text-xs text-muted-foreground">Communication · Production · Événementiel</p></div>
     <div className="radar-orbit-panel relative mx-auto w-full max-w-[570px] overflow-hidden rounded-[32px] border bg-white p-5" role="img" aria-label="Les quatre domaines de Radar : Core, Discovery, Events et Business">
-     <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[.15em] text-muted-foreground"><span>Une vision d’ensemble</span><Compass size={16} /></div><div className="relative aspect-square"><RadarField className="absolute inset-[8%]" /><div className="absolute inset-0 flex items-center justify-center"><div className="radar-orbit-center rounded-3xl border bg-white p-5 shadow-xl shadow-primary/5"><RadarLogo compact className="[&_svg]:h-16 [&_svg]:w-16" /></div></div>{domains.map((domain, index) => <div key={domain.name} className={`radar-orbit-label radar-orbit-label-${index}`}><domain.icon size={17} strokeWidth={1.7} /><span><small className="block text-[9px] text-muted-foreground">RADAR</small><strong className="text-sm font-semibold">{domain.name}</strong></span></div>)}</div><p className="border-t pt-4 text-center text-xs text-muted-foreground">Moins de dispersion. Une direction commune.</p>
+     <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[.15em] text-muted-foreground"><span>Une vision d’ensemble</span><Compass size={16} /></div><div className="relative aspect-square"><RadarPattern className="absolute inset-0" />{domains.map((domain, index) => <div key={domain.name} className={`radar-orbit-label radar-orbit-label-${index}`}><domain.icon size={17} strokeWidth={1.7} /><span><small className="block text-[9px] text-muted-foreground">RADAR</small><strong className="text-sm font-semibold">{domain.name}</strong></span></div>)}</div><p className="border-t pt-4 text-center text-xs text-muted-foreground">Moins de dispersion. Une direction commune.</p>
     </div>
    </div>
   </section>
