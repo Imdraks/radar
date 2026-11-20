@@ -17,7 +17,6 @@ import {
   MoreHorizontal,
   Calendar,
   User,
-  Loader2,
   AlertTriangle,
   ChevronRight,
   FileSpreadsheet,
@@ -33,7 +32,8 @@ import {
   Upload,
   FolderOpen,
   X,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,7 +189,7 @@ function ProjectHeader({
             disabled={isCreatingDrive}
           >
             {isCreatingDrive ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              <RadarSpinner className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <Folder className="h-4 w-4 mr-1" />
             )}
@@ -203,7 +203,7 @@ function ProjectHeader({
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isCreatingBrief ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <RadarSpinner className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <FileText className="h-4 w-4 mr-1" />
               )}
@@ -355,7 +355,7 @@ function OverviewTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -547,7 +547,7 @@ function DeliverablesTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -733,7 +733,7 @@ function ProductionTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -1136,7 +1136,7 @@ export default function ProjectDetailPage() {
       <ProtectedRoute>
         <AppLayoutWithOnboarding>
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="h-12 w-12 animate-spin text-purple-500" />
+            <RadarSpinner className="h-12 w-12 animate-spin text-primary" />
           </div>
         </AppLayoutWithOnboarding>
       </ProtectedRoute>
@@ -1482,12 +1482,12 @@ export default function ProjectDetailPage() {
                 >
                   {isUploading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                       Upload...
                     </>
                   ) : createDeliverableMutation.isPending ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                       Création...
                     </>
                   ) : (

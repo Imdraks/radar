@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Calendar, ExternalLink, Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Calendar, ExternalLink, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { useToast } from "@/components/ui/toaster";
 
 // Google Calendar API types
@@ -246,7 +247,7 @@ export function GoogleCalendarIntegration() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <RadarSpinner className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -292,7 +293,7 @@ export function GoogleCalendarIntegration() {
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
             ) : null}
             {status?.connected ? "Déconnecter" : "Connecter"}
           </Button>
@@ -343,7 +344,7 @@ export function GoogleCalendarIntegration() {
                 className="w-full"
               >
                 {isSyncing ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}

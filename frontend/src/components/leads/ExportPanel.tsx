@@ -33,9 +33,9 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Loader2,
   CheckCircle,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 type ExportFormat = "csv" | "excel" | "pdf";
 
@@ -261,7 +261,7 @@ export function ExportPanel() {
           className="w-full"
         >
           {isExporting ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
           ) : exportSuccess ? (
             <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
           ) : (

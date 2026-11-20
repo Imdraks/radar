@@ -14,11 +14,11 @@ import {
   Users,
   Filter,
   X,
-  Loader2,
   Search,
   Eye,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { motion } from "framer-motion";
 import { AppLayout, ProtectedRoute } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +169,7 @@ const MapView = dynamic(() => import("./MapView"), {
   loading: () => (
     <div className="h-[600px] bg-muted rounded-xl flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
         <span className="text-sm text-muted-foreground">
           Chargement de la carte...
         </span>
@@ -501,7 +501,7 @@ function MapContent() {
           {isLoading ? (
             <div className="h-[600px] bg-muted rounded-xl flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <RadarSpinner className="h-6 w-6 animate-spin text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Chargement...</span>
               </div>
             </div>

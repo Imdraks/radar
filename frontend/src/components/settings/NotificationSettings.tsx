@@ -21,11 +21,11 @@ import {
   Slack,
   Mail,
   MessageSquare,
-  Loader2,
   CheckCircle,
   AlertCircle,
   Send,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -293,7 +293,7 @@ export function NotificationSettings() {
                 className="w-full"
               >
                 {testStatus.type === "email" && testStatus.status === "loading" ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                 ) : testStatus.type === "email" && testStatus.status === "success" ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                 ) : testStatus.type === "email" && testStatus.status === "error" ? (
@@ -363,7 +363,7 @@ export function NotificationSettings() {
                 className="w-full"
               >
                 {testStatus.type === "slack" && testStatus.status === "loading" ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                 ) : testStatus.type === "slack" && testStatus.status === "success" ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                 ) : (
@@ -420,7 +420,7 @@ export function NotificationSettings() {
                 className="w-full"
               >
                 {testStatus.type === "discord" && testStatus.status === "loading" ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                 ) : testStatus.type === "discord" && testStatus.status === "success" ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                 ) : (
@@ -441,7 +441,7 @@ export function NotificationSettings() {
           onClick={() => saveMutation.mutate(settings)}
           disabled={saveMutation.isPending}
         >
-          {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {saveMutation.isPending && <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />}
           Sauvegarder les paramètres
         </Button>
       </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import "./radar-brand.css";
 import "./radar-theme-legacy.css";
 import "./radar-motion.css";
+import "./radar-loader.css";
 import { Providers } from "./providers";
 import CookieConsent from "@/components/CookieConsent";
 

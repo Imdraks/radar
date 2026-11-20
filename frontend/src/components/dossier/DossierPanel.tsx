@@ -10,12 +10,12 @@ import {
   Globe,
   AlertTriangle,
   CheckCircle,
-  Loader2,
   ExternalLink,
   Shield,
   ChevronRight,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 import { dossiersApi, DossierDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -38,9 +38,9 @@ interface DossierPanelProps {
 function StateBadge({ state }: { state: string }) {
   const config: Record<string, { bg: string; icon: React.ReactNode }> = {
     NOT_CREATED: { bg: "bg-gray-100 text-gray-700", icon: <FileText className="h-3 w-3" /> },
-    PROCESSING: { bg: "bg-blue-100 text-blue-700", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    PROCESSING: { bg: "bg-blue-100 text-blue-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" /> },
     ENRICHING: { bg: "bg-purple-100 text-purple-700", icon: <Globe className="h-3 w-3" /> },
-    MERGING: { bg: "bg-indigo-100 text-indigo-700", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    MERGING: { bg: "bg-indigo-100 text-indigo-700", icon: <RadarSpinner className="h-3 w-3 animate-spin" /> },
     READY: { bg: "bg-green-100 text-green-700", icon: <CheckCircle className="h-3 w-3" /> },
     FAILED: { bg: "bg-red-100 text-red-700", icon: <AlertTriangle className="h-3 w-3" /> },
   };
@@ -123,7 +123,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
     return (
       <Card>
         <CardContent className="py-6 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <RadarSpinner className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -148,7 +148,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
             disabled={buildMutation.isPending}
           >
             {buildMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <FileText className="h-4 w-4 mr-2" />
             )}
@@ -161,7 +161,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
             disabled={pipelineMutation.isPending}
           >
             {pipelineMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Globe className="h-4 w-4 mr-2" />
             )}
@@ -252,7 +252,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
               disabled={enrichMutation.isPending}
             >
               {enrichMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <RadarSpinner className="h-4 w-4 animate-spin" />
               ) : (
                 <Globe className="h-4 w-4" />
               )}
@@ -267,7 +267,7 @@ export function DossierPanel({ opportunityId, opportunityTitle }: DossierPanelPr
             title="Reconstruire"
           >
             {buildMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <RadarSpinner className="h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}

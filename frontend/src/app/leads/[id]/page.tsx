@@ -1,5 +1,6 @@
 "use client";
 
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { SafeHtml } from "@/components/ui/safe-html";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -163,7 +164,7 @@ function LeadDetailContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <RadarSpinner className="h-12 w-12 text-primary mx-auto" />
       </div>
     );
   }

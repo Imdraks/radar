@@ -13,12 +13,12 @@ import {
   X,
   ArrowRight,
   RefreshCw,
-  Loader2,
   Filter,
   Zap,
   Flame,
   Building2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -243,7 +243,7 @@ function DeadlinesContent() {
           disabled={scheduleMutation.isPending}
         >
           {scheduleMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Bell className="h-4 w-4 mr-2" />
           )}
@@ -323,7 +323,7 @@ function DeadlinesContent() {
         <TabsContent value="upcoming" className="space-y-6">
           {upcomingLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <>
@@ -391,7 +391,7 @@ function DeadlinesContent() {
         <TabsContent value="past">
           {pastLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : pastDeadlines?.alerts && pastDeadlines.alerts.length > 0 ? (
             <div className="space-y-3">

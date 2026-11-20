@@ -21,9 +21,9 @@ import {
   Users,
   Plus,
   Filter,
-  Loader2,
   AlertCircle,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayout, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -441,7 +441,7 @@ function DiscoveryV3Page() {
         <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
-              <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+              <RadarSpinner className="h-5 w-5 text-primary animate-spin" />
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">

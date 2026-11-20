@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Sparkles,
   Plus,
-  Loader2,
   CheckCircle2,
   Target,
   Shield,
@@ -36,7 +35,8 @@ import {
   Sprout,
   Guitar,
   type LucideIcon,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayout, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -496,7 +496,7 @@ export default function DiscoveryArtistDetailPage() {
                     >
                       {enrichJobId ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                           {enrichStep || "Enrichissement"} ({enrichProgress}%)
                         </>
                       ) : (

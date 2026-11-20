@@ -15,8 +15,8 @@ import {
   Check,
   AlertCircle,
   Database,
-  Loader2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { cn } from "@/lib/utils";
 
 // Custom debounce hook
@@ -232,7 +232,7 @@ export function ArtistSearchBar({ onAnalyze, isAnalyzing, placeholder }: ArtistS
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           {isLoading ? (
-            <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+            <RadarSpinner className="h-5 w-5 text-muted-foreground animate-spin" />
           ) : (
             <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           )}
@@ -255,7 +255,7 @@ export function ArtistSearchBar({ onAnalyze, isAnalyzing, placeholder }: ArtistS
             className="h-10 px-5 rounded-xl"
           >
             {isAnalyzing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <Sparkles className="h-4 w-4 mr-2" />
             )}

@@ -7,11 +7,11 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   X,
   MapPin,
   Clock,
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 
 interface CalendarEvent {
@@ -254,7 +254,7 @@ function CalendarContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

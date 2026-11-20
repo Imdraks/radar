@@ -12,7 +12,6 @@ import {
   FileCheck,
   DollarSign,
   ArrowRight,
-  Loader2,
   RefreshCw,
   Inbox,
   Calendar,
@@ -21,6 +20,7 @@ import {
   Plus,
   Building2
 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import Link from 'next/link';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -184,7 +184,7 @@ function TodayContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

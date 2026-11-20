@@ -23,7 +23,6 @@ import {
   Flame,
   Target,
   BarChart3,
-  Loader2,
   ExternalLink,
   ChevronRight,
   Sparkles,
@@ -33,7 +32,8 @@ import {
   Bell,
   Headphones,
   Building2,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayout, ProtectedRoute } from "@/components/layout";
 import { marketIntelligenceApi } from "@/lib/api";
 
@@ -326,7 +326,7 @@ function IntelligenceContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }

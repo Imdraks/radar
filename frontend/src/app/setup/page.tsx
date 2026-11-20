@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { RadarMark } from "@/components/brand/RadarBrand";
-import { Target, User, Mail, Lock, Loader2, CheckCircle } from "lucide-react";
+import { Target, User, Mail, Lock, CheckCircle } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +86,7 @@ export default function SetupPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <RadarSpinner className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -205,7 +206,7 @@ export default function SetupPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <RadarSpinner className="mr-2 h-4 w-4 animate-spin" />
                   Création en cours...
                 </>
               ) : (

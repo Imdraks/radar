@@ -12,9 +12,9 @@ import {
   DollarSign,
   ArrowRight,
   RefreshCw,
-  Loader2,
   ChevronDown,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -191,7 +191,7 @@ function ShortlistContent() {
             disabled={generateMutation.isPending || !selectedProfileId}
           >
             {generateMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
             ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
             )}
@@ -214,7 +214,7 @@ function ShortlistContent() {
         <CardContent>
           {shortlistLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : todayShortlist && todayShortlist.items.length > 0 ? (
             <div className="space-y-4">
@@ -238,7 +238,7 @@ function ShortlistContent() {
                   disabled={generateMutation.isPending}
                 >
                   {generateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <RadarSpinner className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
                   Générer maintenant
                 </Button>
@@ -262,7 +262,7 @@ function ShortlistContent() {
         <CardContent>
           {historyLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <RadarSpinner className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : historicalShortlists && historicalShortlists.length > 0 ? (
             <div className="space-y-3">

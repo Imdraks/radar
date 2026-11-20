@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useCallback, ComponentType, ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 /**
  * HOC to wrap components with React.memo for performance
@@ -25,7 +25,7 @@ export function createLazyComponent<P extends object>(
   return dynamic(importFn, {
     loading: () => (
       <div className="flex items-center justify-center p-4">
-        {loadingFallback || <Loader2 className="h-6 w-6 animate-spin text-gray-400" />}
+        {loadingFallback || <RadarSpinner className="h-6 w-6 animate-spin text-primary" />}
       </div>
     ),
     ssr: false, // Disable SSR for heavy components

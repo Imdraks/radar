@@ -38,7 +38,7 @@ export function RouteTransition() {
       const title = content.querySelector('h1:not(.sr-only), h2');
       // Some business pages mount a spinner before their first heading. Wait
       // for that content too, while keeping the loader visible and interactive.
-      if (!title && Array.from(content.querySelectorAll('.animate-spin'))
+      if (!title && Array.from(content.querySelectorAll('.animate-spin, [data-radar-loading]'))
         .some(element => element.getClientRects().length > 0)) return false;
       if (preference.matches) { cancel(); return true; }
       observer?.disconnect();

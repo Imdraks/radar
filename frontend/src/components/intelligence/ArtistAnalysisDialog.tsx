@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Loader2, 
   Search,
   User, 
   Music, 
@@ -45,7 +44,8 @@ import {
   Gem,
   Flame,
   Tent,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 // Spotify icon component
 const SpotifyIcon = ({ className }: { className?: string }) => (
@@ -393,7 +393,7 @@ export function ArtistAnalysisDialog() {
                 className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 {analyzeMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 animate-spin" />
                 ) : (
                   <Brain className="h-4 w-4" />
                 )}
@@ -408,7 +408,7 @@ export function ArtistAnalysisDialog() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="relative">
                     <Brain className="h-16 w-16 text-purple-500 animate-pulse" />
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 absolute -bottom-2 -right-2" />
+                    <RadarSpinner className="h-8 w-8 animate-spin text-primary absolute -bottom-2 -right-2" />
                   </div>
                   <p className="text-lg font-medium">
                     Analyse en cours pour <strong>{artistName}</strong>

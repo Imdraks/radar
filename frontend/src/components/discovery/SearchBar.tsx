@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Loader2, Link2, AtSign, Music } from "lucide-react";
+import { Search, Link2, AtSign, Music } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,7 +110,7 @@ export function SearchBar({
           <Button type="submit" disabled={isLoading || query.trim().length < 2}>
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                 Recherche...
               </>
             ) : (

@@ -2,7 +2,8 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Send } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Button } from '@/components/ui/button';
 import { ForceLightMode } from '@/components/landing/ForceLightMode';
 import { ContactNavigation } from '@/components/landing/ContactNavigation';
@@ -137,7 +138,7 @@ export default function ContactPage() {
               ].map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd><button type="button" disabled={status === 'loading'} aria-label={`Modifier : ${row.label}`} onClick={() => edit(row.index)}>Modifier</button></div>)}</dl>}
               {fieldError && <p id="contact-field-error" role="alert" className="radar-contact-error">{fieldError}</p>}
               {step === 5 && error && <p role="alert" className="radar-contact-error">{error}</p>}
-              <Button type="submit" disabled={!ready || status === 'loading'} className="radar-contact-continue">{status === 'loading' ? <><Loader2 size={16} className="animate-spin" />Envoi en cours…</> : step === 5 ? <>Envoyer le message<Send size={15} /></> : <>{editing ? 'Valider la modification' : 'Continuer'}<ArrowRight size={16} /></>}</Button>
+              <Button type="submit" disabled={!ready || status === 'loading'} className="radar-contact-continue">{status === 'loading' ? <><RadarSpinner size={16} className="animate-spin" />Envoi en cours…</> : step === 5 ? <>Envoyer le message<Send size={15} /></> : <>{editing ? 'Valider la modification' : 'Continuer'}<ArrowRight size={16} /></>}</Button>
             </div>
           </div>
           <div className="radar-contact-bottomline">{step > 0 ? <button type="button" disabled={status === 'loading'} onClick={() => { move(editing ? 5 : step - 1); setEditing(false); }}><ArrowLeft size={14} />{editing ? 'Récapitulatif' : 'Précédent'}</button> : <span aria-hidden="true" />}<span>{step === 5 ? 'Un envoi, après votre confirmation.' : step === 4 ? 'Puis, vérifiez votre demande.' : 'Entrée pour continuer'}</span></div>

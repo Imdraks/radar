@@ -7,7 +7,6 @@ import {
   BarChart3,
   Calendar,
   Filter,
-  Loader2,
   MapPin,
   Music,
   RefreshCw,
@@ -16,7 +15,8 @@ import {
   Zap,
   ArrowRight,
   DollarSign,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AppLayout, ProtectedRoute } from "@/components/layout";
@@ -72,7 +72,7 @@ function AnalyticsContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+        <RadarSpinner className="h-7 w-7 animate-spin text-primary/60" />
       </div>
     );
   }

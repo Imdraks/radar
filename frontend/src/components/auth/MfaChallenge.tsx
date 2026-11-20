@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authApi } from '@/lib/api';
-import { Loader2, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 export const mfaLabels: Record<string, string> = {
   passkey: 'Clé d’accès', totp: 'Application d’authentification', email: 'Code par e-mail', sms: 'Code par SMS', recovery: 'Code de secours',
@@ -52,7 +53,7 @@ export function MfaChallenge({ token, methods, destinations = {}, onVerify, onBa
     {error && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {method !== 'passkey' && <div className="space-y-2"><Label htmlFor="mfa-code">{method === 'recovery' ? 'Code de secours' : 'Code à 6 chiffres'}</Label><Input id="mfa-code" type="text" inputMode={method === 'recovery' ? 'text' : 'numeric'} autoComplete="one-time-code" autoFocus maxLength={method === 'recovery' ? 40 : 6} value={code} disabled={busy} className="h-12 text-center font-mono text-lg tracking-widest" onChange={event => setCode(method === 'recovery' ? event.target.value.toUpperCase().replace(/[^A-Z0-9 -]/g, '') : event.target.value.replace(/[^0-9]/g, ''))} /></div>}
     {allowTrust && <label className="flex items-start gap-3 text-sm"><input type="checkbox" checked={trustDevice} disabled={busy} onChange={event => setTrustDevice(event.target.checked)} className="mt-1 accent-violet-600" /><span>Faire confiance à cet appareil pendant 30 jours<span className="mt-1 block text-xs text-muted-foreground">Sur un appareil personnel uniquement. Autorisation révocable dans Paramètres → Sécurité.</span></span></label>}
-    <div className="flex gap-3"><Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={onBack}>Retour</Button><Button type="submit" className="flex-1 gap-2" disabled={busy || (method === 'passkey' ? false : method === 'recovery' ? code.replace(/[ -]/g, '').length < 8 : code.length !== 6)}>{busy && <Loader2 size={15} className="animate-spin" />}{enrollment ? 'Activer la méthode' : method === 'passkey' ? 'Utiliser ma clé d’accès' : 'Vérifier'}</Button></div>
+    <div className="flex gap-3"><Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={onBack}>Retour</Button><Button type="submit" className="flex-1 gap-2" disabled={busy || (method === 'passkey' ? false : method === 'recovery' ? code.replace(/[ -]/g, '').length < 8 : code.length !== 6)}>{busy && <RadarSpinner size={15} className="animate-spin" />}{enrollment ? 'Activer la méthode' : method === 'passkey' ? 'Utiliser ma clé d’accès' : 'Vérifier'}</Button></div>
     <p className="text-xs leading-relaxed text-muted-foreground">La vérification expire après cinq minutes. Les codes ne doivent être communiqués à personne.</p>
   </form>;
 }

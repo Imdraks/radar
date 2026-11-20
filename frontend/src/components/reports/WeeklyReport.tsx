@@ -24,11 +24,11 @@ import {
   Star,
   Clock,
   Lightbulb,
-  Loader2,
   CheckCircle,
   Mail,
   MessageSquare,
-} from "lucide-react";
+} from 'lucide-react';
+import { RadarSpinner } from '@/components/ui/radar-loader';
 
 interface WeeklyReportData {
   report_id: string;
@@ -133,7 +133,7 @@ export function WeeklyReportDialog() {
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <RadarSpinner className="h-12 w-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">Génération du rapport...</p>
           </div>
         ) : report ? (
@@ -274,7 +274,7 @@ export function WeeklyReportDialog() {
                 disabled={sendMutation.isPending || sendSuccess}
               >
                 {sendMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <RadarSpinner className="h-4 w-4 mr-2 animate-spin" />
                 ) : sendSuccess ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                 ) : (
@@ -310,7 +310,7 @@ export function WeeklyReportCard() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <RadarSpinner className="h-6 w-6 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
