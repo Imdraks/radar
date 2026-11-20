@@ -1,5 +1,6 @@
 "use client";
 
+import { SafeHtml } from "@/components/ui/safe-html";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
@@ -314,10 +315,7 @@ function LeadDetailContent() {
               <CardContent>
                 {opportunity.description ? (
                   opportunity.description.includes('<') ? (
-                    <div 
-                      className="text-sm leading-relaxed [&>p]:mb-4 [&>h2]:text-lg [&>h2]:font-bold [&>h2]:mt-6 [&>h2]:mb-3 [&>a]:text-primary [&>a]:underline [&_strong]:font-semibold [&_img]:max-w-full [&_img]:rounded-lg [&_figure]:my-4 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:mt-2"
-                      dangerouslySetInnerHTML={{ __html: opportunity.description }}
-                    />
+                    <SafeHtml className="text-sm leading-relaxed [&>p]:mb-4 [&>h2]:text-lg [&>h2]:font-bold [&>h2]:mt-6 [&>h2]:mb-3 [&>a]:text-primary [&>a]:underline [&_strong]:font-semibold [&_img]:max-w-full [&_img]:rounded-lg [&_figure]:my-4 [&_figcaption]:text-xs [&_figcaption]:text-muted-foreground [&_figcaption]:mt-2" html={opportunity.description} />
                   ) : (
                     <p className="whitespace-pre-wrap">{opportunity.description}</p>
                   )

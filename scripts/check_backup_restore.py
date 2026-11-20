@@ -1,4 +1,4 @@
-"""Run a real dump/restore drill against an explicitly disposable Docker PostgreSQL."""
+"""Real encrypted backup and isolated restore, restricted to disposable Docker PostgreSQL."""
 
 import json
 import os
@@ -18,7 +18,7 @@ def main():
         value.split("=", 1) for value in inspected["Config"]["Env"] if "=" in value
     )
     if "test" not in env.get("POSTGRES_DB", "").lower():
-        raise RuntimeError("Le conteneur doit annoncer une base de test")
+        raise RuntimeError("Disposable test PostgreSQL required")
     user = env.get("POSTGRES_USER", "postgres")
     db = "radar_ops_test_" + uuid.uuid4().hex
 
@@ -50,30 +50,77 @@ def main():
             stdout=subprocess.DEVNULL,
         )
         operations.postgres = postgres
-        with tempfile.TemporaryDirectory(prefix="radar-restore-test-") as folder:
-            path = operations.backup(Path(folder))
-            operations.drill(path)
+        with tempfile.TemporaryDirectory(
+            prefix="radar-encrypted-backup-test-"
+        ) as folder:
+            root = Path(folder)
+            private = root / "offline-test-key.pem"
+            cert = root / "public-test-cert.pem"
+            subprocess.run(
+                [
+                    "openssl",
+                    "req",
+                    "-x509",
+                    "-newkey",
+                    "rsa:3072",
+                    "-nodes",
+                    "-keyout",
+                    str(private),
+                    "-out",
+                    str(cert),
+                    "-subj",
+                    "/CN=Radar disposable backup test",
+                    "-days",
+                    "1",
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            os.environ["RADAR_BACKUP_CERTIFICATE"] = str(cert)
+            path = operations.backup(root / "archives", verify=True)
+            assert path.suffix == ".cms"
             assert (
                 json.loads(path.with_suffix(".json").read_text())["restore_verified"]
                 is True
             )
-            path.write_bytes(path.read_bytes() + b"corruption")
+            opened = root / "opened.dump"
+            decrypt = [
+                "openssl",
+                "cms",
+                "-decrypt",
+                "-binary",
+                "-inform",
+                "DER",
+                "-in",
+                str(path),
+                "-recip",
+                str(cert),
+                "-inkey",
+                str(private),
+                "-out",
+                str(opened),
+            ]
+            subprocess.run(decrypt, check=True)
+            operations._restore_dump(opened)
+            assert not list((root / "archives").glob("*.dump"))
+            assert not list((root / "archives").glob(".radar-backup-*"))
+            raw = bytearray(path.read_bytes())
+            raw[-1] ^= 1
+            path.write_bytes(raw)
+            corrupted = subprocess.run(
+                decrypt, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
+            )
+            assert (
+                corrupted.returncode != 0
+            ), "Unauthenticated corrupted archive accepted"
+            os.environ["RADAR_BACKUP_CERTIFICATE"] = str(root / "missing.pem")
             try:
-                operations.drill(path)
-            except RuntimeError as error:
-                assert "Empreinte" in str(error)
-            else:
-                raise AssertionError("Corrupted dump accepted")
-            path.write_bytes(b'not a PostgreSQL archive')
-            manifest=json.loads(path.with_suffix('.json').read_text())
-            manifest['sha256']=operations.digest(path)
-            path.with_suffix('.json').write_text(json.dumps(manifest))
-            try:
-                operations.drill(path)
-            except subprocess.CalledProcessError:
+                operations.backup(root / "missing-certificate-archives")
+            except RuntimeError:
                 pass
             else:
-                raise AssertionError('Invalid restore accepted')
+                raise AssertionError("Missing certificate accepted")
         result = command(
             [
                 "psql",
@@ -89,7 +136,7 @@ def main():
         )
         assert result.stdout.splitlines() == [b"1", b"1", b"0"]
         print(
-            "PASS real dump, isolated restoration, checksum refusal, source rows preserved and probe DB removed"
+            "PASS CMS AES-256-GCM backup, private-key decryption, actual isolated restoration, tamper refusal, no persistent plaintext dump, source preserved"
         )
     finally:
         command(["dropdb", "-U", user, db], stdin=subprocess.DEVNULL)

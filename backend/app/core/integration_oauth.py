@@ -64,9 +64,10 @@ def consume(db, state, provider):
 
 
 def save_tokens(db, payload, key, tokens):
+    from app.core.credential_cache import encode
     validate_context(db, payload)  # Recheck after the external round trip too.
     try:
-        if not redis_client.setex('cache:' + key, 86400 * 30, json.dumps(tokens)):
+        if not redis_client.setex('cache:' + key, 86400 * 30, encode(key, tokens)):
             raise RuntimeError('Tokens not persisted')
     except Exception:
         raise HTTPException(503, 'Les autorisations Google n’ont pas pu être enregistrées.') from None

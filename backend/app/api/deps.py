@@ -14,13 +14,15 @@ security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
     """Get current authenticated user"""
-    if credentials is None:
+    from app.core.browser_sessions import request_token
+    token = request_token(request, credentials.credentials if credentials else None)
+    if not token:
         raise HTTPException(status_code=401, detail="Authentication required", headers={"WWW-Authenticate": "Bearer"})
-    token = credentials.credentials
     user_id = verify_token(token, "access")
     
     if not isinstance(user_id, str) or not user_id.isascii() or not user_id.isdigit() or len(user_id) > 10 or not (0 < int(user_id) <= 2147483647):
@@ -41,7 +43,7 @@ def get_current_user(
         from datetime import datetime
         if not user.temporary_password_expires_at or user.temporary_password_expires_at <= datetime.utcnow():
             raise HTTPException(401, 'Invitation expirée. Demandez un nouvel envoi ou réinitialisez votre mot de passe par e-mail.')
-    if not user.is_active:
+    if not user.is_active or not (user.is_whitelisted or user.is_superuser):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
@@ -50,7 +52,13 @@ def get_current_user(
         raise HTTPException(status_code=401, detail='Sécurité du compte modifiée. Reconnectez-vous.')
     
     from app.core.login_sessions import require_session
-    require_session(db, user, decode_token(token) or {})
+    session = require_session(db, user, decode_token(token) or {})
+    from app.core.browser_sessions import is_marker
+    uses_cookie = credentials is None or is_marker(credentials.credentials)
+    if uses_cookie or session.browser_public_key:
+        if not session.browser_public_key: raise HTTPException(401, 'Reconnectez-vous pour sécuriser ce navigateur.')
+        from app.core.device_proof import verify
+        verify(request, session)
     return user
 
 

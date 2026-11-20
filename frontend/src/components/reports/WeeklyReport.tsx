@@ -1,5 +1,6 @@
 "use client";
 
+import { SafeHtml } from "@/components/ui/safe-html";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -243,10 +244,7 @@ export function WeeklyReportDialog() {
                 <TabsTrigger value="markdown">Markdown</TabsTrigger>
               </TabsList>
               <TabsContent value="html" className="mt-4">
-                <div
-                  className="border rounded-lg p-4 bg-white dark:bg-neutral-950 max-h-96 overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: report.html_content }}
-                />
+                <SafeHtml className="border rounded-lg p-4 bg-white dark:bg-neutral-950 max-h-96 overflow-y-auto" html={report.html_content} />
               </TabsContent>
               <TabsContent value="markdown" className="mt-4">
                 <pre className="border rounded-lg p-4 bg-muted max-h-96 overflow-y-auto text-sm whitespace-pre-wrap">

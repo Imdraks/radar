@@ -1,5 +1,6 @@
 'use client';
 
+import { storeBrowserSession, COOKIE_SESSION } from "@/lib/browser-session";
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -29,6 +30,7 @@ export function usePublicAccount() {
       const controller = new AbortController();
       active = controller;
       let token = localStorage.getItem('access_token');
+      let identity=localStorage.getItem('radar_browser_session');
       if (!token) { setAccount(null); setChecking(false); return; }
       setChecking(true);
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -43,8 +45,9 @@ export function usePublicAccount() {
               const tokens = await renewed.json();
               if (typeof tokens.access_token === 'string' && !controller.signal.aborted) {
                 token = tokens.access_token;
-                localStorage.setItem('access_token', token!);
-                if (tokens.refresh_token) localStorage.setItem('refresh_token', tokens.refresh_token);
+                await storeBrowserSession(token!, tokens.refresh_token || credential);
+                token = localStorage.getItem("access_token") || COOKIE_SESSION;
+                identity=localStorage.getItem("radar_browser_session");
                 response = await request('/api/v1/auth/me');
               }
             }
@@ -53,7 +56,7 @@ export function usePublicAccount() {
         if (!response.ok) throw new Error('Session unavailable');
         const user = await response.json() as User;
         if (!Number.isSafeInteger(user.id) || !user.is_active) throw new Error('Invalid account');
-        if (controller.signal.aborted || localStorage.getItem('access_token') !== token) return;
+        if (controller.signal.aborted || (localStorage.getItem('access_token') !== token || identity !== localStorage.getItem('radar_browser_session'))) return;
         setAccount({ user, plan: null });
         setChecking(false);
         let plan: Plan | null = null;
@@ -68,7 +71,7 @@ export function usePublicAccount() {
             if ((!selected || subscription.workspace_id === selected) && ['core', 'premium', 'business'].includes(subscription.plan)) plan = expired ? 'core' : subscription.plan;
           }
         } catch { /* Keep the verified identity with an unknown tier if billing is unavailable. */ }
-        if (!controller.signal.aborted && localStorage.getItem('access_token') === token) setAccount({ user, plan });
+        if (!controller.signal.aborted && localStorage.getItem('access_token') === token && identity === localStorage.getItem('radar_browser_session')) setAccount({ user, plan });
       } catch {
         if (!controller.signal.aborted) setAccount(null);
       } finally {

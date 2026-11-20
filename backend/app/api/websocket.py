@@ -94,11 +94,28 @@ async def websocket_notifications(
     try:
         protocols = websocket.headers.get("sec-websocket-protocol", "").split(",")
         token = next((p.strip()[7:] for p in protocols if p.strip().startswith("bearer.")), "")
-        user = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+        from app.core.browser_sessions import MARKER, names, require_origin
+        if token == MARKER:
+            require_origin(websocket)
+            token = websocket.cookies.get(names()[0], '')
+        ws_ticket = next((p.strip()[7:] for p in protocols if p.strip().startswith('ticket.')), '')
+        ticket_workspace = None
+        if ws_ticket:
+            require_origin(websocket)
+            from app.core.device_proof import consume_ticket
+            from app.core.security import decode_token
+            token = websocket.cookies.get(names()[0], '')
+            payload=decode_token(token) or {}
+            grant=consume_ticket(ws_ticket)
+            if grant['sid'] != payload.get('sid'): raise HTTPException(401,'Session invalide')
+            websocket.state.browser_device_verified=grant['sid']
+            ticket_workspace=grant['workspace_id']
+        user = get_current_user(websocket, HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
         selected = websocket.query_params.get("workspace_id")
         if selected is not None and (not selected.isdecimal() or len(selected) > 10):
             raise HTTPException(400, "Invalid workspace")
         workspace_id = resolve_workspace_id(db, user, int(selected) if selected else None)
+        if ticket_workspace is not None and workspace_id != ticket_workspace: raise HTTPException(403,'Espace invalide')
     except HTTPException:
         await websocket.close(code=4001, reason="Invalid or inactive account")
         return
@@ -127,7 +144,7 @@ async def websocket_notifications(
                 # Recheck account, token expiry and membership on every heartbeat.
                 db.expire_all()
                 try:
-                    current = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+                    current = get_current_user(websocket, HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
                     resolve_workspace_id(db, current, workspace_id)
                 except HTTPException:
                     await websocket.close(code=4001, reason="Session expired or access revoked")
@@ -140,7 +157,7 @@ async def websocket_notifications(
                 # Quiet clients are also revalidated; heartbeat cannot keep a revoked account alive.
                 try:
                     db.expire_all()
-                    current = get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
+                    current = get_current_user(websocket, HTTPAuthorizationCredentials(scheme="Bearer", credentials=token), db)
                     resolve_workspace_id(db, current, workspace_id)
                     await websocket.send_json({"type": "ping"})
                 except Exception:

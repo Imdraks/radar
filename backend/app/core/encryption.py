@@ -1,15 +1,16 @@
 """
 Encryption utilities for sensitive data (IBAN, etc.)
-Uses Fernet symmetric encryption with key derived from SECRET_KEY
+Uses a dedicated Fernet data key with compatible reads of legacy SECRET_KEY data
 """
+
 import base64
 import hashlib
 from typing import Optional
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from app.core.config import settings
 
 
-def _get_encryption_key() -> bytes:
+def _legacy_encryption_key() -> bytes:
     """
     Derive a Fernet-compatible key from SECRET_KEY.
     Fernet requires a 32-byte base64-encoded key.
@@ -27,8 +28,8 @@ def encrypt_sensitive(value: str) -> str:
     """
     if not value:
         return ""
-    
-    fernet = Fernet(_get_encryption_key())
+
+    fernet = Fernet(_primary_key())
     encrypted = fernet.encrypt(value.encode())
     return encrypted.decode()
 
@@ -40,14 +41,13 @@ def decrypt_sensitive(encrypted_value: str) -> str:
     """
     if not encrypted_value:
         return ""
-    
-    try:
-        fernet = Fernet(_get_encryption_key())
-        decrypted = fernet.decrypt(encrypted_value.encode())
-        return decrypted.decode()
-    except Exception:
-        # If decryption fails (corrupted or wrong key), return empty
-        return ""
+
+    for key in [_primary_key(), *_previous_keys(), _legacy_encryption_key()]:
+        try:
+            return Fernet(key).decrypt(encrypted_value.encode()).decode()
+        except (ValueError, TypeError, InvalidToken, UnicodeError):
+            continue
+    return ""
 
 
 def encrypt_iban(iban: str) -> str:
@@ -69,13 +69,13 @@ def mask_iban(iban: str) -> str:
     """
     if not iban or len(iban) < 10:
         return iban or ""
-    
+
     clean = iban.replace(" ", "").upper()
     first4 = clean[:4]
     last4 = clean[-4:]
     middle_len = len(clean) - 8
     masked = first4 + " " + "*" * middle_len + " " + last4
-    
+
     # Format with spaces every 4 chars
     formatted = first4 + " " + "****" + " " * ((middle_len // 4) - 1) + " " + last4
     return f"{first4} {'**** ' * ((middle_len // 4))} {last4}".strip()
@@ -86,4 +86,20 @@ def format_iban(iban: str) -> str:
     if not iban:
         return ""
     clean = iban.replace(" ", "").upper()
-    return " ".join([clean[i:i+4] for i in range(0, len(clean), 4)])
+    return " ".join([clean[i : i + 4] for i in range(0, len(clean), 4)])
+
+
+def _primary_key():
+    return (
+        settings.data_encryption_key.encode()
+        if settings.data_encryption_key
+        else _legacy_encryption_key()
+    )
+
+
+def _previous_keys():
+    return [
+        key.strip().encode()
+        for key in settings.data_encryption_previous_keys.split(",")
+        if key.strip()
+    ]

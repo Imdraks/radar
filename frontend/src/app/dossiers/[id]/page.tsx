@@ -1,5 +1,6 @@
 "use client";
 
+import { SafeHtml } from "@/components/ui/safe-html";
 import React, { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -504,16 +505,10 @@ export default function DossierDetailPage() {
               </CardHeader>
               <CardContent>
                 {dossier.summary_short && (
-                  <div 
-                    className="text-lg font-medium mb-4 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
-                  />
+                  <SafeHtml className="text-lg font-medium mb-4 prose prose-sm max-w-none" html={dossier.summary_short} />
                 )}
                 {dossier.summary_long && (
-                  <div 
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: dossier.summary_long }}
-                  />
+                  <SafeHtml className="prose prose-sm max-w-none" html={dossier.summary_long} />
                 )}
               </CardContent>
             </Card>

@@ -69,6 +69,20 @@ jobs:
           python -m playwright install --with-deps chromium
           python scripts/email_preview.py
           python scripts/email_ui_smoke.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Real browser security regression (isolated API, database and Redis)
+        run: |
+          npm --prefix frontend ci --no-audit --no-fund
+          INTERNAL_API_URL=http://127.0.0.1:8018 npm --prefix frontend run build
+          python scripts/check_credential_cache.py
+          python scripts/security_browser_smoke.py
+        env:
+          RADAR_TEST_REDIS_URL: redis://127.0.0.1:6379/13
+          NEXT_TELEMETRY_DISABLED: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

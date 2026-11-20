@@ -90,7 +90,8 @@ def reauth_start(data: ReauthInput, request: Request, user: User = Depends(get_c
             _, failed = mfa.create_challenge(db, user, 'password_reauth')
             mfa.reject(db, failed, "Mot de passe Radar incorrect." if data.password else "Saisissez le mot de passe Radar de ce compte.")
     else:
-        payload = decode_token(request.headers.get('authorization', '').removeprefix('Bearer ')) or {}
+        from app.core.login_sessions import claims
+        payload = claims(request)
         authenticated_at = payload.get('auth_time', 0)
         if not isinstance(authenticated_at, int) or not 0 <= time.time() - authenticated_at <= 300:
             raise HTTPException(401, 'Reconnectez-vous avec votre fournisseur SSO avant de modifier la sécurité.')

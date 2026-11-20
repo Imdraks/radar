@@ -178,6 +178,7 @@ app = FastAPI(
     description="API pour la veille et qualification d'opportunités événementielles",
     version="1.0.0",
     docs_url="/docs" if settings.app_env == "development" else None,  # Disable docs in production
+    openapi_url="/openapi.json" if settings.app_env == "development" else None,
     redoc_url="/redoc" if settings.app_env == "development" else None,  # Disable redoc in production
 )
 
@@ -235,13 +236,18 @@ app.add_middleware(AdvancedSecurityMiddleware)
 # File upload security
 app.add_middleware(FileUploadSecurityMiddleware)
 
+if settings.app_env == 'production':
+    from urllib.parse import urlsplit
+    parsed_frontend = urlsplit(settings.frontend_url)
+    cors_origins = [f'{parsed_frontend.scheme}://{parsed_frontend.netloc}']
+
 # CORS (must be after security middlewares)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Accept", "Accept-Language", "Content-Language", "Content-Type", "Authorization", "X-Requested-With"],
+    allow_headers=["Accept", "Accept-Language", "Content-Language", "Content-Type", "Authorization", "X-Requested-With", "X-Radar-Session", "X-Radar-Issued", "X-Radar-Nonce", "X-Radar-Proof"],
     expose_headers=["X-Process-Time", "X-Request-ID"],
     max_age=600,  # Cache preflight for 10 minutes
 )
@@ -252,7 +258,9 @@ app.add_middleware(
 async def global_exception_handler(request: Request, exc: Exception):
     # Log full error internally
     request_id = getattr(request.state, 'request_id', 'unknown')
-    logger.exception(f"[{request_id}] Unhandled error: {exc}")
+    import traceback
+    frames = ''.join(traceback.format_list(traceback.extract_tb(exc.__traceback__)))
+    logger.error("[%s] Unhandled %s\n%s", request_id, type(exc).__name__, frames)
     
     # Return generic error to client (don't expose internals)
     return JSONResponse(
@@ -418,3 +426,9 @@ from app.api.integration_status import router as integration_status_router
 app.include_router(production_tools_router, prefix="/api/v1")
 app.include_router(external_review_router, prefix="/api/v1/review", tags=["External review"])
 app.include_router(integration_status_router, prefix="/api/v1")
+
+
+from app.api.browser_sessions import router as browser_sessions_router
+app.include_router(browser_sessions_router, prefix="/api/v1")
+from app.core.request_limits import RequestSizeLimitMiddleware
+app.add_middleware(RequestSizeLimitMiddleware)

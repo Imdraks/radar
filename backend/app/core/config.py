@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = True
     secret_key: str = "change-this-in-production"
+    data_encryption_key: str = Field(default="", repr=False)
+    data_encryption_previous_keys: str = Field(default="", repr=False)
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
     
@@ -173,10 +175,22 @@ class Settings(BaseSettings):
         if self.admin_password == "change-this-password":
             warnings.append("CRITICAL: admin_password is using default value!")
             
+        from cryptography.fernet import Fernet
+        for key in [self.data_encryption_key, *self.data_encryption_previous_keys.split(',')]:
+            if key.strip():
+                try: Fernet(key.strip().encode())
+                except (ValueError, TypeError): warnings.append('CRITICAL: invalid data encryption key configuration')
+        if self.app_env == 'production':
+            from urllib.parse import urlsplit
+            url = urlsplit(self.frontend_url)
+            if url.scheme != 'https' or not url.netloc or url.query or url.fragment:
+                warnings.append('CRITICAL: FRONTEND_URL must be the HTTPS frontend origin')
+            if min(len(self.secret_key), len(self.jwt_secret_key)) < 32:
+                warnings.append('CRITICAL: production signing/encryption secrets require at least 32 characters')
         # Check for production settings
         if self.app_env == "production":
             if self.debug:
-                warnings.append("WARNING: debug=True in production!")
+                warnings.append("CRITICAL: debug=True in production!")
             if "localhost" in self.database_url:
                 warnings.append("WARNING: Using localhost database in production!")
                 

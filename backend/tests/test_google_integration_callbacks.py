@@ -68,7 +68,9 @@ def test_callback_without_bearer_uses_single_use_state_and_keeps_other_routes_pr
     assert result.status_code == 307, result.text
     assert 'error' not in result.headers['location']
     key = f"cache:google_{'workspace' if provider == 'drive' else 'calendar'}_tokens:{actors[0][0].id}"
-    assert json.loads(google[0].values[key])['access_token'] == 'explicit-provider-token'
+    from app.core.credential_cache import decode
+    assert 'explicit-provider-token' not in google[0].values[key]
+    assert decode(key.removeprefix('cache:'),google[0].values[key])['access_token'] == 'explicit-provider-token'
     assert client.get(callback, params={'code': 'explicit-provider-code', 'state': state}).status_code == 400
     assert client.get(callback, params={'code': 'explicit-provider-code', 'state': 'x'*43}).status_code == 400
     assert google[1].post.await_count == 1

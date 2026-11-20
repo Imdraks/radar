@@ -82,7 +82,8 @@ def cache_get(key: str) -> Optional[Any]:
     try:
         cached = redis_client.get(f"cache:{key}")
         if cached:
-            return json.loads(cached)
+            from app.core.credential_cache import decode
+            return decode(key, cached)
     except Exception:
         pass
     return None
@@ -91,7 +92,8 @@ def cache_get(key: str) -> Optional[Any]:
 def cache_set(key: str, value: Any, ttl: int = 300):
     """Set value in cache"""
     try:
-        redis_client.setex(f"cache:{key}", ttl, json.dumps(value, default=str))
+        from app.core.credential_cache import encode
+        redis_client.setex(f"cache:{key}", ttl, encode(key, value))
     except Exception:
         pass
 

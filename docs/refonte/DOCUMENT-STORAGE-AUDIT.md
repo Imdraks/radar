@@ -1,5 +1,9 @@
 # Audit du stockage documentaire Radar — 20 novembre 2026
 
+> Complément : le correctif [PLATFORM-SECURITY.md](PLATFORM-SECURITY.md) traite
+> ensuite les uploads bornés, le chiffrement OAuth/binaire et les sauvegardes.
+> Les constats ci-dessous décrivent la version auditée avant ce correctif.
+
 ## Périmètre et conclusion
 
 Audit du dépôt : routes d’upload, services Drive, génération de PDF, modèles

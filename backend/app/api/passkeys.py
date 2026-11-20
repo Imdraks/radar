@@ -237,10 +237,10 @@ def registration_complete(
     return {**tokens, "enabled": True, "backup_codes": codes}
 
 
-def parent_challenge(db, token, credentials):
+def parent_challenge(db, token, credentials, request):
     user, parent = mfa.load_challenge(db, token, {"login", "manage"})
     if parent.purpose == "manage":
-        authenticated = get_current_user(credentials=credentials, db=db)
+        authenticated = get_current_user(request=request, credentials=credentials, db=db)
         if authenticated.id != user.id:
             raise HTTPException(403, "Cette vérification appartient à un autre compte.")
     if "passkey" not in mfa.methods(user):
@@ -251,11 +251,12 @@ def parent_challenge(db, token, credentials):
 @router.post("/authenticate/options")
 def authentication_options(
     data: AuthStart,
+    request: Request,
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     rp, _ = relying_party()
-    user, parent = parent_challenge(db, data.challenge_token, credentials)
+    user, parent = parent_challenge(db, data.challenge_token, credentials, request)
     row = new_ceremony(db, user, parent.purpose, parent.token_hash)
     options = generate_authentication_options(
         rp_id=rp,
@@ -283,7 +284,7 @@ def authentication_complete(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     rp, origin = relying_party()
-    user, parent = parent_challenge(db, data.challenge_token, credentials)
+    user, parent = parent_challenge(db, data.challenge_token, credentials, request)
     row = ceremony(db, user, data.challenge_id, parent.purpose, parent.token_hash)
     row.used_at = datetime.utcnow()
     try:

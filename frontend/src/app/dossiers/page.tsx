@@ -1,5 +1,6 @@
 "use client";
 
+import { SafeHtml } from "@/components/ui/safe-html";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -162,10 +163,7 @@ function DossierCard({ dossier, onClick }: { dossier: DossierSummary; onClick: (
         </div>
 
         {dossier.summary_short && (
-          <div
-            className="text-sm text-muted-foreground line-clamp-2 mb-3 [&>p]:m-0"
-            dangerouslySetInnerHTML={{ __html: dossier.summary_short }}
-          />
+          <SafeHtml className="text-sm text-muted-foreground line-clamp-2 mb-3 [&>p]:m-0" html={dossier.summary_short} />
         )}
 
         <div className="flex items-center justify-between">

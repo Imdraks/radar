@@ -1,5 +1,6 @@
 "use client";
 
+import { storeBrowserSession, isBrowserToken } from "@/lib/browser-session";
 import { useSubscriptionStore } from "./subscriptionStore";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -68,8 +69,7 @@ export const useAuthStore = create<AuthState>()(
           }
           
           // Normal login success
-          localStorage.setItem("access_token", response.access_token);
-          localStorage.setItem("refresh_token", response.refresh_token);
+          await storeBrowserSession(response.access_token, response.refresh_token);
           
           // Store remember me preference
           set({ rememberMe, lastLoginEmail: rememberMe ? email : null, pending2FA: null });
@@ -106,6 +106,7 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("current_workspace_id");
+        localStorage.removeItem("radar_browser_session");
         set({ user: null, isAuthenticated: false, isLoading: false, pending2FA: null });
       },
 
@@ -116,27 +117,34 @@ export const useAuthStore = create<AuthState>()(
           return;
         }
 
+        const identity=localStorage.getItem("radar_browser_session") || token;
         try {
           const user = await authApi.getMe();
+          if(identity !== (localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token"))) return;
+          if (!isBrowserToken(localStorage.getItem("access_token"))) {
+            const access = localStorage.getItem("access_token"); const refresh = localStorage.getItem("refresh_token");
+            if (access && refresh) await storeBrowserSession(access, refresh);
+          }
           set({ user, isAuthenticated: true, isLoading: false });
         } catch {
+          if(identity !== (localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token"))) return;
           // Try to refresh token before giving up
           const refreshToken = localStorage.getItem("refresh_token");
           if (refreshToken) {
             try {
               const response = await authApi.refresh(refreshToken);
-              localStorage.setItem("access_token", response.access_token);
-              if (response.refresh_token) {
-                localStorage.setItem("refresh_token", response.refresh_token);
-              }
+              if(identity !== (localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token"))) return;
+              await storeBrowserSession(response.access_token, response.refresh_token);
               // Retry fetching user
               const user = await authApi.getMe();
+              if(identity !== (localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token"))) return;
               set({ user, isAuthenticated: true, isLoading: false });
               return;
             } catch {
               // Refresh failed
             }
           }
+          if(identity !== (localStorage.getItem("radar_browser_session") || localStorage.getItem("access_token"))) return;
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           set({ user: null, isAuthenticated: false, isLoading: false });
@@ -153,8 +161,7 @@ export const useAuthStore = create<AuthState>()(
       
       setTokens: async (accessToken: string, refreshToken: string) => {
         // Store tokens (from SSO callback)
-        localStorage.setItem("access_token", accessToken);
-        localStorage.setItem("refresh_token", refreshToken);
+        await storeBrowserSession(accessToken, refreshToken);
         // Fetch user info
         await get().fetchUser();
         

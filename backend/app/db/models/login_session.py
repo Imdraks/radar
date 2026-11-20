@@ -1,7 +1,7 @@
 """Revocable account sessions and opt-in browser trust, never raw credentials."""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
 
@@ -15,6 +15,7 @@ class UserSession(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
     revoked_at = Column(DateTime)
+    browser_public_key = Column(JSON(none_as_null=True))
 
 
 class TrustedDevice(Base):

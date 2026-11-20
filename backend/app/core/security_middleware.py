@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -222,6 +223,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "payment=(), usb=(), magnetometer=(), gyroscope=()"
         )
         
+        if settings.app_env == "production":
+            response.headers["Content-Security-Policy"] = response.headers["Content-Security-Policy"].replace("'unsafe-eval' ", "")
+        if request.url.path.startswith('/api/'):
+            response.headers['Cache-Control']='no-store'
         return response
 
 

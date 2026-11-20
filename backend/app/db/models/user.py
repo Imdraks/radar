@@ -6,6 +6,7 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum as PyEnum
+from app.core.encrypted_binary import EncryptedBinary
 from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, JSON, Integer, BigInteger, LargeBinary
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, deferred
@@ -52,7 +53,7 @@ class User(Base):
     # SSO fields
     auth_provider = Column(String(50), default='credentials')  # 'credentials' | 'google' | 'apple'
     avatar_url = Column(String(500), nullable=True)  # Profile picture from SSO
-    avatar_image = deferred(Column(LargeBinary, nullable=True))  # Sanitized JPEG, max 64 KiB
+    avatar_image = deferred(Column(EncryptedBinary("user-avatar"), nullable=True))  # Sanitized JPEG, max 64 KiB
 
     @property
     def profile_avatar_url(self):
