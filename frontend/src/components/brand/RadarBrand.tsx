@@ -21,3 +21,8 @@ export function RadarLogo({ className, compact = false, inverted = false }: { cl
 export function RadarField({ className }: { className?: string }) {
   return <div aria-hidden="true" className={cn('radar-field relative', className)}><span /><span /><span /><span /><i /></div>;
 }
+
+/** Decorative radar pattern adapted from Uiverse.io by ommanav_2060. */
+export function RadarPattern({ className }: { className?: string }) {
+  return <div aria-hidden="true" className={cn('radar-pattern', className)}><span className="radar-pattern-center" /></div>;
+}

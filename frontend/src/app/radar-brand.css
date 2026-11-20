@@ -87,12 +87,76 @@
   .radar-field::before { top: 50%; height: 1px; width: 100%; }
   .radar-field::after { left: 50%; width: 1px; height: 100%; }
   .radar-field i { position: absolute; width: 8px; height: 8px; left: 74%; top: 23%; background: hsl(var(--primary)); border-radius: 50%; box-shadow: 0 0 0 6px hsl(var(--primary) / .08); }
+  /* Pattern adapted from Uiverse.io by ommanav_2060, in Radar's light/violet palette. */
+  .radar-pattern {
+    --radar-ring-step: clamp(36px, 7vw, 56px);
+    isolation: isolate;
+    overflow: hidden;
+    pointer-events: none;
+    border-radius: 24px;
+    background-color: hsl(var(--primary) / .018);
+    background-image:
+      linear-gradient(hsl(var(--primary) / .055) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / .055) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center;
+    mask-image: radial-gradient(ellipse at center, #000 40%, transparent 75%);
+  }
+  .radar-pattern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: repeating-radial-gradient(circle at center,
+      transparent 0 calc(var(--radar-ring-step) - 1px),
+      hsl(var(--primary) / .18) calc(var(--radar-ring-step) - 1px) var(--radar-ring-step));
+  }
+  .radar-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 4%;
+    z-index: 2;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+      transparent 0deg 270deg,
+      hsl(var(--primary) / .035) 300deg,
+      hsl(var(--primary) / .2) 360deg);
+    animation: radar-pattern-sweep 8s linear infinite;
+  }
+  .radar-pattern-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    width: 12px;
+    height: 12px;
+    margin: -6px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    box-shadow: 0 0 52px 24px hsl(var(--primary) / .24);
+    animation: radar-pattern-breathe 3s ease-in-out infinite;
+  }
+  @keyframes radar-pattern-sweep { to { transform: rotate(360deg); } }
+  @keyframes radar-pattern-breathe {
+    0%, 100% { opacity: .55; transform: scale(.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .radar-pattern::after, .radar-pattern-center { animation: none; }
+  }
   .radar-orbit-label { @apply absolute z-10 flex min-w-[112px] items-center gap-2.5 rounded-xl border bg-white px-3 py-3 shadow-sm; }
   .radar-orbit-label svg { color: hsl(var(--primary)); }
   .radar-orbit-label-0 { top: 12%; left: 0; }
   .radar-orbit-label-1 { top: 18%; right: 0; }
   .radar-orbit-label-2 { bottom: 14%; left: 3%; }
   .radar-orbit-label-3 { bottom: 9%; right: 1%; }
+  @media (max-width: 479px) {
+    .radar-orbit-panel .radar-orbit-label { min-width: 104px; gap: 8px; padding: 10px; }
+    .radar-orbit-label-0, .radar-orbit-label-1 { top: 4%; }
+    .radar-orbit-label-2, .radar-orbit-label-3 { bottom: 4%; }
+    .radar-orbit-label-0, .radar-orbit-label-2 { left: 0; }
+    .radar-orbit-label-1, .radar-orbit-label-3 { right: 0; }
+  }
   .radar-app { font-size: 14px; }
   .radar-content h1 { letter-spacing: -.04em; }
   .radar-content :where(table) { font-variant-numeric: tabular-nums; }
