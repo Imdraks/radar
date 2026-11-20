@@ -20,7 +20,8 @@ for radar_service in backend frontend; do
   radar_image=$(sudo docker inspect --format '{{.Image}}' "radar-${radar_service}-1")
   sudo docker image tag "$radar_image" "radar-${radar_service}:before-client-admin-$radar_stamp"
 done
-sudo git rev-parse HEAD | sudo tee "$radar_backup/source-commit.txt" >/dev/null
+# Nested sudo may change SUDO_UID: trust only this deployment checkout for this command.
+sudo git -c safe.directory=/opt/radar rev-parse HEAD | sudo tee "$radar_backup/source-commit.txt" >/dev/null
 radar_compose build backend frontend
 # Schema must exist before the new API or worker is started.
 radar_compose run --rm --no-deps backend alembic upgrade head
