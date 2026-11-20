@@ -120,6 +120,8 @@ rate_limiter = RateLimiter()
 
 # Specific limits for sensitive endpoints (scaled for 10+ concurrent users)
 RATE_LIMITS = {
+    "/api/v1/review/resolve": {"max": 60, "window": 60},
+    "/api/v1/review/decide": {"max": 10, "window": 60},
     "/api/v1/auth/password/change": {"max": 10, "window": 300},
     "/api/v1/auth/mfa/complete": {"max": 10, "window": 60},
     "/api/v1/auth/mfa/send": {"max": 10, "window": 60},

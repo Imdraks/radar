@@ -1636,6 +1636,21 @@
     },
     "contact_inquiries": {
       "exclude": "Global public business inquiries, not workspace-owned; controlled review by platform administrator for subject access and retention."
+    },
+    "production_templates": {
+      "direct": true,
+      "columns": [
+        "id",
+        "workspace_id",
+        "name",
+        "kind",
+        "definition",
+        "created_at"
+      ],
+      "excluded_columns": []
+    },
+    "deliverable_reviews": {
+      "exclude": "Bearer review grants and externally declared identity; manual scoped review required, never export capability hashes."
     }
   }
 }

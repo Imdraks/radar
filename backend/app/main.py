@@ -411,3 +411,10 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info(f"Shutting down {settings.app_name}")
+
+# Reusable production tools and a separate, token-bound external review surface.
+from app.api.production_tools import router as production_tools_router, public_router as external_review_router
+from app.api.integration_status import router as integration_status_router
+app.include_router(production_tools_router, prefix="/api/v1")
+app.include_router(external_review_router, prefix="/api/v1/review", tags=["External review"])
+app.include_router(integration_status_router, prefix="/api/v1")

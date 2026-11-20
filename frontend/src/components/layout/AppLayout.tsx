@@ -1,4 +1,5 @@
 'use client';
+import { GlobalSearch } from '@/components/production-tools';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -105,7 +106,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           </Sheet>
           <div className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-muted-foreground sm:inline">{activeSection || 'Votre espace'}</span><ChevronRight size={14} className="hidden shrink-0 text-muted-foreground/60 sm:block" /><span className="truncate font-medium">{activeContext?.label || activeItem?.label || 'Radar'}</span></div>
         </div>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><BackgroundTasksIndicator /><NotificationCenter /><Button asChild variant="ghost" size="icon"><Link href="/doc" aria-label="Documentation Radar" title="Documentation Radar"><BookOpen size={19} /></Link></Button><OnboardingTrigger /><ThemeToggle /><Link href="/settings" aria-label="Paramètres du compte" className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex">{initials}</Link></div>
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><BackgroundTasksIndicator /><NotificationCenter /><Button asChild variant="ghost" size="icon"><Link href="/doc" aria-label="Documentation Radar" title="Documentation Radar"><BookOpen size={19} /></Link></Button><OnboardingTrigger /><GlobalSearch /><ThemeToggle /><Link href="/settings" aria-label="Paramètres du compte" className="ml-1 hidden h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary sm:flex">{initials}</Link></div>
       </header>
       <main id="radar-main" tabIndex={-1} aria-busy={!subscriptionRequested || isLoading} className="radar-content mx-auto max-w-[1520px] px-4 py-6 pb-28 outline-none sm:px-8 sm:py-8 lg:px-10 lg:pb-10">
         {isLoading ? <div role="status" className="rounded-2xl border bg-card p-8 text-sm text-muted-foreground">Chargement de votre espace…</div> : error ? <div role="alert" className="rounded-2xl border bg-card p-6"><p>{error}</p><Link href="/account/workspaces" className="mt-4 mr-4 inline-block text-sm text-primary underline">Choisir un autre espace</Link><Button onClick={() => fetchSubscription(selectedWorkspace())} variant="outline" className="mt-4">Réessayer</Button></div> : <RouteGuard pathname={pathname}>

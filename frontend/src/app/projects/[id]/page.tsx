@@ -74,6 +74,7 @@ import {
   projectDriveApi,
   DriveFolderInfo,
 } from "@/lib/api";
+import { ProductionConnections } from "@/components/production-tools";
 import { toast } from "sonner";
 import { AppLayoutWithOnboarding, ProtectedRoute } from "@/components/layout";
 
@@ -1173,6 +1174,8 @@ export default function ProjectDetailPage() {
               isCreatingDrive={isCreatingDrive}
               isCreatingBrief={isCreatingBrief}
             />
+
+            <ProductionConnections projectId={project.id} />
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

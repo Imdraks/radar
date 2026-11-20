@@ -259,6 +259,7 @@ FEATURE_ROUTES: Dict[str, Feature] = {
     "/cockpit": Feature.COCKPIT,
     "/pipeline": Feature.PIPELINE,
     "/projects": Feature.PROJECTS,
+    "/templates": Feature.PROJECTS,
     "/production": Feature.PRODUCTION,
     "/assets": Feature.ASSETS,
     "/calendar": Feature.CALENDAR,
@@ -314,7 +315,7 @@ class NavItem:
 NAV_SECTIONS = {
     "Accueil": [NavItem("Vue d'ensemble", "/today", "Home", Feature.COCKPIT),
                 NavItem("Activités et notifications", "/inbox", "Inbox", Feature.COCKPIT)],
-    "Organisation": [NavItem("Projets", "/projects", "FolderOpen", Feature.PROJECTS),
+    "Organisation": [NavItem("Projets", "/projects", "FolderOpen", Feature.PROJECTS, context_links=[NavItem("Projets", "/projects", "FolderOpen", Feature.PROJECTS), NavItem("Modèles de production", "/templates", "FileText", Feature.PROJECTS)]),
                      NavItem("Tâches et production", "/production", "Clapperboard", Feature.PRODUCTION),
                      NavItem("Calendrier", "/agency-calendar", "Calendar", Feature.CALENDAR),
                      NavItem("Fichiers", "/assets", "Image", Feature.ASSETS)],
@@ -331,6 +332,7 @@ NAV_SECTIONS = {
                      NavItem("Devis", "/devis", "Receipt", Feature.QUOTES),
                      NavItem("Factures et paiements", "/factures", "FileCheck", Feature.INVOICES)])],
     "Administration": [NavItem("Équipe et intégrations", "/workspace/settings", "Users", admin_only=True),
+                        NavItem("Intégrations", "/integrations", "Settings"),
                         NavItem("Abonnement", "/settings/subscription", "CreditCard"),
                         NavItem("Paramètres", "/settings", "Settings")],
 }

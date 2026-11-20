@@ -1,0 +1,7 @@
+[Unit]
+Description=Radar service and backup monitoring
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+[Install]
+WantedBy=timers.target

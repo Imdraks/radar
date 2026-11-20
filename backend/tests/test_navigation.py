@@ -35,7 +35,9 @@ def test_expired_plan_hides_paid_contextual_links(client, actors, db_session, he
     response = client.get('/api/v1/subscription/navigation', headers=headers())
     assert response.status_code == 200
     items = [item for section in response.json()['sections'].values() for item in section]
-    assert all(not item['context_links'] for item in items)
+    links = [link['path'] for item in items for link in item['context_links']]
+    assert set(links) <= {'/projects', '/templates'}
+    assert not {'/comparison', '/pipeline', '/factures', '/map'} & set(links)
     assert not {'/clients', '/discovery', '/events', '/devis'} & {item['path'] for item in items}
 
 

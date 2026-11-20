@@ -781,6 +781,9 @@ async def delete_deliverable(
     archive_folder_id = project.drive_folder_archive if project else None
     user_id = current_user.id
     
+    from app.db.models.production_tools import DeliverableReview
+    if db.query(DeliverableReview.id).filter_by(deliverable_id=deliverable.id).first():
+        raise HTTPException(409, "Ce livrable possède un historique de validation externe à conserver.")
     db.delete(deliverable)
     db.commit()
     
