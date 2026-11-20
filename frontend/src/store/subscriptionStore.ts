@@ -29,7 +29,7 @@ export interface AddonInfo { name: string; display_name: string; description: st
 export const ADMIN_ONLY_FEATURES: Feature[] = ['sources', 'source_health'];
 export const FEATURE_ROUTES: Record<string, Feature> = {
   '/today': 'cockpit', '/cockpit': 'cockpit', '/dashboard': 'cockpit', '/inbox': 'cockpit',
-  '/projects': 'projects', '/production': 'production', '/assets': 'assets',
+  '/projects': 'projects', '/templates': 'projects', '/production': 'production', '/assets': 'assets',
   '/agency-calendar': 'calendar', '/calendar': 'calendar', '/events': 'events',
   '/clients': 'clients', '/pipeline': 'pipeline', '/leads': 'leads', '/opportunities': 'leads',
   '/dossiers': 'dossiers', '/artist': 'artists', '/artists': 'artists', '/discovery': 'discovery',
@@ -55,7 +55,7 @@ interface SubscriptionState {
 let fetchGeneration = 0;
 const initialState = { subscription: null, navigation: null, isLoading: false, error: null, isAdmin: false };
 export function selectedWorkspace(): number | undefined {
-  const id = Number(localStorage.getItem('current_workspace_id'));
+  const id = Number(typeof window === 'undefined' ? null : localStorage.getItem('current_workspace_id'));
   return Number.isSafeInteger(id) && id > 0 ? id : undefined;
 }
 export async function subscriptionFetch(path: string, workspaceId?: number, init?: RequestInit) {

@@ -1,0 +1,8 @@
+[Unit]
+Description=Radar weekly isolated restoration drill
+[Timer]
+OnCalendar=Sun *-*-* 04:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+[Install]
+WantedBy=timers.target

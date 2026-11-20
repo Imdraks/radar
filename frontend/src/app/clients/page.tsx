@@ -1,7 +1,8 @@
 "use client";
+import { useSearchParams } from "next/navigation";
 import { workspaceFetch } from "@/lib/workspace-fetch";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
@@ -85,7 +86,7 @@ export default function ClientsPage() {
   return (
     <ProtectedRoute>
       <AppLayoutWithOnboarding>
-        <ClientsContent />
+        <Suspense fallback={<p role="status">Chargement des clients…</p>}><ClientsContent /></Suspense>
       </AppLayoutWithOnboarding>
     </ProtectedRoute>
   );
@@ -94,6 +95,8 @@ export default function ClientsPage() {
 function ClientsContent() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const query = useSearchParams();
+  useEffect(() => { setSearchTerm(query.get("q") || ""); }, [query]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   

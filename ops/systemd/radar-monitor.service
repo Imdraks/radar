@@ -1,0 +1,9 @@
+[Unit]
+Description=Radar monitor
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+UMask=0077
+EnvironmentFile=-/etc/radar-operations.env
+ExecStart=/usr/bin/python3 /opt/radar/scripts/operations.py monitor

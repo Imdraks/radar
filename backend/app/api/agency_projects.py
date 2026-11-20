@@ -441,6 +441,10 @@ async def delete_project(
     user_id = current_user.id
     
     # Delete from database
+    from app.db.models.production_tools import DeliverableReview
+    from app.db.models.production_event import ProductionEvent
+    if db.query(DeliverableReview.id).join(Deliverable).filter(Deliverable.project_id==project.id).first() or db.query(ProductionEvent.id).filter_by(project_id=project.id).first():
+        raise HTTPException(409, "Ce projet possède un événement ou un historique de validation. Archivez-le pour conserver les données.")
     db.delete(project)
     db.commit()
     
@@ -735,6 +739,9 @@ async def delete_deliverable(
     archive_folder_id = project.drive_folder_archive if project else None
     user_id = current_user.id
     
+    from app.db.models.production_tools import DeliverableReview
+    if db.query(DeliverableReview.id).filter_by(deliverable_id=d.id).first():
+        raise HTTPException(409, "Ce livrable possède un historique de validation externe à conserver.")
     db.delete(d)
     db.commit()
     

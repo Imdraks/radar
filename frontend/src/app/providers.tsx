@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation";
 
 const PUBLIC_PATHS = new Set([
   '/', '/pricing', '/contact', '/mcp', '/legal', '/privacy', '/terms',
-  '/sales-terms', '/cookies', '/data-processing', '/subprocessors',
+  '/review', '/sales-terms', '/cookies', '/data-processing', '/subprocessors',
   '/reversibility', '/accessibility', '/contracts', '/retention',
 ]);
 
@@ -33,6 +33,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // workspace identity so the application is not remounted in a loading loop.
   const selectedWorkspaceId = typeof window !== "undefined" ? Number(localStorage.getItem('current_workspace_id')) || undefined : undefined;
   const workspaceId = loadedWorkspaceId ?? selectedWorkspaceId;
+  // A bearer review is independent of account/workspace hydration. Remounting it
+  // after it has consumed and removed its URL fragment would lose the grant.
+  const externalReview = pathname === '/review';
+  const queryUserId = externalReview ? 'external-review' : userId;
+  const queryWorkspaceId = externalReview ? undefined : workspaceId;
   const queryClient = useMemo(
     () =>
       new QueryClient({
@@ -51,11 +56,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         },
       }),
-    [userId, workspaceId]
+    [queryUserId, queryWorkspaceId]
   );
 
   return (
-    <QueryClientProvider key={`${userId ?? "anonymous"}:${workspaceId ?? "none"}`} client={queryClient}>
+    <QueryClientProvider key={`${queryUserId ?? "anonymous"}:${queryWorkspaceId ?? "none"}`} client={queryClient}>
       <ThemeProvider
         attribute="class"
         defaultTheme="light"
